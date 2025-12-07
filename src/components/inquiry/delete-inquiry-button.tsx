@@ -35,8 +35,13 @@ export function DeleteInquiryButton({ inquiryId, nuipc }: { inquiryId: string, n
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                >
                     <Trash2 className="h-4 w-4" />
+                    Apagar
                 </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>

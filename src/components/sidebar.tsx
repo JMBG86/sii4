@@ -74,7 +74,7 @@ export function Sidebar() {
 
     return (
         <div className="flex h-screen w-64 flex-col border-r bg-white dark:bg-gray-950">
-            <div className="flex flex-col items-center justify-center p-6 border-b">
+            <Link href="/" className="flex flex-col items-center justify-center p-6 border-b hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer">
                 <div className="relative h-36 w-36 mb-4">
                     <Image
                         src="/LOGO.png"
@@ -87,7 +87,7 @@ export function Sidebar() {
                 <span className="text-sm font-bold text-center leading-tight">
                     SECÇÃO DE INVESTIGAÇÃO<br />E INQUÉRITOS
                 </span>
-            </div>
+            </Link>
             <div className="flex-1 overflow-auto py-4">
                 <nav className="grid gap-1 px-2">
                     {sidebarItems.map((item, index) => (

@@ -142,13 +142,16 @@ export default async function InqueritosPage({
                                         <span className="text-muted-foreground text-sm">Normal</span>
                                     )}
                                 </TableCell>
-                                <TableCell className="text-right space-x-2">
-                                    <Link href={`/inqueritos/${inq.id}`}>
-                                        <Button variant="ghost" size="icon">
-                                            <Eye className="h-4 w-4" />
-                                        </Button>
-                                    </Link>
-                                    <DeleteInquiryButton inquiryId={inq.id} nuipc={inq.nuipc} />
+                                <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                        <Link href={`/inqueritos/${inq.id}`}>
+                                            <Button variant="outline" size="sm" className="gap-2">
+                                                <Eye className="h-4 w-4" />
+                                                Ver Detalhes
+                                            </Button>
+                                        </Link>
+                                        <DeleteInquiryButton inquiryId={inq.id} nuipc={inq.nuipc} />
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}

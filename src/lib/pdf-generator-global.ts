@@ -1,29 +1,30 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-interface ConcludedInquiry {
+interface GlobalInquiry {
     nuipc: string
-    data_conclusao: string
-    numero_oficio: string | null
     tipo_crime: string | null
+    estado: string
+    classificacao: string
+    data_ocorrencia: string | null
+    created_at: string
 }
 
-export async function generateBrandedReport(
-    inquiries: ConcludedInquiry[],
+export async function generateGlobalReport(
+    inquiries: GlobalInquiry[],
     startDate: Date,
     endDate: Date,
-    userName: string
+    userName: string,
+    selectedStates: string[]
 ) {
-    const doc = new jsPDF()
+    const doc = new jsPDF('landscape') // Landscape for more columns
     const pageWidth = doc.internal.pageSize.getWidth()
     const pageHeight = doc.internal.pageSize.getHeight()
 
     // Load and embed logo
     try {
         const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
-
-        // Add logo centered with proper aspect ratio (50% larger than original)
-        const maxLogoWidth = 52.5  // 50% larger than original 35mm
+        const maxLogoWidth = 52.5
         const logoWidth = maxLogoWidth
         const logoHeight = maxLogoWidth / aspectRatio
         const logoX = (pageWidth - logoWidth) / 2
@@ -55,45 +56,51 @@ export async function generateBrandedReport(
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(41, 128, 185)
-    const title = 'Relatório de Inquéritos Concluídos'
+    const title = 'Relatório Global de Inquéritos'
     const titleWidth = doc.getTextWidth(title)
     doc.text(title, (pageWidth - titleWidth) / 2, 82)
 
-    // Date range
-    doc.setFontSize(10)
+    // Date range and filters
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(0, 0, 0)
     const dateRange = `Período: ${startDate.toLocaleDateString('pt-PT')} a ${endDate.toLocaleDateString('pt-PT')}`
     const dateRangeWidth = doc.getTextWidth(dateRange)
     doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, 90)
 
+    const statesText = `Estados: ${selectedStates.join(', ')}`
+    const statesTextWidth = doc.getTextWidth(statesText)
+    doc.text(statesText, (pageWidth - statesTextWidth) / 2, 96)
+
     // Table data
     const tableData = inquiries.map((inq) => [
         inq.nuipc,
         inq.tipo_crime || '-',
-        inq.data_conclusao ? new Date(inq.data_conclusao).toLocaleDateString('pt-PT') : '-',
-        inq.numero_oficio || '-',
+        translateState(inq.estado),
+        inq.classificacao === 'relevo' ? 'Relevo' : 'Normal',
+        inq.data_ocorrencia ? new Date(inq.data_ocorrencia).toLocaleDateString('pt-PT') : '-',
+        new Date(inq.created_at).toLocaleDateString('pt-PT'),
     ])
 
     // Calculate table width and center it
-    const tableWidth = 45 + 60 + 40 + 35 // Sum of column widths
+    const tableWidth = 40 + 60 + 35 + 30 + 30 + 30 // Sum of column widths
     const horizontalMargin = (pageWidth - tableWidth) / 2
 
     // Generate modern table
     autoTable(doc, {
-        startY: 98,
-        head: [['NUIPC', 'Crime', 'Data de Conclusão', 'Nº Ofício']],
+        startY: 104,
+        head: [['NUIPC', 'Crime', 'Estado', 'Classificação', 'Data Ocorrência', 'Data Criação']],
         body: tableData,
         styles: {
-            fontSize: 9,
-            cellPadding: 5,
+            fontSize: 8,
+            cellPadding: 3,
             lineColor: [220, 220, 220],
             lineWidth: 0.1,
         },
         headStyles: {
             fillColor: [41, 128, 185],
             textColor: [255, 255, 255],
-            fontSize: 10,
+            fontSize: 9,
             fontStyle: 'bold',
             halign: 'center',
         },
@@ -101,19 +108,26 @@ export async function generateBrandedReport(
             fillColor: [245, 248, 250],
         },
         columnStyles: {
-            0: { cellWidth: 45, fontStyle: 'bold' },
+            0: { cellWidth: 40, fontStyle: 'bold' },
             1: { cellWidth: 60 },
-            2: { cellWidth: 40, halign: 'center' },
-            3: { cellWidth: 35, halign: 'center' },
+            2: { cellWidth: 35, halign: 'center' },
+            3: { cellWidth: 30, halign: 'center' },
+            4: { cellWidth: 30, halign: 'center' },
+            5: { cellWidth: 30, halign: 'center' },
         },
         margin: { left: horizontalMargin, right: horizontalMargin, top: 20 },
         didDrawPage: (data) => {
-            // Header only on first page - already drawn above
+            // Only draw header on first page
+            if (data.pageNumber === 1) {
+                // Header is already drawn above, do nothing
+            } else {
+                // For subsequent pages, start table higher (no header)
+                // The table will automatically continue from previous page
+            }
         }
     })
 
     // Footer
-    const finalY = (doc as any).lastAutoTable.finalY || 98
     doc.setFontSize(8)
     doc.setTextColor(100, 100, 100)
     doc.text(
@@ -153,8 +167,19 @@ export async function generateBrandedReport(
     }
 
     // Save PDF
-    const filename = `relatorio_concluidos_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
+    const filename = `relatorio_global_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
     doc.save(filename)
+}
+
+function translateState(state: string): string {
+    const translations: Record<string, string> = {
+        'por_iniciar': 'Por Iniciar',
+        'em_diligencias': 'Em Diligências',
+        'aguardando_resposta': 'Aguardando Resposta',
+        'tribunal': 'Tribunal',
+        'concluido': 'Concluído',
+    }
+    return translations[state] || state
 }
 
 // Helper function to load image as base64 with aspect ratio
