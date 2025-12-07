@@ -23,7 +23,8 @@ export interface Diligence {
     descricao: string
     entidade: string | null
     data_solicitacao: string | null
-    data_prevista: string | null
+    data_enviado: string | null  // renamed from data_prevista
+    status: 'a_realizar' | 'realizado' | 'enviado_aguardar'  // new field
     estado: 'pendente' | 'respondida' | 'recusada'
     tipo: string | null
     created_at: string

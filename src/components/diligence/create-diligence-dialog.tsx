@@ -90,11 +90,26 @@ export function CreateDiligenceDialog({ inquiries, preSelectedInquiryId }: { inq
                                     <SelectItem value="outro">Outro</SelectItem>
                                 </SelectContent>
                             </Select>
+
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="data_prevista">Prazo / Data Prevista</Label>
-                            <Input type="date" name="data_prevista" />
+                            <Label htmlFor="data_enviado">Data Enviado</Label>
+                            <Input type="date" name="data_enviado" />
                         </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select name="status" defaultValue="a_realizar">
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="a_realizar">A Realizar</SelectItem>
+                                <SelectItem value="enviado_aguardar">Enviado e a Aguardar</SelectItem>
+                                <SelectItem value="realizado">Realizado</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -116,6 +131,6 @@ export function CreateDiligenceDialog({ inquiries, preSelectedInquiryId }: { inq
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     )
 }

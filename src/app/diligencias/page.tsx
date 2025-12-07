@@ -52,8 +52,8 @@ export default async function DiligenciasPage() {
                                     <TableHead>Tipo</TableHead>
                                     <TableHead>Descrição</TableHead>
                                     <TableHead>Entidade</TableHead>
-                                    <TableHead>Prazo</TableHead>
-                                    <TableHead>Estado</TableHead>
+                                    <TableHead>Data Enviado</TableHead>
+                                    <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>

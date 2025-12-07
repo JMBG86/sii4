@@ -84,14 +84,16 @@ export async function addDiligence(formData: FormData) {
     const descricao = formData.get('descricao') as string
     const entidade = formData.get('entidade') as string
     const tipo = formData.get('tipo') as string
-    const data_prevista = formData.get('data_prevista') as string
+    const data_enviado = formData.get('data_enviado') as string
+    const status = formData.get('status') as string || 'a_realizar'
 
     const { error } = await supabase.from('diligencias').insert({
         inquerito_id,
         descricao,
         entidade,
         tipo,
-        data_prevista: data_prevista || null,
+        data_enviado: data_enviado || null,
+        status,
         estado: 'pendente'
     })
 
@@ -101,6 +103,8 @@ export async function addDiligence(formData: FormData) {
     }
 
     revalidatePath(`/inqueritos/${inquerito_id}`)
+    revalidatePath('/')
+    redirect(`/inqueritos/${inquerito_id}`)
 }
 
 export async function deleteInquiry(inquiryId: string) {
@@ -116,6 +120,51 @@ export async function deleteInquiry(inquiryId: string) {
         return { error: 'Failed to delete inquiry' }
     }
 
+    revalidatePath('/inqueritos')
+    revalidatePath('/')
+}
+
+export async function updateDiligence(diligenceId: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const descricao = formData.get('descricao') as string
+    const entidade = formData.get('entidade') as string
+    const data_enviado = formData.get('data_enviado') as string
+    const status = formData.get('status') as string
+
+    const { error } = await supabase
+        .from('diligencias')
+        .update({
+            descricao,
+            entidade: entidade || null,
+            data_enviado: data_enviado || null,
+            status,
+        })
+        .eq('id', diligenceId)
+
+    if (error) {
+        console.error('Error updating diligence:', error)
+        throw error
+    }
+
+    revalidatePath('/inqueritos')
+    revalidatePath('/')
+}
+
+export async function deleteDiligence(diligenceId: string, inquiryId: string) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('diligencias')
+        .delete()
+        .eq('id', diligenceId)
+
+    if (error) {
+        console.error('Error deleting diligence:', error)
+        throw error
+    }
+
+    revalidatePath(`/inqueritos/${inquiryId}`)
     revalidatePath('/inqueritos')
     revalidatePath('/')
 }

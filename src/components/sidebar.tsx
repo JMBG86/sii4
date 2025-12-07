@@ -13,6 +13,7 @@ import {
     Link2,
     LogOut,
     User,
+    Search,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -34,9 +35,9 @@ const sidebarItems = [
         icon: PlusCircle,
     },
     {
-        title: 'Diligências',
-        href: '/diligencias',
-        icon: ClipboardList,
+        title: 'Pesquisas',
+        href: '/pesquisas',
+        icon: Search,
     },
     {
         title: 'Ligações',
