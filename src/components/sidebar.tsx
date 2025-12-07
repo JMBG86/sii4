@@ -83,7 +83,8 @@ export function Sidebar() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
-        router.push('/login')
+        // Force full reload to clear Layout state (Server Components)
+        window.location.href = '/login'
     }
 
     return (
