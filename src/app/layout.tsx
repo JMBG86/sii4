@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
+import { MobileHeader } from "@/components/mobile-header";
 import { createClient } from "@/lib/supabase/server";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -47,10 +48,18 @@ export default async function RootLayout({
       <body className={`${inter.className} min-h-screen bg-gray-50 dark:bg-gray-900`}>
         {isAuthenticated ? (
           <div className="flex h-screen overflow-hidden">
-            <Sidebar />
+            {/* Desktop Sidebar - hidden on mobile */}
+            <div className="hidden md:block">
+              <Sidebar />
+            </div>
             <div className="flex flex-1 flex-col overflow-hidden">
-              <Header />
-              <main className="flex-1 overflow-auto p-6">
+              {/* Mobile Header - shown on mobile */}
+              <MobileHeader />
+              {/* Desktop Header - hidden on mobile */}
+              <div className="hidden md:block">
+                <Header />
+              </div>
+              <main className="flex-1 overflow-auto p-4 md:p-6">
                 {children}
               </main>
             </div>
