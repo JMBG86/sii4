@@ -39,9 +39,13 @@ export function DiligenceList({
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Diligências</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setShowAdd(!showAdd)}>
+                <Button
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700 text-white shadow-md"
+                    onClick={() => setShowAdd(!showAdd)}
+                >
                     <Plus className="mr-2 h-4 w-4" />
-                    Adicionar
+                    Adicionar Diligência
                 </Button>
             </CardHeader>
             <CardContent className="space-y-4">

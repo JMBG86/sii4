@@ -88,61 +88,73 @@ export default async function Dashboard() {
     <div className="space-y-6">
       {/* 5.1 Counters (Cards) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalInqueries || 0}</div>
-            <div className="text-xs text-muted-foreground mt-1 space-x-2">
-              {sortedYears.map((year, idx) => (
-                <span key={year} className={idx > 0 ? "border-l pl-2 border-gray-300" : ""}>
-                  {year}: <strong>{yearStats[year]}</strong>
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Por Iniciar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{pendingInqueries || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Diligências</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{diligenceInqueries || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tribunal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{courtInqueries || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{completedInqueries || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-900">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">Relevo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700 dark:text-red-300">{relevoInqueries || 0}</div>
-          </CardContent>
-        </Card>
+        <Link href="/inqueritos" className="block hover:opacity-80 transition-opacity">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{totalInqueries || 0}</div>
+              <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                {sortedYears.map((year, idx) => (
+                  <span key={year} className={idx > 0 ? "border-l pl-2 border-gray-300" : ""}>
+                    {year}: <strong>{yearStats[year]}</strong>
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/inqueritos?status=por_iniciar" className="block hover:opacity-80 transition-opacity">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Por Iniciar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{pendingInqueries || 0}</div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/inqueritos?status=em_diligencias" className="block hover:opacity-80 transition-opacity">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Em Diligências</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{diligenceInqueries || 0}</div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/inqueritos?status=tribunal" className="block hover:opacity-80 transition-opacity">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tribunal</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{courtInqueries || 0}</div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/inqueritos?status=concluido" className="block hover:opacity-80 transition-opacity">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{completedInqueries || 0}</div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/inqueritos?classificacao=relevo" className="block hover:opacity-80 transition-opacity">
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-900">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">Relevo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-700 dark:text-red-300">{relevoInqueries || 0}</div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* 5.2 Listagens rápidas */}
@@ -164,13 +176,23 @@ export default async function Dashboard() {
               </TableHeader>
               <TableBody>
                 {recentInquiries?.map((inq) => (
-                  <TableRow key={inq.id}>
-                    <TableCell className="font-medium">{inq.nuipc}</TableCell>
-                    <TableCell>{inq.tipo_crime}</TableCell>
+                  <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableCell className="font-medium">
+                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                        {inq.nuipc}
+                      </Link>
+                    </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
-                        {getStatusLabel(inq.estado as InquiryStatus)}
-                      </Badge>
+                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                        {inq.tipo_crime}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                        <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
+                          {getStatusLabel(inq.estado as InquiryStatus)}
+                        </Badge>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -227,13 +249,23 @@ export default async function Dashboard() {
               </TableHeader>
               <TableBody>
                 {notableInquiries?.map((inq) => (
-                  <TableRow key={inq.id}>
-                    <TableCell className="font-medium">{inq.nuipc}</TableCell>
-                    <TableCell>{inq.tipo_crime}</TableCell>
+                  <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <TableCell className="font-medium">
+                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                        {inq.nuipc}
+                      </Link>
+                    </TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
-                        {getStatusLabel(inq.estado as InquiryStatus)}
-                      </Badge>
+                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                        {inq.tipo_crime}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                        <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
+                          {getStatusLabel(inq.estado as InquiryStatus)}
+                        </Badge>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}

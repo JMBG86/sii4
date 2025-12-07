@@ -1,4 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
     Table,
@@ -10,100 +14,83 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Eye, Plus } from 'lucide-react'
 import { InquiryStatus } from '@/types/database'
-import { ExportDropdown } from '@/components/export-dropdown'
 import { DeleteInquiryButton } from '@/components/inquiry/delete-inquiry-button'
+import { useRouter } from 'next/navigation'
 
-export default async function InqueritosPage({
-    searchParams,
-}: {
-    searchParams: Promise<{ q?: string; status?: string }>
-}) {
-    const supabase = await createClient()
-    const { q, status } = await searchParams
-    const query = q || ''
-    const statusFilter = status || 'all'
+export default function InqueritosPage() {
+    const [inqueritos, setInqueritos] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const router = useRouter()
+    const searchParams = useSearchParams()
 
-    let dbQuery = supabase
-        .from('inqueritos')
-        .select('*')
-        .order('created_at', { ascending: false })
+    useEffect(() => {
+        async function fetchInqueritos() {
+            const supabase = createClient()
+            let query = supabase
+                .from('inqueritos')
+                .select('*')
+                .order('created_at', { ascending: false })
 
-    if (query) {
-        dbQuery = dbQuery.ilike('nuipc', `%${query}%`)
-    }
+            // Apply filters from URL parameters
+            const status = searchParams.get('status')
+            const classificacao = searchParams.get('classificacao')
 
-    if (statusFilter !== 'all') {
-        dbQuery = dbQuery.eq('estado', statusFilter)
-    }
+            if (status) {
+                query = query.eq('estado', status)
+            }
+            if (classificacao) {
+                query = query.eq('classificacao', classificacao)
+            }
 
-    const { data: inqueritos } = await dbQuery
+            const { data } = await query
 
-    const getStatusColor = (status: InquiryStatus) => {
-        switch (status) {
-            case 'por_iniciar':
-                return 'bg-blue-500'
-            case 'em_diligencias':
-                return 'bg-yellow-500'
-            case 'tribunal':
-                return 'bg-purple-500'
-            case 'concluido':
-                return 'bg-green-500'
-            case 'aguardando_resposta':
-                return 'bg-orange-500'
-            default:
-                return 'bg-gray-500'
+            setInqueritos(data || [])
+            setLoading(false)
         }
+        fetchInqueritos()
+    }, [searchParams])
+
+    function getStatusLabel(status: InquiryStatus): string {
+        const labels: Record<InquiryStatus, string> = {
+            por_iniciar: 'Por Iniciar',
+            em_diligencias: 'Em Diligências',
+            aguardando_resposta: 'Aguardando Resposta',
+            tribunal: 'Tribunal',
+            concluido: 'Concluído',
+        }
+        return labels[status] || status
     }
 
-    const getStatusLabel = (status: InquiryStatus) => {
-        return status.replace('_', ' ').toUpperCase()
+    function getStatusColor(status: InquiryStatus): string {
+        const colors: Record<InquiryStatus, string> = {
+            por_iniciar: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-0',
+            em_diligencias: 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-0',
+            aguardando_resposta: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-0',
+            tribunal: 'bg-purple-100 text-purple-700 hover:bg-purple-200 border-0',
+            concluido: 'bg-green-100 text-green-700 hover:bg-green-200 border-0',
+        }
+        return colors[status] || ''
+    }
+
+    if (loading) {
+        return <div className="p-6">A carregar...</div>
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Inquéritos</h1>
-                <div className="flex gap-2">
-                    <ExportDropdown />
-                    <Link href="/inqueritos/novo">
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Novo Inquérito
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-900">
-                <form className="flex flex-1 items-center gap-4">
-                    <Input
-                        name="q"
-                        placeholder="Pesquisar por NUIPC..."
-                        defaultValue={query}
-                        className="max-w-sm"
-                    />
-                    <select
-                        name="status"
-                        className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        defaultValue={statusFilter}
-                    >
-                        <option value="all">Todos os Estados</option>
-                        <option value="por_iniciar">Por Iniciar</option>
-                        <option value="em_diligencias">Em Diligências</option>
-                        <option value="tribunal">Tribunal</option>
-                        <option value="concluido">Concluído</option>
-                        <option value="aguardando_resposta">Aguardando Resposta</option>
-                    </select>
-                    <Button type="submit" variant="secondary">
-                        Filtrar
+                <Link href="/inqueritos/novo">
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Novo Inquérito
                     </Button>
-                </form>
+                </Link>
             </div>
 
-            <div className="rounded-md border bg-white shadow-sm dark:bg-gray-900">
+            <div className="rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -117,7 +104,11 @@ export default async function InqueritosPage({
                     </TableHeader>
                     <TableBody>
                         {inqueritos?.map((inq) => (
-                            <TableRow key={inq.id}>
+                            <TableRow
+                                key={inq.id}
+                                onClick={() => router.push(`/inqueritos/${inq.id}`)}
+                                className="cursor-pointer"
+                            >
                                 <TableCell className="font-medium">{inq.nuipc}</TableCell>
                                 <TableCell>{inq.tipo_crime}</TableCell>
                                 <TableCell>
@@ -143,7 +134,7 @@ export default async function InqueritosPage({
                                     )}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
+                                    <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                         <Link href={`/inqueritos/${inq.id}`}>
                                             <Button variant="outline" size="sm" className="gap-2">
                                                 <Eye className="h-4 w-4" />

@@ -63,7 +63,9 @@ export function StateUpdateDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline">Mudar Estado</Button>
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white shadow-md">
+                    Mudar Estado
+                </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
