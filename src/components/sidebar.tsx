@@ -14,6 +14,7 @@ import {
     LogOut,
     User,
     Search,
+    Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -57,12 +58,24 @@ export function Sidebar() {
     const supabase = createClient()
 
     const [userName, setUserName] = useState('')
+    const [isAdmin, setIsAdmin] = useState(false)
 
     useEffect(() => {
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
                 setUserName(user.user_metadata.full_name || user.email?.split('@')[0] || 'Utilizador')
+
+                // Check admin role
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+
+                if (profile?.role === 'admin') {
+                    setIsAdmin(true)
+                }
             }
         }
         getUser()
@@ -106,6 +119,26 @@ export function Sidebar() {
                             {item.title}
                         </Link>
                     ))}
+
+                    {isAdmin && (
+                        <>
+                            <div className="my-2 border-t px-2 text-xs font-semibold text-gray-500 pt-2">
+                                ADMINISTRAÇÃO
+                            </div>
+                            <Link
+                                href="/admin/users"
+                                className={cn(
+                                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
+                                    pathname === '/admin/users'
+                                        ? 'bg-red-50 text-red-600 dark:bg-red-950/50'
+                                        : 'text-gray-500 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-950/30'
+                                )}
+                            >
+                                <Shield className="h-4 w-4" />
+                                Utilizadores
+                            </Link>
+                        </>
+                    )}
                 </nav>
             </div>
             <div className="border-t p-4 space-y-2">

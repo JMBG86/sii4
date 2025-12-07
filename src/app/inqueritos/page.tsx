@@ -26,10 +26,24 @@ export default function InqueritosPage() {
     const searchParams = useSearchParams()
 
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null)
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
 
     useEffect(() => {
         async function fetchInqueritos() {
             const supabase = createClient()
+
+            // Check user role
+            const { data: { user } } = await supabase.auth.getUser()
+            let admin = false
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+                if (profile?.role === 'admin') {
+                    setIsAdmin(true)
+                    admin = true
+                }
+            }
+
             let query = supabase
                 .from('inqueritos')
                 .select('*')
@@ -53,8 +67,27 @@ export default function InqueritosPage() {
             }
 
             const { data } = await query
-
             setInqueritos(data || [])
+
+            // If admin, fetch profiles for the users
+            if (admin && data && data.length > 0) {
+                const userIds = Array.from(new Set(data.map(i => i.user_id).filter(Boolean)))
+                if (userIds.length > 0) {
+                    const { data: profiles } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, email')
+                        .in('id', userIds)
+
+                    if (profiles) {
+                        const map: Record<string, any> = {}
+                        profiles.forEach(p => {
+                            map[p.id] = p
+                        })
+                        setProfilesMap(map)
+                    }
+                }
+            }
+
             setLoading(false)
         }
         fetchInqueritos()
@@ -133,6 +166,9 @@ export default function InqueritosPage() {
                             <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('classificacao')}>
                                 <div className="flex items-center">Classificação <SortIcon column="classificacao" /></div>
                             </TableHead>
+                            {isAdmin && (
+                                <TableHead>Atribuído a</TableHead>
+                            )}
                             <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -167,6 +203,18 @@ export default function InqueritosPage() {
                                         <span className="text-muted-foreground text-sm">Normal</span>
                                     )}
                                 </TableCell>
+                                {isAdmin && (
+                                    <TableCell>
+                                        {profilesMap[inq.user_id] ? (
+                                            <div className="flex flex-col text-xs">
+                                                <span className="font-medium">{profilesMap[inq.user_id].full_name || 'Usuário'}</span>
+                                                <span className="text-muted-foreground">{profilesMap[inq.user_id].email}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">-</span>
+                                        )}
+                                    </TableCell>
+                                )}
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                         <Link href={`/inqueritos/${inq.id}`}>

@@ -14,6 +14,22 @@ export async function createInquiry(formData: FormData) {
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
     const localizacao = formData.get('localizacao') as string
+    let assignedUserId = formData.get('assigned_user_id') as string
+
+    // Check if current user is admin to allow assignment
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        // If not admin, force userId to be self (ignore form data)
+        if (profile?.role !== 'admin') {
+            assignedUserId = user.id
+        } else {
+            // If admin but no user selected (or selected 'self'), default to self
+            if (!assignedUserId || assignedUserId === 'self') {
+                assignedUserId = user.id
+            }
+        }
+    }
 
     // Default values
     const estado = 'por_iniciar'
@@ -26,6 +42,7 @@ export async function createInquiry(formData: FormData) {
         classificacao,
         observacoes,
         localizacao: localizacao || null,
+        user_id: assignedUserId,
         estado,
     })
 
@@ -33,6 +50,16 @@ export async function createInquiry(formData: FormData) {
         console.error(error)
         return { error: 'Failed to create inquiry. NUIPC might be duplicate.' }
     }
+
+    // Trigger Notification if assigned to another user
+    if (assignedUserId !== user?.id) {
+        await supabase.from('notifications').insert({
+            user_id: assignedUserId,
+            message: `Novo inquérito atribuído: ${nuipc} - ${tipo_crime}`,
+            link: `/inqueritos` // Ideally we'd link to ID but we don't have it easily from insert without select
+        })
+    }
+
 
     revalidatePath('/inqueritos')
     redirect('/inqueritos')

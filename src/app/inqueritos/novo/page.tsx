@@ -1,5 +1,6 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
 import { createInquiry } from '../actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,12 +14,33 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
+import { Profile } from '@/types/database'
 
 export default function AddInquiryPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [profiles, setProfiles] = useState<Profile[]>([])
+
+    const supabase = createClient()
+
+    useEffect(() => {
+        const checkAdmin = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+            if (profile?.role === 'admin') {
+                setIsAdmin(true)
+                const { data: allProfiles } = await supabase.from('profiles').select('*').order('full_name', { ascending: true })
+                setProfiles(allProfiles || [])
+            }
+        }
+        checkAdmin()
+    }, [])
+
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
@@ -48,6 +70,28 @@ export default function AddInquiryPage() {
                             <Label htmlFor="nuipc">NUIPC *</Label>
                             <Input id="nuipc" name="nuipc" required placeholder="Ex: 123/24.0PALRA" />
                         </div>
+
+                        {isAdmin && (
+                            <div className="p-4 border rounded-md bg-blue-50 dark:bg-blue-950/20 mb-4">
+                                <Label htmlFor="assigned_user_id" className="text-blue-700 dark:text-blue-300 font-semibold">Atribuir a Utilizador (Admin)</Label>
+                                <Select name="assigned_user_id">
+                                    <SelectTrigger className="mt-2 bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-800">
+                                        <SelectValue placeholder="Selecione um utilizador (Opcional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="self">Atribuir a mim mesmo</SelectItem>
+                                        {profiles.map(p => (
+                                            <SelectItem key={p.id} value={p.id}>
+                                                {p.full_name || p.email}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+                                    Se deixar em branco, o inquérito ficará associado a si.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">

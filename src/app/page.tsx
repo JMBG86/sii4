@@ -64,6 +64,7 @@ export default async function Dashboard() {
     .from('inqueritos')
     .select('*')
     .eq('estado', 'aguardando_resposta')
+    .order('created_at', { ascending: false })
     .limit(10)
 
   // Diligences waiting response
@@ -71,6 +72,7 @@ export default async function Dashboard() {
     .from('diligencias')
     .select('*, inqueritos(nuipc, id)')
     .eq('status', 'enviado_aguardar')
+    .order('data_enviado', { ascending: false }) // Or created_at if data_enviado is null
     .limit(10)
 
   const { data: notableInquiries } = await supabase
@@ -267,9 +269,13 @@ export default async function Dashboard() {
               {completedDiligences?.map((d) => (
                 <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                   <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
-                    <span className="font-semibold text-sm">{(d as any).inqueritos?.nuipc || 'N/A'}</span>
-                    <span className="text-sm text-muted-foreground">{d.descricao}</span>
-                    <Badge variant="outline" className="w-fit mt-1">Realizado</Badge>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-semibold">{(d as any).inqueritos?.nuipc || 'N/A'}</span>
+                      <span className="text-muted-foreground">-</span>
+                      <span className="text-muted-foreground">{d.entidade || '-'}</span>
+                      <span className="text-muted-foreground">-</span>
+                      <span className="text-muted-foreground">{d.data_enviado ? new Date(d.data_enviado).toLocaleDateString() : 'S/ Data'}</span>
+                    </div>
                   </div>
                 </Link>
               ))}
