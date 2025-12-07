@@ -18,6 +18,10 @@ import { Label } from '@/components/ui/label'
 import { Plus, Loader2 } from 'lucide-react'
 import { addDiligence } from '@/app/inqueritos/actions'
 import { DiligenceDetailDialog } from './diligence-detail-dialog'
+import { createClient } from '@/lib/supabase/client' // client component 
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+
 
 interface DiligenceListProps {
     diligences: Diligence[]
@@ -25,14 +29,52 @@ interface DiligenceListProps {
 }
 
 export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
+    const [diligencesList, setDiligencesList] = useState(diligences)
     const [showAdd, setShowAdd] = useState(false)
     const [loading, setLoading] = useState(false)
     const [selectedDiligence, setSelectedDiligence] = useState<Diligence | null>(null)
     const [dialogOpen, setDialogOpen] = useState(false)
 
+    const supabase = createClient()
+    const router = useRouter() // Re-use router for potential refresh triggers if needed, but we handle local state
+
+    useEffect(() => {
+        setDiligencesList(diligences)
+    }, [diligences])
+
+    useEffect(() => {
+        const channel = supabase
+            .channel(`diligences-realtime-${inquiryId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'diligencias',
+                    filter: `inquerito_id=eq.${inquiryId}`
+                },
+                async () => {
+                    // Optimistic or Fetch? Fetch is safer for order and calculated fields
+                    // Since this component gets data from props (Server Component parent), 
+                    // we can either re-fetch locally or refresh router.
+                    // Refreshing router is easiest way to keep sync with parent SC.
+                    router.refresh()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [supabase, inquiryId, router])
+
     const handleAdd = async (formData: FormData) => {
         setLoading(true)
         await addDiligence(formData)
+        // No need to manually update state if Realtime + router.refresh works, 
+        // BUT router.refresh is async. For best UX, we can optimistically update or just wait.
+        // The server action already revalidates path, so router.refresh() might be redundant 
+        // but the Realtime ensures updates from OTHER users are seen.
         setLoading(false)
         setShowAdd(false)
     }
@@ -106,7 +148,7 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {diligences.map((d) => (
+                            {diligencesList.map((d) => (
                                 <TableRow
                                     key={d.id}
                                     className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -122,7 +164,7 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {diligences.length === 0 && (
+                            {diligencesList.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={4} className="text-center text-muted-foreground">Sem diligências registadas.</TableCell>
                                 </TableRow>

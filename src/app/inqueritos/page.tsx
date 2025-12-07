@@ -19,6 +19,28 @@ import { InquiryStatus } from '@/types/database'
 import { DeleteInquiryButton } from '@/components/inquiry/delete-inquiry-button'
 import { useRouter } from 'next/navigation'
 
+function getStatusLabel(status: InquiryStatus): string {
+    const labels: Record<InquiryStatus, string> = {
+        por_iniciar: 'Por Iniciar',
+        em_diligencias: 'Em Diligências',
+        aguardando_resposta: 'Aguardando Resposta',
+        tribunal: 'Tribunal',
+        concluido: 'Concluído',
+    }
+    return labels[status] || status
+}
+
+function getStatusColor(status: InquiryStatus): string {
+    const colors: Record<InquiryStatus, string> = {
+        por_iniciar: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-0',
+        em_diligencias: 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-0',
+        aguardando_resposta: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-0',
+        tribunal: 'bg-purple-100 text-purple-700 hover:bg-purple-200 border-0',
+        concluido: 'bg-green-100 text-green-700 hover:bg-green-200 border-0',
+    }
+    return colors[status] || ''
+}
+
 export default function InqueritosPage() {
     const [inqueritos, setInqueritos] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -30,6 +52,8 @@ export default function InqueritosPage() {
     const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
 
     useEffect(() => {
+        let isMounted = true
+
         async function fetchInqueritos() {
             const supabase = createClient()
 
@@ -39,7 +63,7 @@ export default function InqueritosPage() {
             if (user) {
                 const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
                 if (profile?.role === 'admin') {
-                    setIsAdmin(true)
+                    if (isMounted) setIsAdmin(true)
                     admin = true
                 }
             }
@@ -67,7 +91,10 @@ export default function InqueritosPage() {
             }
 
             const { data } = await query
-            setInqueritos(data || [])
+
+            if (isMounted) {
+                setInqueritos(data || [])
+            }
 
             // If admin, fetch profiles for the users
             if (admin && data && data.length > 0) {
@@ -78,7 +105,7 @@ export default function InqueritosPage() {
                         .select('id, full_name, email')
                         .in('id', userIds)
 
-                    if (profiles) {
+                    if (profiles && isMounted) {
                         const map: Record<string, any> = {}
                         profiles.forEach(p => {
                             map[p.id] = p
@@ -88,9 +115,32 @@ export default function InqueritosPage() {
                 }
             }
 
-            setLoading(false)
+            if (isMounted) setLoading(false)
         }
+
         fetchInqueritos()
+
+        // Realtime Subscription
+        const supabase = createClient()
+        const channel = supabase
+            .channel('inqueritos-list-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'inqueritos'
+                },
+                () => {
+                    fetchInqueritos()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            isMounted = false
+            supabase.removeChannel(channel)
+        }
     }, [searchParams, sortConfig])
 
     function handleSort(key: string) {
@@ -107,28 +157,6 @@ export default function InqueritosPage() {
         if (sortConfig?.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4" />
         if (sortConfig.direction === 'asc') return <ArrowUp className="ml-2 h-4 w-4" />
         return <ArrowDown className="ml-2 h-4 w-4" />
-    }
-
-    function getStatusLabel(status: InquiryStatus): string {
-        const labels: Record<InquiryStatus, string> = {
-            por_iniciar: 'Por Iniciar',
-            em_diligencias: 'Em Diligências',
-            aguardando_resposta: 'Aguardando Resposta',
-            tribunal: 'Tribunal',
-            concluido: 'Concluído',
-        }
-        return labels[status] || status
-    }
-
-    function getStatusColor(status: InquiryStatus): string {
-        const colors: Record<InquiryStatus, string> = {
-            por_iniciar: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-0',
-            em_diligencias: 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-0',
-            aguardando_resposta: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-0',
-            tribunal: 'bg-purple-100 text-purple-700 hover:bg-purple-200 border-0',
-            concluido: 'bg-green-100 text-green-700 hover:bg-green-200 border-0',
-        }
-        return colors[status] || ''
     }
 
     if (loading) {
