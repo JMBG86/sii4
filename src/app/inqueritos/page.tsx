@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Eye, Plus } from 'lucide-react'
+import { Eye, Plus, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { InquiryStatus } from '@/types/database'
 import { DeleteInquiryButton } from '@/components/inquiry/delete-inquiry-button'
 import { useRouter } from 'next/navigation'
@@ -25,13 +25,14 @@ export default function InqueritosPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null)
+
     useEffect(() => {
         async function fetchInqueritos() {
             const supabase = createClient()
             let query = supabase
                 .from('inqueritos')
                 .select('*')
-                .order('created_at', { ascending: false })
 
             // Apply filters from URL parameters
             const status = searchParams.get('status')
@@ -44,13 +45,36 @@ export default function InqueritosPage() {
                 query = query.eq('classificacao', classificacao)
             }
 
+            // Apply sorting
+            if (sortConfig) {
+                query = query.order(sortConfig.key, { ascending: sortConfig.direction === 'asc' })
+            } else {
+                query = query.order('created_at', { ascending: false })
+            }
+
             const { data } = await query
 
             setInqueritos(data || [])
             setLoading(false)
         }
         fetchInqueritos()
-    }, [searchParams])
+    }, [searchParams, sortConfig])
+
+    function handleSort(key: string) {
+        setSortConfig((current) => {
+            if (current?.key === key) {
+                if (current.direction === 'asc') return { key, direction: 'desc' }
+                return null // Reset to default
+            }
+            return { key, direction: 'asc' }
+        })
+    }
+
+    function SortIcon({ column }: { column: string }) {
+        if (sortConfig?.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4" />
+        if (sortConfig.direction === 'asc') return <ArrowUp className="ml-2 h-4 w-4" />
+        return <ArrowDown className="ml-2 h-4 w-4" />
+    }
 
     function getStatusLabel(status: InquiryStatus): string {
         const labels: Record<InquiryStatus, string> = {
@@ -94,11 +118,21 @@ export default function InqueritosPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>NUIPC</TableHead>
-                            <TableHead>Crime</TableHead>
-                            <TableHead>Data Ocorrência</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead>Classificação</TableHead>
+                            <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('nuipc')}>
+                                <div className="flex items-center">NUIPC <SortIcon column="nuipc" /></div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('tipo_crime')}>
+                                <div className="flex items-center">Crime <SortIcon column="tipo_crime" /></div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('data_ocorrencia')}>
+                                <div className="flex items-center">Data Ocorrência <SortIcon column="data_ocorrencia" /></div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('estado')}>
+                                <div className="flex items-center">Estado <SortIcon column="estado" /></div>
+                            </TableHead>
+                            <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('classificacao')}>
+                                <div className="flex items-center">Classificação <SortIcon column="classificacao" /></div>
+                            </TableHead>
                             <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -107,10 +141,10 @@ export default function InqueritosPage() {
                             <TableRow
                                 key={inq.id}
                                 onClick={() => router.push(`/inqueritos/${inq.id}`)}
-                                className="cursor-pointer"
+                                className="cursor-pointer hover:bg-gray-50"
                             >
                                 <TableCell className="font-medium">{inq.nuipc}</TableCell>
-                                <TableCell>{inq.tipo_crime}</TableCell>
+                                <TableCell>{inq.tipo_crime || '-'}</TableCell>
                                 <TableCell>
                                     {inq.data_ocorrencia
                                         ? new Date(inq.data_ocorrencia).toLocaleDateString()

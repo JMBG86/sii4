@@ -79,6 +79,11 @@ export default function AddInquiryPage() {
                         </div>
 
                         <div className="space-y-2">
+                            <Label htmlFor="localizacao">Localização</Label>
+                            <Input id="localizacao" name="localizacao" placeholder="Ex: Posto X, Arquivo..." />
+                        </div>
+
+                        <div className="space-y-2">
                             <Label htmlFor="observacoes">Observações</Label>
                             <Textarea
                                 id="observacoes"
@@ -104,6 +109,6 @@ export default function AddInquiryPage() {
                     </form>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }

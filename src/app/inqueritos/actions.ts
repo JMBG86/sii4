@@ -13,6 +13,7 @@ export async function createInquiry(formData: FormData) {
     const data_participacao = formData.get('data_participacao') as string
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
+    const localizacao = formData.get('localizacao') as string
 
     // Default values
     const estado = 'por_iniciar'
@@ -24,6 +25,7 @@ export async function createInquiry(formData: FormData) {
         data_participacao: data_participacao || null,
         classificacao,
         observacoes,
+        localizacao: localizacao || null,
         estado,
     })
 
@@ -162,6 +164,40 @@ export async function deleteDiligence(diligenceId: string, inquiryId: string) {
     if (error) {
         console.error('Error deleting diligence:', error)
         throw error
+    }
+
+    revalidatePath(`/inqueritos/${inquiryId}`)
+    revalidatePath('/inqueritos')
+    revalidatePath('/')
+}
+
+export async function updateInquiry(inquiryId: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const nuipc = formData.get('nuipc') as string
+    const tipo_crime = formData.get('tipo_crime') as string
+    const data_ocorrencia = formData.get('data_ocorrencia') as string
+    const data_participacao = formData.get('data_participacao') as string
+    const classificacao = formData.get('classificacao') as string
+    const observacoes = formData.get('observacoes') as string
+    const localizacao = formData.get('localizacao') as string
+
+    const { error } = await supabase
+        .from('inqueritos')
+        .update({
+            nuipc,
+            tipo_crime,
+            data_ocorrencia: data_ocorrencia || null,
+            data_participacao: data_participacao || null,
+            classificacao,
+            observacoes,
+            localizacao: localizacao || null,
+        })
+        .eq('id', inquiryId)
+
+    if (error) {
+        console.error('Error updating inquiry:', error)
+        return { error: 'Failed to update inquiry' }
     }
 
     revalidatePath(`/inqueritos/${inquiryId}`)
