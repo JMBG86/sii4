@@ -36,7 +36,7 @@ export async function createInquiry(formData: FormData) {
     redirect('/inqueritos')
 }
 
-export async function updateInquiryState(inquiryId: string, newState: string, comment: string) {
+export async function updateInquiryState(inquiryId: string, newState: string, comment: string, numeroOficio?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -46,15 +46,24 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
 
     if (oldState === newState) return
 
-    // 2. Update Inquerito
+    // 2. Prepare update data
+    const updateData: any = { estado: newState }
+
+    // If marking as concluded, save office number and completion date
+    if (newState === 'concluido' && numeroOficio) {
+        updateData.numero_oficio = numeroOficio
+        updateData.data_conclusao = new Date().toISOString()
+    }
+
+    // 3. Update Inquerito
     const { error: updateError } = await supabase
         .from('inqueritos')
-        .update({ estado: newState })
+        .update(updateData)
         .eq('id', inquiryId)
 
     if (updateError) throw new Error('Failed to update status')
 
-    // 3. Insert History
+    // 4. Insert History
     const { error: historyError } = await supabase.from('historico_estados').insert({
         inquerito_id: inquiryId,
         estado_anterior: oldState,

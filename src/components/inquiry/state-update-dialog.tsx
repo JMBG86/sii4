@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { updateInquiryState } from '@/app/inqueritos/actions'
 import { Loader2 } from 'lucide-react'
 
@@ -34,6 +35,7 @@ export function StateUpdateDialog({
     const [loading, setLoading] = useState(false)
     const [newState, setNewState] = useState(currentState)
     const [comment, setComment] = useState('')
+    const [numeroOficio, setNumeroOficio] = useState('')
 
     const handleUpdate = async () => {
         if (newState === currentState) {
@@ -41,9 +43,15 @@ export function StateUpdateDialog({
             return
         }
 
+        // Validate office number if concluding
+        if (newState === 'concluido' && !numeroOficio.trim()) {
+            alert('Por favor, insira o Número do Ofício')
+            return
+        }
+
         setLoading(true)
         try {
-            await updateInquiryState(inquiryId, newState, comment)
+            await updateInquiryState(inquiryId, newState, comment, numeroOficio)
             setOpen(false)
         } catch (e) {
             console.error(e)
@@ -80,6 +88,18 @@ export function StateUpdateDialog({
                             </SelectContent>
                         </Select>
                     </div>
+                    {newState === 'concluido' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="numeroOficio">Número do Ofício *</Label>
+                            <Input
+                                id="numeroOficio"
+                                value={numeroOficio}
+                                onChange={(e) => setNumeroOficio(e.target.value)}
+                                placeholder="Ex: 123/2024"
+                                required
+                            />
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <Label htmlFor="comment">Observações (opcional)</Label>
                         <Textarea

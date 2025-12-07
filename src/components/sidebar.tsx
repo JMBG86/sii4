@@ -43,6 +43,11 @@ const sidebarItems = [
         href: '/ligacoes',
         icon: Link2,
     },
+    {
+        title: 'Relatórios',
+        href: '/relatorios',
+        icon: FileText,
+    },
 ]
 
 export function Sidebar() {

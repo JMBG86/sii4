@@ -12,6 +12,8 @@ export interface Inquiry {
     classificacao: InquiryClassification
     localizacao: string | null
     observacoes: string | null
+    numero_oficio: string | null
+    data_conclusao: string | null
     created_at: string
 }
 

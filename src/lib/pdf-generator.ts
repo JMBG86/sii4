@@ -1,0 +1,175 @@
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+
+interface ConcludedInquiry {
+    nuipc: string
+    data_conclusao: string
+    numero_oficio: string | null
+    tipo_crime: string | null
+}
+
+export async function generateBrandedReport(
+    inquiries: ConcludedInquiry[],
+    startDate: Date,
+    endDate: Date,
+    userName: string
+) {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+
+    // Load and embed logo
+    try {
+        const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
+
+        // Add logo centered with proper aspect ratio (50% larger than original)
+        const maxLogoWidth = 52.5  // 50% larger than original 35mm
+        const logoWidth = maxLogoWidth
+        const logoHeight = maxLogoWidth / aspectRatio
+        const logoX = (pageWidth - logoWidth) / 2
+        doc.addImage(dataURL, 'PNG', logoX, 15, logoWidth, logoHeight)
+    } catch (error) {
+        console.error('Failed to load logo:', error)
+    }
+
+    // Organization name
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+    const orgTextWidth = doc.getTextWidth(orgText)
+    doc.text(orgText, (pageWidth - orgTextWidth) / 2, 62)
+
+    // User name
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const userText = `Exportado por: ${userName}`
+    const userTextWidth = doc.getTextWidth(userText)
+    doc.text(userText, (pageWidth - userTextWidth) / 2, 68)
+
+    // Separator line
+    doc.setDrawColor(41, 128, 185)
+    doc.setLineWidth(0.5)
+    doc.line(20, 73, pageWidth - 20, 73)
+
+    // Title
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(41, 128, 185)
+    const title = 'Relatório de Inquéritos Concluídos'
+    const titleWidth = doc.getTextWidth(title)
+    doc.text(title, (pageWidth - titleWidth) / 2, 82)
+
+    // Date range
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 0, 0)
+    const dateRange = `Período: ${startDate.toLocaleDateString('pt-PT')} a ${endDate.toLocaleDateString('pt-PT')}`
+    const dateRangeWidth = doc.getTextWidth(dateRange)
+    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, 90)
+
+    // Table data
+    const tableData = inquiries.map((inq) => [
+        inq.nuipc,
+        inq.tipo_crime || '-',
+        inq.data_conclusao ? new Date(inq.data_conclusao).toLocaleDateString('pt-PT') : '-',
+        inq.numero_oficio || '-',
+    ])
+
+    // Generate modern table
+    autoTable(doc, {
+        startY: 98,
+        head: [['NUIPC', 'Crime', 'Data de Conclusão', 'Nº Ofício']],
+        body: tableData,
+        styles: {
+            fontSize: 9,
+            cellPadding: 5,
+            lineColor: [220, 220, 220],
+            lineWidth: 0.1,
+        },
+        headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: [255, 255, 255],
+            fontSize: 10,
+            fontStyle: 'bold',
+            halign: 'center',
+        },
+        alternateRowStyles: {
+            fillColor: [245, 248, 250],
+        },
+        columnStyles: {
+            0: { cellWidth: 45, fontStyle: 'bold' },
+            1: { cellWidth: 60 },
+            2: { cellWidth: 40, halign: 'center' },
+            3: { cellWidth: 35, halign: 'center' },
+        },
+        margin: { left: 20, right: 20 },
+    })
+
+    // Footer
+    const finalY = (doc as any).lastAutoTable.finalY || 98
+    doc.setFontSize(8)
+    doc.setTextColor(100, 100, 100)
+    doc.text(
+        `Total de inquéritos: ${inquiries.length}`,
+        20,
+        pageHeight - 15
+    )
+
+    doc.text(
+        `Gerado em: ${new Date().toLocaleString('pt-PT')}`,
+        pageWidth - 20,
+        pageHeight - 15,
+        { align: 'right' }
+    )
+
+    // Page numbers and footer
+    const pageCount = (doc as any).internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+
+        // Organization footer
+        doc.setFontSize(7)
+        doc.setTextColor(100, 100, 100)
+        const footerText = 'Subdestacamento Territorial da GNR em Albufeira - Estrada de Vale Pedras - 8201-861 Albufeira - 289 590 790'
+        const footerWidth = doc.getTextWidth(footerText)
+        doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 5)
+
+        // Page numbers
+        doc.setFontSize(8)
+        doc.setTextColor(150, 150, 150)
+        doc.text(
+            `Página ${i} de ${pageCount}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+        )
+    }
+
+    // Save PDF
+    const filename = `relatorio_concluidos_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
+}
+
+// Helper function to load image as base64 with aspect ratio
+async function loadImageAsBase64(imagePath: string): Promise<{ dataURL: string; aspectRatio: number }> {
+    return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = 'Anonymous'
+        img.onload = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = img.width
+            canvas.height = img.height
+            const ctx = canvas.getContext('2d')
+            if (!ctx) {
+                reject(new Error('Failed to get canvas context'))
+                return
+            }
+            ctx.drawImage(img, 0, 0)
+            const dataURL = canvas.toDataURL('image/png')
+            const aspectRatio = img.width / img.height
+            resolve({ dataURL, aspectRatio })
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = imagePath
+    })
+}
