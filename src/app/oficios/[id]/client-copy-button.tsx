@@ -3,10 +3,6 @@
 import { Button } from '@/components/ui/button'
 import { CheckCheck, Copy } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { CheckCheck, Copy } from 'lucide-react'
-import { useState } from 'react'
-// Removed unused toast import to fix build error
 
 export function ClientCopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false)
