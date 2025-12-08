@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -51,73 +51,73 @@ export default function InqueritosPage() {
     const [isAdmin, setIsAdmin] = useState(false)
     const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
 
-    useEffect(() => {
-        let isMounted = true
+    const fetchInqueritos = useCallback(async () => {
+        // Only set loading on initial fetch or major changes, not refresh? 
+        // For simplicity, we keep original behavior but maybe avoid full spinner if just refreshing?
+        // Let's keep it simple.
 
-        async function fetchInqueritos() {
-            const supabase = createClient()
+        const supabase = createClient()
 
-            // Check user role
-            const { data: { user } } = await supabase.auth.getUser()
-            let admin = false
-            if (user) {
-                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-                if (profile?.role === 'admin') {
-                    if (isMounted) setIsAdmin(true)
-                    admin = true
-                }
+        // Check user role (Ideally this should be cached or context, but keeping local for now)
+        const { data: { user } } = await supabase.auth.getUser()
+        let admin = false
+        if (user) {
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+            if (profile?.role === 'admin') {
+                setIsAdmin(true)
+                admin = true
             }
-
-            let query = supabase
-                .from('inqueritos')
-                .select('*')
-
-            // Apply filters from URL parameters
-            const status = searchParams.get('status')
-            const classificacao = searchParams.get('classificacao')
-
-            if (status) {
-                query = query.eq('estado', status)
-            }
-            if (classificacao) {
-                query = query.eq('classificacao', classificacao)
-            }
-
-            // Apply sorting
-            if (sortConfig) {
-                query = query.order(sortConfig.key, { ascending: sortConfig.direction === 'asc' })
-            } else {
-                query = query.order('created_at', { ascending: false })
-            }
-
-            const { data } = await query
-
-            if (isMounted) {
-                setInqueritos(data || [])
-            }
-
-            // If admin, fetch profiles for the users
-            if (admin && data && data.length > 0) {
-                const userIds = Array.from(new Set(data.map(i => i.user_id).filter(Boolean)))
-                if (userIds.length > 0) {
-                    const { data: profiles } = await supabase
-                        .from('profiles')
-                        .select('id, full_name, email')
-                        .in('id', userIds)
-
-                    if (profiles && isMounted) {
-                        const map: Record<string, any> = {}
-                        profiles.forEach(p => {
-                            map[p.id] = p
-                        })
-                        setProfilesMap(map)
-                    }
-                }
-            }
-
-            if (isMounted) setLoading(false)
         }
 
+        let query = supabase
+            .from('inqueritos')
+            .select('*')
+
+        // Apply filters from URL parameters
+        const status = searchParams.get('status')
+        const classificacao = searchParams.get('classificacao')
+
+        if (status) {
+            query = query.eq('estado', status)
+        }
+        if (classificacao) {
+            query = query.eq('classificacao', classificacao)
+        }
+
+        // Apply sorting
+        if (sortConfig) {
+            query = query.order(sortConfig.key, { ascending: sortConfig.direction === 'asc' })
+        } else {
+            query = query.order('created_at', { ascending: false })
+        }
+
+        const { data } = await query
+
+        setInqueritos(data || [])
+
+        // If admin, fetch profiles for the users
+        if (admin && data && data.length > 0) {
+            const userIds = Array.from(new Set(data.map((i: any) => i.user_id).filter(Boolean)))
+            if (userIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, email')
+                    .in('id', userIds)
+
+                if (profiles) {
+                    const map: Record<string, any> = {}
+                    profiles.forEach(p => {
+                        map[p.id] = p
+                    })
+                    setProfilesMap(map)
+                }
+            }
+        }
+
+        setLoading(false)
+    }, [searchParams, sortConfig])
+
+    useEffect(() => {
         fetchInqueritos()
 
         // Realtime Subscription
@@ -138,10 +138,9 @@ export default function InqueritosPage() {
             .subscribe()
 
         return () => {
-            isMounted = false
             supabase.removeChannel(channel)
         }
-    }, [searchParams, sortConfig])
+    }, [fetchInqueritos])
 
     function handleSort(key: string) {
         setSortConfig((current) => {
@@ -251,7 +250,7 @@ export default function InqueritosPage() {
                                                 Ver Detalhes
                                             </Button>
                                         </Link>
-                                        <DeleteInquiryButton inquiryId={inq.id} nuipc={inq.nuipc} />
+                                        <DeleteInquiryButton inquiryId={inq.id} nuipc={inq.nuipc} onSuccess={fetchInqueritos} />
                                     </div>
                                 </TableCell>
                             </TableRow>
