@@ -19,21 +19,26 @@ import { useRouter } from 'next/navigation'
 
 export function DeleteInquiryButton({ inquiryId, nuipc }: { inquiryId: string, nuipc: string }) {
     const [loading, setLoading] = useState(false)
+    const [open, setOpen] = useState(false)
     const router = useRouter()
 
     async function handleDelete() {
         setLoading(true)
         const result = await deleteInquiry(inquiryId)
-        setLoading(false)
+
         if (result?.error) {
-            alert(result.error) // Simple alert for cleaner UI or toast
+            alert(result.error)
+            setLoading(false)
+        } else {
+            // Success path
+            setOpen(false)
+            setLoading(false)
+            router.refresh() // Force client-side refresh to update the list immediately
         }
-        // Router refresh handling is done via server action's recalidatePath mostly, 
-        // but we can refresh client router too
     }
 
     return (
-        <AlertDialog>
+        <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
                 <Button
                     variant="outline"
@@ -52,11 +57,11 @@ export function DeleteInquiryButton({ inquiryId, nuipc }: { inquiryId: string, n
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={(e) => {
                         e.preventDefault()
                         handleDelete()
-                    }} className="bg-red-600 hover:bg-red-700">
+                    }} className="bg-red-600 hover:bg-red-700" disabled={loading}>
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         Apagar Inquérito
                     </AlertDialogAction>
