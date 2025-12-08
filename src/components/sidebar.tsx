@@ -15,6 +15,7 @@ import {
     User,
     Search,
     Shield,
+    BarChart3,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -154,6 +155,18 @@ export function Sidebar() {
                             >
                                 <FileText className="h-4 w-4" />
                                 Gerir Ofícios
+                            </Link>
+                            <Link
+                                href="/admin/edn"
+                                className={cn(
+                                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
+                                    pathname.startsWith('/admin/edn')
+                                        ? 'bg-red-50 text-red-600 dark:bg-red-950/50'
+                                        : 'text-gray-500 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-950/30'
+                                )}
+                            >
+                                <BarChart3 className="h-4 w-4" />
+                                Estado da Nação
                             </Link>
                         </>
                     )}

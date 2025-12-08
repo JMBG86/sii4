@@ -10,6 +10,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
+import { CreateUserDialog } from './create-user-dialog'
+import { EditUserDialog } from './edit-user-dialog'
 
 export default async function AdminUsersPage() {
     const supabase = await createClient()
@@ -43,7 +45,10 @@ export default async function AdminUsersPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold tracking-tight">Administração de Utilizadores</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold tracking-tight">Administração de Utilizadores</h1>
+                <CreateUserDialog />
+            </div>
 
             <Card>
                 <CardHeader>
@@ -57,6 +62,7 @@ export default async function AdminUsersPage() {
                                 <TableHead>Nome</TableHead>
                                 <TableHead>Role</TableHead>
                                 <TableHead>Criado em</TableHead>
+                                <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -66,17 +72,22 @@ export default async function AdminUsersPage() {
                                     <TableCell>{profile.full_name || '-'}</TableCell>
                                     <TableCell>
                                         <Badge variant={profile.role === 'admin' ? 'destructive' : 'secondary'}>
-                                            {profile.role.toUpperCase()}
+                                            {profile.role?.toUpperCase() || 'USER'}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {new Date(profile.created_at).toLocaleDateString()}
+                                        {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end">
+                                            <EditUserDialog user={profile} />
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
                             {profiles?.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center">
+                                    <TableCell colSpan={5} className="text-center">
                                         Nenhum utilizador encontrado.
                                     </TableCell>
                                 </TableRow>
