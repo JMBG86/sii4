@@ -48,7 +48,8 @@ export async function createInquiry(formData: FormData) {
 
     if (error) {
         console.error(error)
-        return { error: 'Failed to create inquiry. NUIPC might be duplicate.' }
+        console.error(error)
+        return { error: 'Erro ao criar inquérito: ' + error.message || error.details || 'Erro desconhecido.' }
     }
 
     // Trigger Notification if assigned to another user
