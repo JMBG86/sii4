@@ -10,6 +10,7 @@ import { RelatedLinks } from '@/components/inquiry/related-links'
 import { HistoryList } from '@/components/inquiry/history-list'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
+import { ExportTemplateButton } from '@/components/inquiry/export-template-button'
 
 export default async function InquiryDetailsPage({
     params,
@@ -78,6 +79,7 @@ export default async function InquiryDetailsPage({
                     </div>
                 </div>
                 <EditInquiryDialog inquiry={inquiry} />
+                <ExportTemplateButton inquiry={inquiry} />
                 <StateUpdateDialog inquiryId={inquiry.id} currentState={inquiry.estado} />
             </div>
 

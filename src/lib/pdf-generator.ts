@@ -330,3 +330,153 @@ export async function generateWeeklyProductivityReport(
     const filename = `relatorio_semanal_${startDate.toISOString().split('T')[0]}.pdf`
     doc.save(filename)
 }
+
+export async function generateDashboardReport(
+    analytics: {
+        weekly: any[],
+        monthly: any[],
+        quarterly: any[]
+    },
+    teamStats: {
+        weekly: any[],
+        monthly: any[]
+    },
+    userName: string
+) {
+    const doc = new jsPDF({ orientation: 'landscape' })
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const dateStr = new Date().toLocaleString('pt-PT')
+
+    const addHeader = (title: string) => {
+        doc.setFontSize(16)
+        doc.setTextColor(41, 128, 185)
+        doc.setFont('helvetica', 'bold')
+        doc.text(title, 14, 15)
+
+        doc.setFontSize(10)
+        doc.setTextColor(100, 100, 100)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Estado da Nação - Gerado por ${userName} em ${dateStr}`, pageWidth - 14, 15, { align: 'right' })
+
+        doc.setDrawColor(200, 200, 200)
+        doc.line(14, 18, pageWidth - 14, 18)
+    }
+
+    // PAGE 1: Temporal Analysis (Weekly & Monthly Flow)
+    addHeader('Análise Temporal de Fluxo')
+
+    let currentY = 25
+
+    // Weekly Table
+    doc.setFontSize(12)
+    doc.setTextColor(0, 0, 0)
+    doc.text('Evolução Semanal (Últimas Semanas)', 14, currentY)
+    currentY += 5
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Semana', 'Entrados (Criados)', 'Saídos (Concluídos)', 'Saldo']],
+        body: analytics.weekly.map(d => [
+            d.period,
+            d.created,
+            d.concluded,
+            d.created - d.concluded
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] },
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 }
+    })
+
+    // Monthly Table (Side by Side or Below?) - Below for safely
+    currentY = (doc as any).lastAutoTable.finalY + 15
+
+    doc.text('Evolução Mensal (Últimos Meses)', 14, currentY)
+    currentY += 5
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Mês', 'Entrados (Criados)', 'Saídos (Concluídos)', 'Saldo']],
+        body: analytics.monthly.map(d => [
+            d.period,
+            d.created,
+            d.concluded,
+            d.created - d.concluded
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [39, 174, 96] }, // Greenish
+        styles: { fontSize: 9 },
+        margin: { left: 14, right: 14 }
+    })
+
+    // PAGE 2: Team Performance (Weekly)
+    doc.addPage()
+    addHeader('Performance da Equipa - Semanal')
+
+    currentY = 25
+    doc.setFontSize(10)
+    doc.setTextColor(100, 100, 100)
+    doc.text('Detalhe das últimas 8 semanas por militar.', 14, currentY)
+    currentY += 10
+
+    // Transform Team Stats for Table
+    // Structure: User | Week 1 | Week 2 ... | Total
+    if (teamStats.weekly.length > 0) {
+        const weeks = Object.keys(teamStats.weekly[0].stats).sort()
+        const heads = ['Militar', ...weeks.map(w => w.slice(5)), 'Total'] // Slice 'yyyy-' to show 'MM-dd'
+
+        const body = teamStats.weekly.map((u: any) => {
+            const row = [u.userName]
+            weeks.forEach(w => row.push(`${u.stats[w].concluded} / ${u.stats[w].created}`)) // Concluded / Created
+            row.push(`${u.totals.concluded} / ${u.totals.created}`)
+            return row
+        })
+
+        autoTable(doc, {
+            startY: currentY,
+            head: [heads],
+            body: body,
+            theme: 'striped',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [41, 128, 185], halign: 'center' },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } },
+            margin: { left: 14, right: 14 }
+        })
+    }
+
+    // PAGE 3: Team Performance (Monthly)
+    doc.addPage()
+    addHeader('Performance da Equipa - Mensal')
+
+    currentY = 25
+    doc.setFontSize(10)
+    doc.setTextColor(100, 100, 100)
+    doc.text('Detalhe dos últimos 6 meses por militar (Concluídos / Criados).', 14, currentY)
+    currentY += 10
+
+    if (teamStats.monthly.length > 0) {
+        const months = Object.keys(teamStats.monthly[0].stats).sort()
+        const heads = ['Militar', ...months, 'Total']
+
+        const body = teamStats.monthly.map((u: any) => {
+            const row = [u.userName]
+            months.forEach(m => row.push(`${u.stats[m].concluded} / ${u.stats[m].created}`))
+            row.push(`${u.totals.concluded} / ${u.totals.created}`)
+            return row
+        })
+
+        autoTable(doc, {
+            startY: currentY,
+            head: [heads],
+            body: body,
+            theme: 'striped',
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [39, 174, 96], halign: 'center' },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } },
+            margin: { left: 14, right: 14 }
+        })
+    }
+
+    doc.save(`dashboard_edn_${new Date().toISOString().slice(0, 10)}.pdf`)
+}

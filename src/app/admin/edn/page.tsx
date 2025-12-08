@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { InquiryFlowChart } from './charts/inquiry-flow-chart'
 import { TeamPerformanceTable } from './charts/team-performance-table'
 import { WeeklyReportDialog } from './weekly-report-dialog'
-import { generateWeeklyProductivityReport } from '@/lib/pdf-generator'
+import { generateWeeklyProductivityReport, generateDashboardReport } from '@/lib/pdf-generator'
 import { format, startOfWeek, startOfMonth, startOfQuarter, parseISO, subMonths, subWeeks } from 'date-fns'
 import { pt } from 'date-fns/locale'
 
@@ -343,8 +343,30 @@ export default function EstadoDaNacaoPage() {
         }
     }
 
-    const handleExport = () => {
-        alert("A funcionalidade de exportação será implementada em breve.")
+    const handleExport = async () => {
+        try {
+            setReportLoading(true)
+            const { data: { user } } = await supabase.auth.getUser()
+            const currentUserName = user?.user_metadata?.full_name || 'Admin'
+
+            await generateDashboardReport(
+                {
+                    weekly: weeklyData,
+                    monthly: monthlyData,
+                    quarterly: quarterlyData
+                },
+                {
+                    weekly: weeklyTeamStats,
+                    monthly: monthlyTeamStats
+                },
+                currentUserName
+            )
+        } catch (error) {
+            console.error("Error exporting dashboard:", error)
+            alert("Erro ao exportar dashboard.")
+        } finally {
+            setReportLoading(false)
+        }
     }
 
     return (
@@ -480,10 +502,14 @@ export default function EstadoDaNacaoPage() {
                                         {stat.totalInquiries}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        {stat.activeInquiries > 15 ? (
-                                            <Badge variant="destructive">Alta</Badge>
-                                        ) : stat.activeInquiries > 5 ? (
-                                            <Badge variant="outline" className="text-yellow-600 border-yellow-200">Média</Badge>
+                                        {stat.activeInquiries > 120 ? (
+                                            <Badge variant="destructive" className="bg-red-950 hover:bg-red-900 border-red-900 animate-pulse">Excesso Detectado</Badge>
+                                        ) : stat.activeInquiries >= 100 ? (
+                                            <Badge variant="destructive">Muito Alta</Badge>
+                                        ) : stat.activeInquiries >= 80 ? (
+                                            <Badge className="bg-orange-500 hover:bg-orange-600">Alta</Badge>
+                                        ) : stat.activeInquiries >= 61 ? (
+                                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Moderada</Badge>
                                         ) : (
                                             <Badge variant="outline" className="text-green-600 border-green-200">Baixa</Badge>
                                         )}
