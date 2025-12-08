@@ -98,6 +98,12 @@ export default async function InquiryDetailsPage({
                                 <div className="text-sm font-medium text-muted-foreground">Participação</div>
                                 <div>{inquiry.data_participacao || '-'}</div>
                             </div>
+                            {inquiry.numero_oficio && (
+                                <div className="col-span-2 md:col-span-1">
+                                    <div className="text-sm font-medium text-muted-foreground text-blue-600">Nº Ofício de Saída</div>
+                                    <div className="font-bold text-blue-700">{inquiry.numero_oficio}</div>
+                                </div>
+                            )}
 
                             {/* New Fields */}
                             <div>
