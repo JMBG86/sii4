@@ -1,4 +1,33 @@
--- Upgrading Trigger to handle INSERT (New Inquiries) and UPDATE
+-- 1. Create Notifications Table (if not exists)
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- 'assignment', 'alert', etc.
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link TEXT,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- FIX: Ensure 'type' column exists even if table was created previously without it
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general';
+
+-- 2. Enable RLS (idempotent operation)
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+-- 3. RLS Policies (Safe handling: Drop first to ensure latest version is applied)
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
+CREATE POLICY "Users can view own notifications" 
+ON public.notifications FOR SELECT 
+USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
+CREATE POLICY "Users can update own notifications" 
+ON public.notifications FOR UPDATE 
+USING (auth.uid() = user_id);
+
+-- 4. Function to handle New Inquiry Assignment
 -- FIX: Changed 'assigned_to' to 'user_id' to match actual table schema
 
 CREATE OR REPLACE FUNCTION public.handle_new_inquiry_assignment()
@@ -35,7 +64,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Re-create Trigger to fire on INSERT and UPDATE
+-- 5. Trigger (Drop first to avoid errors)
 DROP TRIGGER IF EXISTS on_inquerito_assignment ON public.inqueritos;
 
 CREATE TRIGGER on_inquerito_assignment
