@@ -50,6 +50,11 @@ const sidebarItems = [
         href: '/relatorios',
         icon: FileText,
     },
+    {
+        title: 'Ofícios',
+        href: '/oficios',
+        icon: FileText,
+    },
 ]
 
 export function Sidebar() {
@@ -137,6 +142,18 @@ export function Sidebar() {
                             >
                                 <Shield className="h-4 w-4" />
                                 Utilizadores
+                            </Link>
+                            <Link
+                                href="/admin/oficios"
+                                className={cn(
+                                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
+                                    pathname.startsWith('/admin/oficios')
+                                        ? 'bg-red-50 text-red-600 dark:bg-red-950/50'
+                                        : 'text-gray-500 hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-950/30'
+                                )}
+                            >
+                                <FileText className="h-4 w-4" />
+                                Gerir Ofícios
                             </Link>
                         </>
                     )}

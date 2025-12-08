@@ -1,0 +1,289 @@
+Vou-te explicar a situacao e vais me ajudar a criar uma app para publicar online no vercel, a app deve correr lá, ter uma base de dados e um dashboard acessivel
+attraves de login seguro.
+
+a app destina-se a controlar o fluxo de inqueritos crime em investigacao numa equipa, ou seja, os inqueritos estao em investigacao, por vezes vao ao Tribunal para serem 
+requeridas diligencias e outras vezes sao realizados pedidos de diligencias a entidades externas a solicitar elementos associados a essas investigacoes.
+preciso de uma app com dashboard para controlar os inqueritos que estão fisicamente com a equipa, ou no tribunal, os inqueritos que tem pedidores realizados e aos quais estamos a 
+aguardar resposta.
+No dashboard devem ser possiveis visualizar as situacoes em graficos, o dashboard deve ter um menu lateral onde mostra varias paginas como "Inqueritos" onde mostra os inqueritos numa tabela e onde tem varias cores mediante a sua situacao 
+(tribunal, em diligencia pedida, a aguardar inicio, etc)
+Deve ter ainda a possibilidade de interligar inqueritos (por exemplo o suspeito ser o mesmo em duas investigacoes separadas)
+Deve ser possivel os inqueritos terem um estado atribuido (por iniciar, em diligencias [quais as diligencias], remetido a tribunal [a solicitar a diligencias X ou com o relatorio Y], inquerito remetido a X por razao Y, etc)
+Deve ter uma facilidade de exportacao de: Todos os inqueritos, inqueritos com diligencias, inqueritos concluidos (sao os que sao enviados a tribunal mas que ja nao devem regressar), inqueritos de relevo.
+Na classificacao devem ainda poder ser classificados como "de relevo" que é quando sao importantes ou estao proximos de dar resultados.
+Esta app serve para controlar todo o fluxo, por isso deve ter uma area de "adicionar inqueritos" onde se adicionam os campos base [NUIPC (numero identificador unico de cada processo crime), data da ocorrencia, data da participacao, data do inicio 
+da investigacao, tipo de crime, e outros campos que no futuro vamos adicionando.
+
+A base de dados deve ser simples e facil de melhorar com alteracoes futuras a este projecto.~
+
+
+
+
+
+Cria uma aplicação web completa, preparada para deployment na Vercel, com dashboard, autenticação segura, base de dados, API, e interface para gestão de inquéritos crime em investigação.
+
+A aplicação deve ser desenvolvida com as seguintes características técnicas:
+
+1. Stack tecnológica
+
+Next.js 14 / App Router
+
+Base de dados: PostgreSQL (usando Prisma ORM)
+
+API: Route Handlers do Next.js
+
+UI: Tailwind CSS + shadcn/ui
+
+Autenticação: NextAuth com login seguro (Email/Password ou OAuth interno)
+
+Deployment: App deve ser compatível com Vercel sem configurações adicionais
+
+Gráficos no dashboard: Recharts ou Chart.js
+
+2. Objectivo da aplicação
+
+Construir um sistema interno para uma equipa de investigação criminal, destinado a controlar o fluxo dos inquéritos crime, o seu estado, diligências, remessas ao tribunal e pedidos externos a entidades diversas.
+A aplicação deve permitir visualizar, gerir e exportar os inquéritos.
+
+3. Funcionalidades principais
+3.1 Dashboard
+
+Mostrar contadores dos inquéritos por estado:
+
+“Por iniciar”
+
+“Em diligências”
+
+“Remetido a Tribunal”
+
+“Aguarda resposta”
+
+“Inquéritos concluídos”
+
+“De relevo”
+
+Gráficos visuais (de barras, circulares, etc.) sobre:
+
+Estado dos inquéritos
+
+Inquéritos no tribunal vs na equipa
+
+Diligências pendentes por entidade
+
+Dashboard acessível apenas após login.
+
+3.2 Menu lateral
+
+Com as seguintes páginas:
+
+Dashboard
+
+Inquéritos
+
+Adicionar Inquérito
+
+Diligências
+
+Relações entre Inquéritos
+
+Exportações
+
+Administração / Configurações
+
+3.3 Página: “Inquéritos”
+
+Tabela com:
+
+NUIPC
+
+Tipo de crime
+
+Datas (ocorrência, participação, início da investigação)
+
+Estado
+
+Classificação (normal / de relevo)
+
+Entidades com pedidos pendentes
+
+Localização física (equipa / tribunal)
+
+Cada linha deve ter cor automática consoante o estado:
+
+Azul → Por iniciar
+
+Amarelo → Em diligências
+
+Vermelho → Urgente ou relevo
+
+Verde → Concluído
+
+Roxo → Remetido a tribunal
+
+Opções por inquérito:
+
+Editar
+
+Alterar estado
+
+Adicionar diligências
+
+Associar/ligar a outro inquérito
+
+Ver histórico do processo
+
+3.4 Página: “Adicionar Inquérito”
+
+Formulário com os campos base:
+
+NUIPC (texto único)
+
+Data da ocorrência
+
+Data da participação
+
+Data do início da investigação
+
+Tipo de crime
+
+Estado inicial
+
+Classificação (normal / de relevo)
+
+Observações
+
+O sistema deve permitir adicionar novos campos no futuro sem quebrar a estrutura (modelo de dados extensível).
+
+3.5 Estados do inquérito
+
+Os inquéritos devem poder assumir estados como:
+
+Por iniciar
+
+Em diligências
+
+Diligências específicas (listadas no inquérito)
+
+Remetido a tribunal
+
+Indicar se é para solicitar diligências X
+
+Ou com relatório Y
+
+Remetido a entidade externa
+
+A aguardar resposta
+
+Concluído (inquéritos enviados ao tribunal sem retorno previsto)
+
+Cada alteração de estado deve gerar histórico.
+
+3.6 Relação entre inquéritos
+
+O sistema deve permitir:
+
+Associar dois ou mais inquéritos entre si
+
+Registrar a razão da ligação (ex.: mesmo suspeito)
+
+Ver mapa de relações (lista simples ou grafo simples)
+
+3.7 Gestão de diligências
+
+Cada diligência deve conter:
+
+Descrição
+
+Entidade responsável
+
+Data da solicitação
+
+Data prevista de resposta
+
+Estado (pendente / respondida / recusada)
+
+Documento associado (opcional)
+
+3.8 Exportações
+
+Criar área onde o utilizador pode exportar:
+
+Todos os inquéritos
+
+Inquéritos com diligências pendentes
+
+Inquéritos concluídos
+
+Inquéritos de relevo
+
+Formato:
+
+CSV
+
+Excel (opcional)
+
+PDF (gerado server-side)
+
+4. Base de dados (modelos Prisma)
+
+Criar modelos para:
+
+User
+
+Inquerito
+
+Diligencia
+
+LigacaoInqueritos (N-N)
+
+HistoricoEstado
+
+EntidadeExterna (opcional)
+
+Logs
+
+A base de dados deve ser simples, escalável e facilmente editável.
+
+5. Requisitos de segurança
+
+Login obrigatório
+
+Sessões seguras
+
+Protecção contra acessos não autorizados
+
+Middleware para proteger rotas internas
+
+6. Layout / UI
+
+Interface moderna, clara e fácil de usar
+
+Cores suaves
+
+Tabelas com filtros e pesquisa por:
+
+NUIPC
+
+Estado
+
+Tipo de crime
+
+Entidade com diligências
+
+7. Resultado esperado
+
+Gerar:
+
+Estrutura completa do projecto Next.js
+
+Modelos da base de dados (Prisma)
+
+Rotas API para cada funcionalidade
+
+Páginas React com componentes funcionais
+
+Autenticação integrada
+
+Scripts de seed para dados de teste
+
+Código pronto para deploy na Vercel

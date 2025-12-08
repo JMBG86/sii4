@@ -47,3 +47,21 @@ export interface Profile {
     role: 'user' | 'admin'
     created_at: string
 }
+
+export interface OficioCategory {
+    id: string
+    name: string
+    icon: string | null
+    created_at: string
+}
+
+export interface OficioTemplate {
+    id: string
+    category_id: string
+    title: string
+    recipient?: string | null // Displayed as "Destinatário" (Default/Legacy)
+    recipients?: { label: string; content: string }[] | null // Multiple destinations
+    subject?: string | null // Displayed as "Assunto"
+    content: string
+    created_at: string
+}
