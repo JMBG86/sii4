@@ -50,7 +50,7 @@ export async function fillPdfTemplate(templatePath: string, data: Record<string,
  * Trigger a browser download for a byte array
  */
 export function downloadPdf(pdfBytes: Uint8Array, fileName: string) {
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+    const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = fileName
