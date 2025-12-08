@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 import { MobileHeader } from "@/components/mobile-header";
 import { createClient } from "@/lib/supabase/server";
+import { NewInquiryAlert } from "@/components/new-inquiry-alert";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -61,6 +62,7 @@ export default async function RootLayout({
               </div>
               <main className="flex-1 overflow-auto p-4 md:p-6">
                 {children}
+                <NewInquiryAlert />
               </main>
             </div>
           </div>
