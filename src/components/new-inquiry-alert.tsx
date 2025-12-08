@@ -46,7 +46,7 @@ export function NewInquiryAlert() {
         checkForUnread()
 
         // Realtime Listener for new Alerts
-        const { data: { user } } = supabase.auth.getUser() as any // Async handling in effect is safer, doing simple check here
+        // Realtime Listener for new Alerts
 
         // We need user ID for channel subscription.
         const subscribe = async () => {
