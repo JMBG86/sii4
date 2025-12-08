@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    type TEXT NOT NULL, -- 'assignment', 'alert', etc.
+    type TEXT NOT NULL DEFAULT 'general',
     title TEXT NOT NULL,
     message TEXT NOT NULL,
     link TEXT,
@@ -10,8 +10,13 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- FIX: Ensure 'type' column exists even if table was created previously without it
+-- FIX: Ensure ALL required columns exist (handling assumed partial table existence)
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'general';
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS title TEXT; -- Will be NOT NULL via app logic, but safe for ALTER
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS message TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS link TEXT;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS read BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
 
 -- 2. Enable RLS (idempotent operation)
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
