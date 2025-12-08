@@ -17,7 +17,7 @@ import {
 import { Trash2, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-export function DeleteInquiryButton({ inquiryId, nuipc, onSuccess }: { inquiryId: string, nuipc: string, onSuccess?: () => void }) {
+export function DeleteInquiryButton({ inquiryId, nuipc, onSuccess, redirectTo }: { inquiryId: string, nuipc: string, onSuccess?: () => void, redirectTo?: string }) {
     const [loading, setLoading] = useState(false)
     const [open, setOpen] = useState(false)
     const router = useRouter()
@@ -33,7 +33,11 @@ export function DeleteInquiryButton({ inquiryId, nuipc, onSuccess }: { inquiryId
             // Success path
             setOpen(false)
             setLoading(false)
-            router.refresh() // Force client-side refresh to update the list immediately
+            if (redirectTo) {
+                router.push(redirectTo)
+            } else {
+                router.refresh() // Force client-side refresh to update the list immediately
+            }
             if (onSuccess) onSuccess()
         }
     }

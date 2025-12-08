@@ -11,6 +11,7 @@ import { HistoryList } from '@/components/inquiry/history-list'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { ExportTemplateButton } from '@/components/inquiry/export-template-button'
+import { DeleteInquiryButton } from '@/components/inquiry/delete-inquiry-button'
 
 export default async function InquiryDetailsPage({
     params,
@@ -81,6 +82,7 @@ export default async function InquiryDetailsPage({
                 <EditInquiryDialog inquiry={inquiry} />
                 <ExportTemplateButton inquiry={inquiry} />
                 <StateUpdateDialog inquiryId={inquiry.id} currentState={inquiry.estado} />
+                <DeleteInquiryButton inquiryId={inquiry.id} nuipc={inquiry.nuipc} redirectTo="/inqueritos" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
