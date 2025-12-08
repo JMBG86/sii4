@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download, Loader2, Users } from 'lucide-react'
+import { Download, Loader2, Users, FileText } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -15,6 +15,12 @@ import {
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { InquiryFlowChart } from './charts/inquiry-flow-chart'
+import { TeamPerformanceTable } from './charts/team-performance-table'
+import { WeeklyReportDialog } from './weekly-report-dialog'
+import { generateWeeklyProductivityReport } from '@/lib/pdf-generator'
+import { format, startOfWeek, startOfMonth, startOfQuarter, parseISO, subMonths, subWeeks } from 'date-fns'
+import { pt } from 'date-fns/locale'
 
 type UserStat = {
     userId: string
@@ -27,15 +33,99 @@ type UserStat = {
 
 export default function EstadoDaNacaoPage() {
     const [stats, setStats] = useState<UserStat[]>([])
+    // Analytics Data
+    const [weeklyData, setWeeklyData] = useState<any[]>([])
+    const [monthlyData, setMonthlyData] = useState<any[]>([])
+    const [quarterlyData, setQuarterlyData] = useState<any[]>([])
+
+    // State for Raw Data (needed for reports)
+    const [rawInquiries, setRawInquiries] = useState<any[]>([])
+
+    // Report State
+    const [reportLoading, setReportLoading] = useState(false)
+    const [reportDialogOpen, setReportDialogOpen] = useState(false)
+    const [availableWeeks, setAvailableWeeks] = useState<{ label: string, startDate: Date, endDate: Date, count: number }[]>([])
+
+    // Table Data
+    const [monthlyTeamStats, setMonthlyTeamStats] = useState<any[]>([])
+    const [monthlyOverallStats, setMonthlyOverallStats] = useState<any[]>([])
+    const [monthlyKeys, setMonthlyKeys] = useState<string[]>([])
+    const [monthlyLabels, setMonthlyLabels] = useState<string[]>([])
+
+    const [weeklyTeamStats, setWeeklyTeamStats] = useState<any[]>([])
+    const [weeklyOverallStats, setWeeklyOverallStats] = useState<any[]>([])
+    const [weeklyKeys, setWeeklyKeys] = useState<string[]>([])
+    const [weeklyLabels, setWeeklyLabels] = useState<string[]>([])
+
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
+
+    const generateAvailableWeeks = (inquiries: any[]) => {
+        const weeks = []
+        const today = new Date()
+
+        let anchor = new Date(today)
+        // If today is Friday and >= 09:00, anchor to today 09:00, else find previous Friday 09:00
+        if (anchor.getDay() === 5 && anchor.getHours() >= 9) {
+            anchor.setHours(9, 0, 0, 0)
+        } else {
+            while (anchor.getDay() !== 5) {
+                anchor.setDate(anchor.getDate() - 1)
+            }
+            if (anchor.getDay() === 5 && today.getHours() < 9 && anchor.getDate() === today.getDate()) {
+                anchor.setDate(anchor.getDate() - 7)
+            }
+            anchor.setHours(9, 0, 0, 0)
+        }
+
+        // Add Current Week (In Progress)
+        const currentStart = new Date(anchor)
+        const currentEnd = new Date(anchor)
+        currentEnd.setDate(currentEnd.getDate() + 7)
+
+        const currentCount = inquiries.filter(inq => {
+            if (inq.estado !== 'concluido' || !inq.data_conclusao || !inq.numero_oficio) return false
+            const dt = parseISO(inq.data_conclusao)
+            return dt >= currentStart && dt <= currentEnd
+        }).length
+
+        weeks.push({
+            label: "Semana Atual (Em curso)",
+            startDate: currentStart,
+            endDate: currentEnd,
+            count: currentCount
+        })
+
+        // Generate Past Weeks
+        for (let i = 0; i < 12; i++) {
+            const endDate = new Date(anchor)
+            endDate.setDate(anchor.getDate() - (i * 7))
+
+            const startDate = new Date(endDate)
+            startDate.setDate(endDate.getDate() - 7)
+
+            const count = inquiries.filter(inq => {
+                if (inq.estado !== 'concluido' || !inq.data_conclusao || !inq.numero_oficio) return false
+                const dt = parseISO(inq.data_conclusao)
+                return dt >= startDate && dt <= endDate
+            }).length
+
+            weeks.push({
+                label: i === 0 ? "Última Semana Completa" : "",
+                startDate,
+                endDate,
+                count
+            })
+        }
+        setAvailableWeeks(weeks)
+    }
 
     useEffect(() => {
         async function fetchData() {
             setLoading(true)
 
             // 1. Fetch Profiles
-            const { data: profiles, error: profilesError } = await supabase
+            const { data: rawProfiles, error: profilesError } = await supabase
                 .from('profiles')
                 .select('*')
                 .order('full_name', { ascending: true })
@@ -46,10 +136,12 @@ export default function EstadoDaNacaoPage() {
                 return
             }
 
-            // 2. Fetch Inquiries (Lightweight fetch)
+            const profiles = rawProfiles?.filter(p => p.email !== 'user@sapo.pt')
+
+            // 2. Fetch Inquiries
             const { data: inquiries, error: inqError } = await supabase
                 .from('inqueritos')
-                .select('id, user_id, estado')
+                .select('id, user_id, estado, created_at, data_conclusao, numero_oficio')
 
             if (inqError) {
                 console.error('Error fetching inquiries', inqError)
@@ -57,10 +149,8 @@ export default function EstadoDaNacaoPage() {
                 return
             }
 
-            // 3. Process Data
+            // --- KPI PROCESSING ---
             const statsMap: Record<string, UserStat> = {}
-
-            // Initialize map with all profiles
             profiles?.forEach(p => {
                 statsMap[p.id] = {
                     userId: p.id,
@@ -72,7 +162,6 @@ export default function EstadoDaNacaoPage() {
                 }
             })
 
-            // Aggregate counts
             inquiries?.forEach(inq => {
                 if (inq.user_id && statsMap[inq.user_id]) {
                     if (inq.estado === 'concluido') {
@@ -83,8 +172,126 @@ export default function EstadoDaNacaoPage() {
                     statsMap[inq.user_id].totalInquiries++
                 }
             })
-
             setStats(Object.values(statsMap).sort((a, b) => b.activeInquiries - a.activeInquiries))
+
+            setRawInquiries(inquiries || [])
+            generateAvailableWeeks(inquiries || [])
+
+            // --- TEMPORAL ANALYTICS PROCESSING ---
+            const processPeriods = (data: any[], type: 'week' | 'month' | 'quarter') => {
+                const map: Record<string, { created: number, concluded: number }> = {}
+                data.forEach(inq => {
+                    const createdDate = parseISO(inq.created_at)
+                    let createdKey = ''
+                    if (type === 'week') createdKey = format(startOfWeek(createdDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+                    if (type === 'month') createdKey = format(startOfMonth(createdDate), 'yyyy-MM')
+                    if (type === 'quarter') createdKey = format(startOfQuarter(createdDate), 'yyyy-QQQ')
+
+                    if (!map[createdKey]) map[createdKey] = { created: 0, concluded: 0 }
+                    map[createdKey].created++
+
+                    if (inq.estado === 'concluido' && inq.data_conclusao) {
+                        const concludedDate = parseISO(inq.data_conclusao)
+                        let concludedKey = ''
+                        if (type === 'week') concludedKey = format(startOfWeek(concludedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+                        if (type === 'month') concludedKey = format(startOfMonth(concludedDate), 'yyyy-MM')
+                        if (type === 'quarter') concludedKey = format(startOfQuarter(concludedDate), 'yyyy-QQQ')
+
+                        if (!map[concludedKey]) map[concludedKey] = { created: 0, concluded: 0 }
+                        map[concludedKey].concluded++
+                    }
+                })
+                return Object.entries(map).map(([period, vals]) => ({ period, ...vals })).sort((a, b) => a.period.localeCompare(b.period))
+            }
+
+            setWeeklyData(processPeriods(inquiries || [], 'week'))
+            setMonthlyData(processPeriods(inquiries || [], 'month'))
+            setQuarterlyData(processPeriods(inquiries || [], 'quarter'))
+
+
+            // --- TEAM TABLE PROCESSING (Helper) ---
+            const processTeamStats = (periods: Date[], formatStr: string, labelFormat: string) => {
+                const keys = periods.map(d => format(d, formatStr))
+                const labels = periods.map(d => format(d, labelFormat, { locale: pt }))
+
+                const overall = keys.map(k => ({ period: k, created: 0, concluded: 0 }))
+
+                const team = profiles?.map(user => {
+                    const userStats: Record<string, { created: number, concluded: number }> = {}
+                    let totalCreated = 0
+                    let totalConcluded = 0
+
+                    inquiries?.forEach(inq => {
+                        if (inq.user_id !== user.id) return
+
+                        const createdDate = parseISO(inq.created_at)
+                        let createdKey = ''
+                        if (formatStr === 'yyyy-MM-dd') {
+                            createdKey = format(startOfWeek(createdDate, { weekStartsOn: 1 }), formatStr)
+                        } else {
+                            createdKey = format(createdDate, formatStr)
+                        }
+
+                        if (keys.includes(createdKey)) {
+                            if (!userStats[createdKey]) userStats[createdKey] = { created: 0, concluded: 0 }
+                            userStats[createdKey].created++
+                            totalCreated++
+                        }
+
+                        if (inq.estado === 'concluido' && inq.data_conclusao) {
+                            const concludedDate = parseISO(inq.data_conclusao)
+                            let concludedKey = ''
+                            if (formatStr === 'yyyy-MM-dd') {
+                                concludedKey = format(startOfWeek(concludedDate, { weekStartsOn: 1 }), formatStr)
+                            } else {
+                                concludedKey = format(concludedDate, formatStr)
+                            }
+
+                            if (keys.includes(concludedKey)) {
+                                if (!userStats[concludedKey]) userStats[concludedKey] = { created: 0, concluded: 0 }
+                                userStats[concludedKey].concluded++
+                                totalConcluded++
+                            }
+                        }
+                    })
+
+                    keys.forEach(k => {
+                        if (!userStats[k]) userStats[k] = { created: 0, concluded: 0 }
+                    })
+
+                    return {
+                        userName: user.full_name || user.email,
+                        stats: userStats,
+                        totals: { created: totalCreated, concluded: totalConcluded }
+                    }
+                }) || []
+
+                team.forEach(u => {
+                    keys.forEach((k, idx) => {
+                        overall[idx].created += u.stats[k].created
+                        overall[idx].concluded += u.stats[k].concluded
+                    })
+                })
+
+                return { team, overall, keys, labels }
+            }
+
+            // --- MONTHLY (Last 6 months) ---
+            const last6MonthsDates = Array.from({ length: 6 }).map((_, i) => subMonths(new Date(), 5 - i))
+            const monthlyRes = processTeamStats(last6MonthsDates, 'yyyy-MM', 'MMM yyyy')
+            setMonthlyKeys(monthlyRes.keys)
+            setMonthlyLabels(monthlyRes.labels)
+            setMonthlyTeamStats(monthlyRes.team)
+            setMonthlyOverallStats(monthlyRes.overall)
+
+            // --- WEEKLY (Last 8 weeks) ---
+            const last8WeeksDates = Array.from({ length: 8 }).map((_, i) => subWeeks(new Date(), 7 - i))
+            const weeklyRes = processTeamStats(last8WeeksDates.map(d => startOfWeek(d, { weekStartsOn: 1 })), 'yyyy-MM-dd', 'dd/MM')
+            setWeeklyKeys(weeklyRes.keys)
+            setWeeklyLabels(weeklyRes.labels)
+            setWeeklyTeamStats(weeklyRes.team)
+            setWeeklyOverallStats(weeklyRes.overall)
+
             setLoading(false)
         }
 
@@ -92,27 +299,82 @@ export default function EstadoDaNacaoPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    const handleSelectWeek = async (week: { startDate: Date, endDate: Date }) => {
+        setReportLoading(true)
+        try {
+            const { data: reportInquiries, error } = await supabase
+                .from('inqueritos')
+                .select('nuipc, tipo_crime, data_conclusao, numero_oficio, user_id')
+                .eq('estado', 'concluido')
+                .not('numero_oficio', 'is', null)
+                .gte('data_conclusao', week.startDate.toISOString())
+                .lte('data_conclusao', week.endDate.toISOString())
+
+            if (error) throw error
+
+            if (!reportInquiries || reportInquiries.length === 0) {
+                alert("Erro: Dados não encontrados.")
+                return
+            }
+
+            const { data: allProfiles } = await supabase.from('profiles').select('id, full_name, email')
+            const profiles = allProfiles?.filter(p => p.email !== 'user@sapo.pt') || []
+
+            const reportDataAll = profiles.map(p => {
+                const userInqs = reportInquiries.filter(i => i.user_id === p.id)
+                return {
+                    userId: p.id,
+                    userName: p.full_name || p.email,
+                    inquiries: userInqs
+                }
+            })
+
+            const { data: { user } } = await supabase.auth.getUser()
+            const currentUserName = user?.user_metadata?.full_name || 'Admin'
+
+            await generateWeeklyProductivityReport(reportDataAll, week.startDate, week.endDate, currentUserName)
+            setReportDialogOpen(false)
+
+        } catch (e) {
+            console.error(e)
+            alert("Erro ao gerar relatório.")
+        } finally {
+            setReportLoading(false)
+        }
+    }
+
     const handleExport = () => {
         alert("A funcionalidade de exportação será implementada em breve.")
     }
 
-    if (loading) {
-        return <div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-    }
-
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
+            <WeeklyReportDialog
+                open={reportDialogOpen}
+                onOpenChange={setReportDialogOpen}
+                weeks={availableWeeks}
+                onSelect={handleSelectWeek}
+                loading={reportLoading}
+            />
+
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Estado da Nação</h1>
                     <p className="text-muted-foreground">Visão geral da distribuição de processos e produtividade da equipa.</p>
                 </div>
-                <Button onClick={handleExport} variant="outline" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Exportar Relatório
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={() => setReportDialogOpen(true)} variant="default">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Relatório Semanal
+                    </Button>
+                    <Button onClick={handleExport} variant="outline" className="gap-2">
+                        <Download className="h-4 w-4" />
+                        Exportar Dashboard
+                    </Button>
+                </div>
             </div>
 
+            {/* KPI Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -147,10 +409,36 @@ export default function EstadoDaNacaoPage() {
                 </Card>
             </div>
 
+            {/* Analytics Charts */}
+            <InquiryFlowChart
+                weeklyData={weeklyData}
+                monthlyData={monthlyData}
+                quarterlyData={quarterlyData}
+            />
+
+            {/* TEAM PERFORMANCE TABLES */}
+            <TeamPerformanceTable
+                title="Performance Semanal (Últimas 8 Semanas)"
+                periodLabels={weeklyLabels}
+                periodKeys={weeklyKeys}
+                teamStats={weeklyTeamStats}
+                overallStats={weeklyOverallStats}
+            />
+
+            <TeamPerformanceTable
+                title="Performance Mensal (Últimos 6 Meses)"
+                periodLabels={monthlyLabels}
+                periodKeys={monthlyKeys}
+                teamStats={monthlyTeamStats}
+                overallStats={monthlyOverallStats}
+            />
+
+
+            {/* Detailed List (Legacy/Current Snapshot) */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Distribuição por Militar</CardTitle>
-                    <CardDescription>Lista detalhada de carga de trabalho atual.</CardDescription>
+                    <CardTitle>Carga de Trabalho Atual</CardTitle>
+                    <CardDescription>Snapshot do momento atual: quem tem mais processos ativos.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
@@ -158,7 +446,7 @@ export default function EstadoDaNacaoPage() {
                             <TableRow>
                                 <TableHead>Militar</TableHead>
                                 <TableHead className="text-center">Ativos</TableHead>
-                                <TableHead className="text-center">Concluídos</TableHead>
+                                <TableHead className="text-center">Concluídos (Total)</TableHead>
                                 <TableHead className="text-center">Total Atribuído</TableHead>
                                 <TableHead className="text-right">Carga</TableHead>
                             </TableRow>

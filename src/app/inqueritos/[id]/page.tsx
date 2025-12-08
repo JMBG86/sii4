@@ -8,7 +8,6 @@ import { EditInquiryDialog } from '@/components/inquiry/edit-inquiry-dialog'
 import { DiligenceList } from '@/components/inquiry/diligence-list'
 import { RelatedLinks } from '@/components/inquiry/related-links'
 import { HistoryList } from '@/components/inquiry/history-list'
-import { Separator } from '@/components/ui/separator'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 
@@ -39,14 +38,10 @@ export default async function InquiryDetailsPage({
         .order('created_at', { ascending: false })
 
     // 3. Fetch Links
-    // We need to find links where this inquiry is A or B.
-    // This is a bit complex with standard Supabase SELECTs in one go without an RPC or complex OR filter.
-    // "inquerito_a.eq.uuid,inquerito_b.eq.uuid" with OR?
     const { data: linksA } = await supabase.from('ligacoes').select('*, inqueritos:inquerito_b(id, nuipc)').eq('inquerito_a', id)
     const { data: linksB } = await supabase.from('ligacoes').select('*, inqueritos:inquerito_a(id, nuipc)').eq('inquerito_b', id)
 
     // Normalize links
-    // If I am A, the other is B. If I am B, the other is A.
     const normalizedLinks = [
         ...(linksA || []).map(l => ({ id: l.id, razao: l.razao, other_id: l.inqueritos.id, other_nuipc: (l.inqueritos as any).nuipc })),
         ...(linksB || []).map(l => ({ id: l.id, razao: l.razao, other_id: l.inqueritos.id, other_nuipc: (l.inqueritos as any).nuipc }))
@@ -99,10 +94,33 @@ export default async function InquiryDetailsPage({
                                 <div className="text-sm font-medium text-muted-foreground">Participação</div>
                                 <div>{inquiry.data_participacao || '-'}</div>
                             </div>
+
+                            {/* New Fields */}
                             <div>
-                                <div className="text-sm font-medium text-muted-foreground">Localização</div>
-                                <div>{inquiry.localizacao || '-'}</div>
+                                <div className="text-sm font-medium text-muted-foreground">Denunciantes</div>
+                                <div className="flex flex-col gap-1 mt-1">
+                                    {(inquiry.denunciantes as any[])?.length > 0 ? (
+                                        (inquiry.denunciantes as any[]).map((d, i) => (
+                                            <div key={i} className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded inline-block w-fit">
+                                                {d.nome}
+                                            </div>
+                                        ))
+                                    ) : '-'}
+                                </div>
                             </div>
+                            <div>
+                                <div className="text-sm font-medium text-muted-foreground">Denunciados / Suspeitos</div>
+                                <div className="flex flex-col gap-1 mt-1">
+                                    {(inquiry.denunciados as any[])?.length > 0 ? (
+                                        (inquiry.denunciados as any[]).map((d, i) => (
+                                            <div key={i} className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded inline-block w-fit">
+                                                {d.nome}
+                                            </div>
+                                        ))
+                                    ) : '-'}
+                                </div>
+                            </div>
+
                             <div className="col-span-2">
                                 <div className="text-sm font-medium text-muted-foreground">Observações</div>
                                 <p className="text-sm mt-1 whitespace-pre-wrap">{inquiry.observacoes || 'N/A'}</p>
@@ -115,8 +133,6 @@ export default async function InquiryDetailsPage({
 
                 <div className="space-y-6">
                     <RelatedLinks inquiryId={inquiry.id} links={normalizedLinks} />
-
-                    {/* History placeholder - could be another component */}
                     <HistoryList inquiryId={inquiry.id} />
                 </div>
             </div>

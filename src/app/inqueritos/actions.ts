@@ -13,7 +13,21 @@ export async function createInquiry(formData: FormData) {
     const data_participacao = formData.get('data_participacao') as string
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
-    const localizacao = formData.get('localizacao') as string
+
+    // Parse JSON fields
+    const denunciantesRaw = formData.get('denunciantes') as string
+    const denunciadosRaw = formData.get('denunciados') as string
+
+    let denunciantes = null
+    let denunciados = null
+
+    try {
+        if (denunciantesRaw) denunciantes = JSON.parse(denunciantesRaw)
+        if (denunciadosRaw) denunciados = JSON.parse(denunciadosRaw)
+    } catch (e) {
+        console.error('Error parsing parties JSON', e)
+    }
+
     let assignedUserId = formData.get('assigned_user_id') as string
 
     // Check if current user is admin to allow assignment
@@ -41,7 +55,8 @@ export async function createInquiry(formData: FormData) {
         data_participacao: data_participacao || null,
         classificacao,
         observacoes,
-        localizacao: localizacao || null,
+        denunciantes,
+        denunciados,
         user_id: assignedUserId,
         estado,
     })
@@ -208,7 +223,22 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
     const data_participacao = formData.get('data_participacao') as string
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
-    const localizacao = formData.get('localizacao') as string
+    const localizacao = formData.get('localizacao') as string // Keeping for legacy handling if needed, but we rely on new fields mostly
+
+    // Parse JSON fields
+    const denunciantesRaw = formData.get('denunciantes') as string
+    const denunciadosRaw = formData.get('denunciados') as string
+
+    let denunciantes = null
+    let denunciados = null
+
+    try {
+        if (denunciantesRaw) denunciantes = JSON.parse(denunciantesRaw)
+        if (denunciadosRaw) denunciados = JSON.parse(denunciadosRaw)
+    } catch (e) {
+        console.error('Error parsing parties JSON', e)
+    }
+
 
     const { error } = await supabase
         .from('inqueritos')
@@ -219,7 +249,8 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
             data_participacao: data_participacao || null,
             classificacao,
             observacoes,
-            localizacao: localizacao || null,
+            denunciantes,
+            denunciados
         })
         .eq('id', inquiryId)
 

@@ -10,9 +10,11 @@ export interface Inquiry {
     tipo_crime: string | null
     estado: InquiryStatus
     classificacao: InquiryClassification
-    localizacao: string | null
     observacoes: string | null
     numero_oficio: string | null
+    denunciantes: { nome: string }[] | null // New JSONB field
+    denunciados: { nome: string }[] | null  // New JSONB field
+    // localizacao: string | null // Removed
     data_conclusao: string | null
     created_at: string
 }

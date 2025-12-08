@@ -180,3 +180,153 @@ async function loadImageAsBase64(imagePath: string): Promise<{ dataURL: string; 
         img.src = imagePath
     })
 }
+
+interface UserProductivity {
+    userId: string
+    userName: string
+    inquiries: ConcludedInquiry[]
+}
+
+export async function generateWeeklyProductivityReport(
+    teamData: UserProductivity[],
+    startDate: Date,
+    endDate: Date,
+    userName: string
+) {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+
+    // --- HEADER (Reused) ---
+    try {
+        const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
+        const maxLogoWidth = 52.5
+        const logoWidth = maxLogoWidth
+        const logoHeight = maxLogoWidth / aspectRatio
+        const logoX = (pageWidth - logoWidth) / 2
+        doc.addImage(dataURL, 'PNG', logoX, 15, logoWidth, logoHeight)
+    } catch (error) {
+        console.error('Failed to load logo:', error)
+    }
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+    const orgTextWidth = doc.getTextWidth(orgText)
+    doc.text(orgText, (pageWidth - orgTextWidth) / 2, 62)
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    const userText = `Exportado por: ${userName}`
+    const userTextWidth = doc.getTextWidth(userText)
+    doc.text(userText, (pageWidth - userTextWidth) / 2, 68)
+
+    doc.setDrawColor(41, 128, 185)
+    doc.setLineWidth(0.5)
+    doc.line(20, 73, pageWidth - 20, 73)
+
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(41, 128, 185)
+    const title = 'Relatório Semanal de Produtividade'
+    const titleWidth = doc.getTextWidth(title)
+    doc.text(title, (pageWidth - titleWidth) / 2, 82)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 0, 0)
+    const dateRange = `Período: ${startDate.toLocaleString('pt-PT')} a ${endDate.toLocaleString('pt-PT')}`
+    const dateRangeWidth = doc.getTextWidth(dateRange)
+    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, 90)
+
+    let currentY = 100
+
+    // --- SUMMARY TABLE ---
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Resumo da Equipa', 20, currentY)
+    currentY += 5
+
+    const summaryData = teamData
+        .sort((a, b) => b.inquiries.length - a.inquiries.length)
+        .map(u => [u.userName, u.inquiries.length.toString()])
+
+    const totalConcluded = teamData.reduce((acc, curr) => acc + curr.inquiries.length, 0)
+    summaryData.push(['TOTAL', totalConcluded.toString()])
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Militar', 'Processos Concluídos']],
+        body: summaryData,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [41, 128, 185], halign: 'left' },
+        columnStyles: {
+            0: { cellWidth: 100 },
+            1: { cellWidth: 50, halign: 'center', fontStyle: 'bold' }
+        },
+        margin: { left: 20 },
+    })
+
+    currentY = (doc as any).lastAutoTable.finalY + 15
+
+    // --- DETAILED TABLES PER USER ---
+    for (const user of teamData) {
+        if (user.inquiries.length === 0) continue
+
+        // Check if we need a new page for the header
+        if (currentY + 20 > pageHeight) {
+            doc.addPage()
+            currentY = 20
+        }
+
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(41, 128, 185) // Blue header
+        doc.text(`${user.userName} (${user.inquiries.length})`, 20, currentY)
+        currentY += 5
+
+        const userTableData = user.inquiries.map(inq => [
+            inq.nuipc,
+            inq.tipo_crime || '-',
+            inq.data_conclusao ? new Date(inq.data_conclusao).toLocaleDateString('pt-PT') : '-',
+            inq.numero_oficio || '-'
+        ])
+
+        autoTable(doc, {
+            startY: currentY,
+            head: [['NUIPC', 'Crime', 'Data Conclusão', 'Nº Ofício']],
+            body: userTableData,
+            styles: { fontSize: 9, cellPadding: 3 },
+            headStyles: { fillColor: [100, 100, 100], fontSize: 9 }, // Gray header for sub-tables
+            columnStyles: {
+                0: { cellWidth: 45, fontStyle: 'bold' },
+                1: { cellWidth: 60 },
+                2: { cellWidth: 35, halign: 'center' },
+                3: { cellWidth: 30, halign: 'center' },
+            },
+            margin: { left: 20 },
+            pageBreak: 'avoid', // Try to keep user table together
+        })
+
+        currentY = (doc as any).lastAutoTable.finalY + 10
+    }
+
+    // --- FOOTER (Page Numbers) ---
+    const pageCount = (doc as any).internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i)
+        doc.setFontSize(7)
+        doc.setTextColor(100, 100, 100)
+        const footerText = 'Subdestacamento Territorial da GNR em Albufeira - Produção Semanal'
+        const footerWidth = doc.getTextWidth(footerText)
+        doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 5)
+
+        doc.setFontSize(8)
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' })
+    }
+
+    const filename = `relatorio_semanal_${startDate.toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
+}
