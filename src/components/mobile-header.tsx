@@ -8,6 +8,7 @@ import { Menu, User } from 'lucide-react'
 import { Sidebar } from '@/components/sidebar'
 import { useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { NotificationsMenu } from '@/components/notifications-menu'
 
 export function MobileHeader() {
     const [userName, setUserName] = useState('')
@@ -36,8 +37,9 @@ export function MobileHeader() {
                     <Sidebar />
                 </SheetContent>
             </Sheet>
-            <div className="flex-1">
-                <h1 className="text-sm font-semibold">SII - Gestão de Inquéritos</h1>
+            <div className="flex-1 flex items-center justify-between pr-2">
+                <h1 className="text-sm font-semibold">SII</h1>
+                <NotificationsMenu />
             </div>
             <Link href="/perfil" className="flex items-center gap-2 text-sm">
                 <User className="h-4 w-4" />

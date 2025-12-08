@@ -1,38 +1,52 @@
+-- 1. Create Notifications Table (if not exists)
 CREATE TABLE IF NOT EXISTS public.notifications (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    message text NOT NULL,
-    read boolean DEFAULT false,
-    link text, -- optional link to navigate to
-    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type TEXT NOT NULL, -- 'assignment', 'alert', etc.
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link TEXT,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 2. Enable RLS (idempotent operation)
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+-- 3. RLS Policies (Safe handling: Drop first to ensure latest version is applied)
 DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
-CREATE POLICY "Users can view own notifications" ON public.notifications
-    FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can view own notifications" 
+ON public.notifications FOR SELECT 
+USING (auth.uid() = user_id);
 
 DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
-CREATE POLICY "Users can update own notifications" ON public.notifications
-    FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own notifications" 
+ON public.notifications FOR UPDATE 
+USING (auth.uid() = user_id);
 
--- Trigger to limit to 10 notifications
-CREATE OR REPLACE FUNCTION public.maintain_notification_limit()
+-- 4. Function to handle New Inquiry Assignment
+CREATE OR REPLACE FUNCTION public.handle_new_inquiry_assignment()
 RETURNS TRIGGER AS $$
 BEGIN
-    DELETE FROM public.notifications
-    WHERE id IN (
-        SELECT id FROM public.notifications
-        WHERE user_id = NEW.user_id
-        ORDER BY created_at DESC
-        OFFSET 9 -- Keep 9 (existing) + new one = 10
-    );
+    -- Check if assigned_to changed and is not null
+    IF (OLD.assigned_to IS DISTINCT FROM NEW.assigned_to) AND (NEW.assigned_to IS NOT NULL) THEN
+        INSERT INTO public.notifications (user_id, type, title, message, link)
+        VALUES (
+            NEW.assigned_to,
+            'assignment',
+            'Novo Inquérito Atribuído',
+            'Foi-lhe atribuído o inquérito NUIPC: ' || NEW.nuipc,
+            '/inqueritos/' || NEW.id
+        );
+    END IF;
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-DROP TRIGGER IF EXISTS limit_notifications_trigger ON public.notifications;
-CREATE TRIGGER limit_notifications_trigger
-    AFTER INSERT ON public.notifications
-    FOR EACH ROW EXECUTE FUNCTION public.maintain_notification_limit();
+-- 5. Trigger (Drop first to avoid errors)
+DROP TRIGGER IF EXISTS on_inquerito_assignment ON public.inqueritos;
+
+CREATE TRIGGER on_inquerito_assignment
+AFTER UPDATE ON public.inqueritos
+FOR EACH ROW
+EXECUTE FUNCTION public.handle_new_inquiry_assignment();
