@@ -3,8 +3,10 @@
 import { Button } from '@/components/ui/button'
 import { CheckCheck, Copy } from 'lucide-react'
 import { useState } from 'react'
-import { toast } from 'sonner' // Assuming sonner is used, if not we'll use a simple approach or adjust later.
-// Note: If 'sonner' or specific toast is not installed, we can rely on state change for feedback.
+import { Button } from '@/components/ui/button'
+import { CheckCheck, Copy } from 'lucide-react'
+import { useState } from 'react'
+// Removed unused toast import to fix build error
 
 export function ClientCopyButton({ text }: { text: string }) {
     const [copied, setCopied] = useState(false)
