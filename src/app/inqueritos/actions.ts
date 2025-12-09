@@ -67,14 +67,7 @@ export async function createInquiry(formData: FormData) {
         return { error: 'Erro ao criar inquérito: ' + error.message || error.details || 'Erro desconhecido.' }
     }
 
-    // Trigger Notification if assigned to another user
-    if (assignedUserId !== user?.id) {
-        await supabase.from('notifications').insert({
-            user_id: assignedUserId,
-            message: `Novo inquérito atribuído: ${nuipc} - ${tipo_crime}`,
-            link: `/inqueritos` // Ideally we'd link to ID but we don't have it easily from insert without select
-        })
-    }
+
 
 
     revalidatePath('/inqueritos')
