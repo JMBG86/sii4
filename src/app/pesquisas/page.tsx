@@ -16,14 +16,29 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Search, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { InquiryDetailsDialog } from '@/components/inquiry/inquiry-details-dialog'
+import { useRouter } from 'next/navigation'
 import { Inquiry, InquiryStatus } from '@/types/database'
+import { useEffect } from 'react'
 
 export default function SearchPage() {
     const supabase = createClient()
+    const router = useRouter()
     const [searchTerm, setSearchTerm] = useState('')
     const [loading, setLoading] = useState(false)
     const [results, setResults] = useState<Inquiry[]>([])
     const [hasSearched, setHasSearched] = useState(false)
+    const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            setCurrentUserId(user?.id || null)
+        }
+        getUser()
+    }, [supabase])
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -50,6 +65,17 @@ export default function SearchPage() {
         }
 
         setLoading(false)
+    }
+
+    const handleInquiryClick = (inq: Inquiry) => {
+        // If owned by current user, navigate to edit page
+        if (currentUserId && inq.user_id === currentUserId) {
+            router.push(`/inqueritos/${inq.id}`)
+        } else {
+            // If owned by someone else, show Read-Only Dialog
+            setSelectedInquiry(inq)
+            setIsDialogOpen(true)
+        }
     }
 
     const getStatusColor = (status: InquiryStatus) => {
@@ -110,50 +136,44 @@ export default function SearchPage() {
                             </TableHeader>
                             <TableBody>
                                 {results.map((inq) => (
-                                    <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    <TableRow
+                                        key={inq.id}
+                                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                                        onClick={() => handleInquiryClick(inq)}
+                                    >
                                         <TableCell className="font-medium">
-                                            <Link href={`/inqueritos/${inq.id}`} className="block">
-                                                {inq.nuipc}
-                                            </Link>
+                                            {inq.nuipc}
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/inqueritos/${inq.id}`} className="block">
-                                                {inq.tipo_crime || '-'}
-                                            </Link>
+                                            {inq.tipo_crime || '-'}
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/inqueritos/${inq.id}`} className="block">
-                                                <Badge className={getStatusColor(inq.estado)}>
-                                                    {getStatusLabel(inq.estado)}
-                                                </Badge>
-                                            </Link>
+                                            <Badge className={getStatusColor(inq.estado)}>
+                                                {getStatusLabel(inq.estado)}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/inqueritos/${inq.id}`} className="block text-sm">
+                                            <span className="text-sm">
                                                 {/* @ts-ignore */}
                                                 {inq.profiles?.full_name || 'Sem Dono'}
-                                            </Link>
+                                            </span>
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/inqueritos/${inq.id}`} className="block">
-                                                {inq.classificacao === 'relevo' && (
-                                                    <Badge variant="destructive" className="text-xs">Relevo</Badge>
-                                                )}
-                                                {inq.classificacao === 'normal' && (
-                                                    <span className="text-sm text-gray-500">Normal</span>
-                                                )}
-                                            </Link>
+                                            {inq.classificacao === 'relevo' && (
+                                                <Badge variant="destructive" className="text-xs">Relevo</Badge>
+                                            )}
+                                            {inq.classificacao === 'normal' && (
+                                                <span className="text-sm text-gray-500">Normal</span>
+                                            )}
                                         </TableCell>
                                         <TableCell>
-                                            <Link href={`/inqueritos/${inq.id}`} className="block">
-                                                {new Date(inq.created_at).toLocaleDateString()}
-                                            </Link>
+                                            {new Date(inq.created_at).toLocaleDateString()}
                                         </TableCell>
                                     </TableRow>
                                 ))}
                                 {results.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                             Nenhum inquérito encontrado com este NUIPC.
                                         </TableCell>
                                     </TableRow>
@@ -163,6 +183,12 @@ export default function SearchPage() {
                     </CardContent>
                 </Card>
             )}
+
+            <InquiryDetailsDialog
+                inquiry={selectedInquiry}
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+            />
         </div>
     )
 }

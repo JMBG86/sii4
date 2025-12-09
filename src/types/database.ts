@@ -17,6 +17,7 @@ export interface Inquiry {
     // localizacao: string | null // Removed
     data_conclusao: string | null
     created_at: string
+    user_id: string
 }
 
 export interface Diligence {
