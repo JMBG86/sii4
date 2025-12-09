@@ -35,7 +35,10 @@ export default function SearchPage() {
         // Search by NUIPC (case insensitive matching if possible, but ILIKE is good)
         const { data, error } = await supabase
             .from('inqueritos')
-            .select('*')
+            .select(`
+                *,
+                profiles:user_id ( full_name )
+            `)
             .ilike('nuipc', `%${searchTerm.trim()}%`)
             .order('created_at', { ascending: false })
             .limit(20)
@@ -100,6 +103,7 @@ export default function SearchPage() {
                                     <TableHead>NUIPC</TableHead>
                                     <TableHead>Tipo de Crime</TableHead>
                                     <TableHead>Estado</TableHead>
+                                    <TableHead>Atribuído a</TableHead>
                                     <TableHead>Classificação</TableHead>
                                     <TableHead>Data</TableHead>
                                 </TableRow>
@@ -122,6 +126,12 @@ export default function SearchPage() {
                                                 <Badge className={getStatusColor(inq.estado)}>
                                                     {getStatusLabel(inq.estado)}
                                                 </Badge>
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Link href={`/inqueritos/${inq.id}`} className="block text-sm">
+                                                {/* @ts-ignore */}
+                                                {inq.profiles?.full_name || 'Sem Dono'}
                                             </Link>
                                         </TableCell>
                                         <TableCell>

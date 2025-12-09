@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { User } from 'lucide-react'
 import { NotificationsMenu } from '@/components/notifications-menu'
 
-
 export function Header() {
     const [userName, setUserName] = useState('')
     const supabase = createClient()
@@ -29,7 +28,7 @@ export function Header() {
                 <NotificationsMenu />
                 <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <User className="h-4 w-4" />
-                    <span>{userName}</span>
+                    <span className="hidden sm:inline">{userName}</span>
                 </div>
             </div>
         </header>
