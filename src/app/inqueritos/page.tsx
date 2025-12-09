@@ -69,9 +69,12 @@ export default function InqueritosPage() {
             }
         }
 
+        if (!user) return
+
         let query = supabase
             .from('inqueritos')
             .select('*')
+            .eq('user_id', user.id) // Restricted to current user only
 
         // Apply filters from URL parameters
         const status = searchParams.get('status')
