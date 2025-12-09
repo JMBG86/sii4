@@ -263,3 +263,5 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
     revalidatePath('/inqueritos')
     revalidatePath('/')
 }
+
+

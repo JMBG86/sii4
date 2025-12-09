@@ -12,26 +12,39 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { InquiryStatus } from '@/types/database'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Terminal } from 'lucide-react'
+
 export default async function Dashboard() {
   const supabase = await createClient()
 
-  // 1. Fetch Counts
-  const { count: totalInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true })
-  const { count: pendingInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'por_iniciar')
-  const { count: diligenceInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'em_diligencias')
-  const { count: courtInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'tribunal')
-  const { count: completedInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'concluido')
-  const { count: relevoInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('classificacao', 'relevo')
+  // 0. Get User
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return <div>Access Denied</div>
 
-  // 2. Fetch Lists
+  // DEBUG: Check what the database actually sees
+  const { count: globalCount } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true })
+  const { count: userCount } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+
+
+  // 1. Fetch Counts (Filtered by User)
+  const { count: totalInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+  const { count: pendingInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'por_iniciar').eq('user_id', user.id)
+  const { count: diligenceInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'em_diligencias').eq('user_id', user.id)
+  const { count: courtInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'tribunal').eq('user_id', user.id)
+  const { count: completedInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'concluido').eq('user_id', user.id)
+  const { count: relevoInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('classificacao', 'relevo').eq('user_id', user.id)
+
+  // 2. Fetch Lists (Filtered by User)
   const { data: recentInquiries } = await supabase
     .from('inqueritos')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(10)
 
-  // Fetch all NUIPCs for year stats
-  const { data: allNuipcs } = await supabase.from('inqueritos').select('nuipc')
+  // Fetch all NUIPCs for year stats (user only)
+  const { data: allNuipcs } = await supabase.from('inqueritos').select('nuipc').eq('user_id', user.id)
 
   // Calculate breakdown
   const yearStats: Record<string, number> = {}
@@ -45,17 +58,26 @@ export default async function Dashboard() {
 
   const sortedYears = Object.keys(yearStats).sort()
 
+  // Diligences: Need to filter by inquiry owner, OR diligences assigned to user?
+  // Current schema: inqueritos has user_id, diligences are children. 
+  // We filter diligences where the parent inquiry belongs to the user.
+  // Supabase syntax for filtering on joined table: .eq('inqueritos.user_id', user.id) only works if we select it?
+  // Easier: Search diligences where inquerito_id is in (select id from inqueritos where user_id = me)
+  // Let's use the !inner join trick to filter by parent.
+
   const { data: toDodiligences } = await supabase
     .from('diligencias')
-    .select('*, inqueritos(nuipc, id)')
+    .select('*, inqueritos!inner(nuipc, id, user_id)')
     .eq('status', 'a_realizar')
+    .eq('inqueritos.user_id', user.id)
     .order('data_enviado', { ascending: true })
     .limit(10)
 
   const { data: completedDiligences } = await supabase
     .from('diligencias')
-    .select('*, inqueritos(nuipc, id)')
+    .select('*, inqueritos!inner(nuipc, id, user_id)')
     .eq('status', 'realizado')
+    .eq('inqueritos.user_id', user.id)
     .order('data_enviado', { ascending: false })
     .limit(10)
 
@@ -64,21 +86,24 @@ export default async function Dashboard() {
     .from('inqueritos')
     .select('*')
     .eq('estado', 'aguardando_resposta')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(10)
 
   // Diligences waiting response
   const { data: waitingDiligences } = await supabase
     .from('diligencias')
-    .select('*, inqueritos(nuipc, id)')
+    .select('*, inqueritos!inner(nuipc, id, user_id)')
     .eq('status', 'enviado_aguardar')
-    .order('data_enviado', { ascending: false }) // Or created_at if data_enviado is null
+    .eq('inqueritos.user_id', user.id)
+    .order('data_enviado', { ascending: false })
     .limit(10)
 
   const { data: notableInquiries } = await supabase
     .from('inqueritos')
     .select('*')
     .eq('classificacao', 'relevo')
+    .eq('user_id', user.id)
     .limit(10)
 
 
@@ -99,6 +124,7 @@ export default async function Dashboard() {
 
   return (
     <div className="space-y-6">
+
       {/* 5.1 Counters (Cards) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Link href="/inqueritos" className="block hover:opacity-80 transition-opacity">
