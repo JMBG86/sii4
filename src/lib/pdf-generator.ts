@@ -417,7 +417,7 @@ export async function generateDashboardReport(
     currentY = 25
     doc.setFontSize(10)
     doc.setTextColor(100, 100, 100)
-    doc.text('Detalhe das últimas 8 semanas por militar.', 14, currentY)
+    doc.text('Detalhe das últimas 8 semanas por militar (Entradas / Saídas / Posse).', 14, currentY)
     currentY += 10
 
     // Transform Team Stats for Table
@@ -428,8 +428,8 @@ export async function generateDashboardReport(
 
         const body = teamStats.weekly.map((u: any) => {
             const row = [u.userName]
-            weeks.forEach(w => row.push(`${u.stats[w].concluded} / ${u.stats[w].created}`)) // Concluded / Created
-            row.push(`${u.totals.concluded} / ${u.totals.created}`)
+            weeks.forEach(w => row.push(`${u.stats[w].created} / ${u.stats[w].concluded} / ${u.stats[w].balance}`))
+            row.push(`${u.totals.created} / ${u.totals.concluded}`)
             return row
         })
 
@@ -438,9 +438,9 @@ export async function generateDashboardReport(
             head: [heads],
             body: body,
             theme: 'striped',
-            styles: { fontSize: 8, cellPadding: 2 },
+            styles: { fontSize: 7, cellPadding: 2 }, // Reduced font size to fit
             headStyles: { fillColor: [41, 128, 185], halign: 'center' },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 35 } },
             margin: { left: 14, right: 14 }
         })
     }
@@ -452,7 +452,7 @@ export async function generateDashboardReport(
     currentY = 25
     doc.setFontSize(10)
     doc.setTextColor(100, 100, 100)
-    doc.text('Detalhe dos últimos 6 meses por militar (Concluídos / Criados).', 14, currentY)
+    doc.text('Detalhe dos últimos 6 meses por militar (Entradas / Saídas / Posse).', 14, currentY)
     currentY += 10
 
     if (teamStats.monthly.length > 0) {
@@ -461,8 +461,8 @@ export async function generateDashboardReport(
 
         const body = teamStats.monthly.map((u: any) => {
             const row = [u.userName]
-            months.forEach(m => row.push(`${u.stats[m].concluded} / ${u.stats[m].created}`))
-            row.push(`${u.totals.concluded} / ${u.totals.created}`)
+            months.forEach(m => row.push(`${u.stats[m].created} / ${u.stats[m].concluded} / ${u.stats[m].balance}`))
+            row.push(`${u.totals.created} / ${u.totals.concluded}`)
             return row
         })
 
@@ -471,9 +471,9 @@ export async function generateDashboardReport(
             head: [heads],
             body: body,
             theme: 'striped',
-            styles: { fontSize: 8, cellPadding: 2 },
+            styles: { fontSize: 7, cellPadding: 2 },
             headStyles: { fillColor: [39, 174, 96], halign: 'center' },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } },
+            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 35 } },
             margin: { left: 14, right: 14 }
         })
     }

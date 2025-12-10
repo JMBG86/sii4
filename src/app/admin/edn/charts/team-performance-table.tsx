@@ -15,11 +15,12 @@ interface PeriodStat {
     period: string
     created: number
     concluded: number
+    balance: number
 }
 
 interface UserPeriodStat {
     userName: string
-    stats: Record<string, { created: number; concluded: number }> // Key is period identifier (e.g. "2024-01" or "2024-W01")
+    stats: Record<string, { created: number; concluded: number; balance: number }> // Key is period identifier (e.g. "2024-01" or "2024-W01")
     totals: { created: number; concluded: number }
 }
 
@@ -48,9 +49,10 @@ export function TeamPerformanceTable({ title, periodLabels, periodKeys, teamStat
                             {periodLabels.map((label, i) => (
                                 <TableHead key={i} className="text-center border-l bg-muted/20">
                                     <div className="font-bold whitespace-nowrap px-1 text-xs">{label}</div>
-                                    <div className="text-[10px] text-muted-foreground grid grid-cols-2 gap-1 mt-1">
+                                    <div className="text-[10px] text-muted-foreground grid grid-cols-3 gap-1 mt-1">
                                         <span>Ent.</span>
                                         <span>Sai.</span>
+                                        <span className="font-bold text-purple-600">Exist.</span>
                                     </div>
                                 </TableHead>
                             ))}
@@ -63,9 +65,10 @@ export function TeamPerformanceTable({ title, periodLabels, periodKeys, teamStat
                             <TableCell className="sticky left-0 bg-muted/30 z-10">TOTAL EQUIPA</TableCell>
                             {overallStats.map((stat, i) => (
                                 <TableCell key={i} className="text-center border-l p-0 px-1">
-                                    <div className="grid grid-cols-2 gap-1 h-full items-center">
+                                    <div className="grid grid-cols-3 gap-1 h-full items-center">
                                         <div className="text-blue-600">{stat.created}</div>
                                         <div className="text-green-600">{stat.concluded}</div>
+                                        <div className="text-purple-600 font-bold">{stat.balance}</div>
                                     </div>
                                 </TableCell>
                             ))}
@@ -84,9 +87,10 @@ export function TeamPerformanceTable({ title, periodLabels, periodKeys, teamStat
                                     const stat = user.stats[key] || { created: 0, concluded: 0 }
                                     return (
                                         <TableCell key={key} className="text-center border-l p-0 px-1">
-                                            <div className="grid grid-cols-2 gap-1 h-full items-center text-xs">
+                                            <div className="grid grid-cols-3 gap-1 h-full items-center text-xs">
                                                 <div className={stat.created > 0 ? "text-blue-600 font-medium" : "text-gray-300"}>{stat.created}</div>
                                                 <div className={stat.concluded > 0 ? "text-green-600 font-medium" : "text-gray-300"}>{stat.concluded}</div>
+                                                <div className={stat.balance > 0 ? "text-purple-600 font-bold" : "text-gray-300"}>{stat.balance}</div>
                                             </div>
                                         </TableCell>
                                     )

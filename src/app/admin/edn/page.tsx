@@ -19,7 +19,7 @@ import { InquiryFlowChart } from './charts/inquiry-flow-chart'
 import { TeamPerformanceTable } from './charts/team-performance-table'
 import { WeeklyReportDialog } from './weekly-report-dialog'
 import { generateWeeklyProductivityReport, generateDashboardReport } from '@/lib/pdf-generator'
-import { format, startOfWeek, startOfMonth, startOfQuarter, parseISO, subMonths, subWeeks } from 'date-fns'
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, parseISO, subMonths, subWeeks } from 'date-fns'
 import { pt } from 'date-fns/locale'
 
 type UserStat = {
@@ -214,49 +214,93 @@ export default function EstadoDaNacaoPage() {
                 const keys = periods.map(d => format(d, formatStr))
                 const labels = periods.map(d => format(d, labelFormat, { locale: pt }))
 
-                const overall = keys.map(k => ({ period: k, created: 0, concluded: 0 }))
+                const overall = keys.map(k => ({ period: k, created: 0, concluded: 0, balance: 0 }))
 
                 const team = profiles?.map(user => {
-                    const userStats: Record<string, { created: number, concluded: number }> = {}
+                    const userStats: Record<string, { created: number, concluded: number; balance: number }> = {}
                     let totalCreated = 0
                     let totalConcluded = 0
 
-                    inquiries?.forEach(inq => {
-                        if (inq.user_id !== user.id) return
+                    // Pre-calculate user's relevant inquiries to avoid full scan inside loop
+                    const userInquiries = inquiries?.filter(i => i.user_id === user.id) || []
 
-                        const createdDate = parseISO(inq.created_at)
-                        let createdKey = ''
+                    keys.forEach((key, idx) => {
+                        const periodStart = periods[idx]
+                        let periodEnd: Date
+
                         if (formatStr === 'yyyy-MM-dd') {
-                            createdKey = format(startOfWeek(createdDate, { weekStartsOn: 1 }), formatStr)
+                            periodEnd = endOfWeek(periodStart, { weekStartsOn: 1 })
                         } else {
-                            createdKey = format(createdDate, formatStr)
+                            periodEnd = endOfMonth(periodStart)
                         }
+                        // Adjust periodEnd to end of day
+                        periodEnd.setHours(23, 59, 59, 999)
 
-                        if (keys.includes(createdKey)) {
-                            if (!userStats[createdKey]) userStats[createdKey] = { created: 0, concluded: 0 }
-                            userStats[createdKey].created++
-                            totalCreated++
-                        }
+                        let createdCount = 0
+                        let concludedCount = 0
+                        let balanceCount = 0
 
-                        if (inq.estado === 'concluido' && inq.data_conclusao) {
-                            const concludedDate = parseISO(inq.data_conclusao)
-                            let concludedKey = ''
+                        userInquiries.forEach(inq => {
+                            const createdDate = parseISO(inq.created_at)
+
+                            // Check if created IN this period
+                            let createdKey = ''
                             if (formatStr === 'yyyy-MM-dd') {
-                                concludedKey = format(startOfWeek(concludedDate, { weekStartsOn: 1 }), formatStr)
+                                createdKey = format(startOfWeek(createdDate, { weekStartsOn: 1 }), formatStr)
                             } else {
-                                concludedKey = format(concludedDate, formatStr)
+                                createdKey = format(createdDate, formatStr)
                             }
 
-                            if (keys.includes(concludedKey)) {
-                                if (!userStats[concludedKey]) userStats[concludedKey] = { created: 0, concluded: 0 }
-                                userStats[concludedKey].concluded++
-                                totalConcluded++
+                            if (createdKey === key) {
+                                createdCount++
+                                totalCreated++
                             }
-                        }
-                    })
 
-                    keys.forEach(k => {
-                        if (!userStats[k]) userStats[k] = { created: 0, concluded: 0 }
+                            // Check if concluded IN this period
+                            if (inq.estado === 'concluido' && inq.data_conclusao) {
+                                const concludedDate = parseISO(inq.data_conclusao)
+                                let concludedKey = ''
+                                if (formatStr === 'yyyy-MM-dd') {
+                                    concludedKey = format(startOfWeek(concludedDate, { weekStartsOn: 1 }), formatStr)
+                                } else {
+                                    concludedKey = format(concludedDate, formatStr)
+                                }
+
+                                if (concludedKey === key) {
+                                    concludedCount++
+                                    totalConcluded++
+                                }
+                            }
+
+                            // Calculate Balance (Active at end of period)
+                            // Created before or during period AND (Not concluded OR concluded AFTER period)
+                            const isCreatedBeforeEnd = createdDate <= periodEnd
+                            const isActiveAtEnd = !inq.data_conclusao || parseISO(inq.data_conclusao) > periodEnd
+
+                            // Special case: If status is 'concluido' but no data_conclusao (legacy data issue?), assume not active? 
+                            // Logic: If status='concluido' AND data_conclusao is null -> Treat as active? No, treat as concluded long ago?
+                            // Safe bet: defined 'isCreatedBeforeEnd' and 'isActiveAtEnd' check covers mostly.
+                            // Wait, strict check:
+                            // Active = Created <= End AND (Status != Concluded OR (Status == Concluded AND Date > End))
+
+                            let effectivelyActive = false
+                            if (isCreatedBeforeEnd) {
+                                if (inq.estado !== 'concluido') {
+                                    effectivelyActive = true
+                                } else {
+                                    // It IS concluded, but was it concluded AFTER this period?
+                                    if (inq.data_conclusao && parseISO(inq.data_conclusao) > periodEnd) {
+                                        effectivelyActive = true
+                                    }
+                                }
+                            }
+
+                            if (effectivelyActive) {
+                                balanceCount++
+                            }
+                        })
+
+                        userStats[key] = { created: createdCount, concluded: concludedCount, balance: balanceCount }
                     })
 
                     return {
@@ -270,6 +314,7 @@ export default function EstadoDaNacaoPage() {
                     keys.forEach((k, idx) => {
                         overall[idx].created += u.stats[k].created
                         overall[idx].concluded += u.stats[k].concluded
+                        overall[idx].balance += u.stats[k].balance
                     })
                 })
 
