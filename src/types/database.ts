@@ -17,6 +17,7 @@ export interface Inquiry {
     denunciados: { nome: string }[] | null  // New JSONB field
     // localizacao: string | null // Removed
     data_conclusao: string | null
+    destino: string | null
     created_at: string
     user_id: string
 }

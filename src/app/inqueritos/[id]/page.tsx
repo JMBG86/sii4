@@ -111,6 +111,12 @@ export default async function InquiryDetailsPage({
                                     <div className="font-bold text-blue-700">{inquiry.numero_oficio}</div>
                                 </div>
                             )}
+                            {inquiry.destino && (
+                                <div className="col-span-2 md:col-span-1">
+                                    <div className="text-sm font-medium text-muted-foreground text-blue-600">Destino / Entidade</div>
+                                    <div className="font-bold text-blue-700">{inquiry.destino}</div>
+                                </div>
+                            )}
 
                             {/* New Fields */}
                             <div>

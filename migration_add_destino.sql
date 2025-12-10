@@ -1,2 +1,2 @@
 ALTER TABLE public.inqueritos
-ADD COLUMN destino text;
+ADD COLUMN IF NOT EXISTS destino text;
