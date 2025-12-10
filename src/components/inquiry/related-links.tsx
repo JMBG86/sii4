@@ -62,9 +62,9 @@ export function RelatedLinks({
         })
 
         if (linkError) {
-            setMsg('Erro ao criar ligação (verifique se já existe).')
+            setMsg('Erro ao criar apensação (verifique se já existe).')
         } else {
-            setMsg('Ligação criada com sucesso.')
+            setMsg('Apensação criada com sucesso.')
             setTargetNuipc('')
             setReason('')
             router.refresh()
@@ -79,7 +79,7 @@ export function RelatedLinks({
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-col gap-2 p-4 border rounded-md bg-gray-50 dark:bg-gray-800">
-                    <h4 className="text-sm font-medium">Adicionar Ligação</h4>
+                    <h4 className="text-sm font-medium">Adicionar Apensação</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>NUIPC do Inquérito Relacionado</Label>
@@ -128,7 +128,7 @@ export function RelatedLinks({
                             </div>
                         )
                     })}
-                    {links.length === 0 && <div className="text-sm text-muted-foreground text-center">Nenhuma ligação.</div>}
+                    {links.length === 0 && <div className="text-sm text-muted-foreground text-center">Nenhuma apensação.</div>}
                 </div>
             </CardContent>
         </Card>

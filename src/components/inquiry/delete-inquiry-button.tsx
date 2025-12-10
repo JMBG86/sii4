@@ -58,7 +58,7 @@ export function DeleteInquiryButton({ inquiryId, nuipc, onSuccess, redirectTo }:
                 <AlertDialogHeader>
                     <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Esta ação não pode ser revertida. Vai apagar permanentemente o inquérito <strong>{nuipc}</strong> e todas as diligências, ligações e histórico associados.
+                        Esta ação não pode ser revertida. Vai apagar permanentemente o inquérito <strong>{nuipc}</strong> e todas as diligências, apensações e histórico associados.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -79,3 +79,18 @@ export interface Notification {
     read: boolean
     created_at: string
 }
+
+export type SuggestionStatus = 'enviada' | 'aberta' | 'em_tratamento' | 'implementado'
+export type SuggestionType = 'bug' | 'sugestao'
+
+export interface Suggestion {
+    id: string
+    user_id: string | null
+    titulo: string
+    descricao: string
+    tipo: SuggestionType
+    status: SuggestionStatus
+    created_at: string
+    // Joined
+    profiles?: Profile
+}

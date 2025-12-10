@@ -16,6 +16,7 @@ import {
     Search,
     Shield,
     BarChart3,
+    Lightbulb,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -42,10 +43,11 @@ const sidebarItems = [
         icon: Search,
     },
     {
-        title: 'Ligações',
+        title: 'Apensações',
         href: '/ligacoes',
         icon: Link2,
     },
+
     {
         title: 'Relatórios',
         href: '/relatorios',
@@ -173,6 +175,18 @@ export function Sidebar() {
                 </nav>
             </div>
             <div className="border-t p-4 space-y-2">
+                <Link
+                    href="/sugestoes"
+                    className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary mb-2',
+                        pathname === '/sugestoes'
+                            ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20'
+                            : 'text-gray-500 hover:bg-yellow-50 hover:text-yellow-600 dark:text-gray-400 dark:hover:bg-yellow-900/20'
+                    )}
+                >
+                    <Lightbulb className="h-4 w-4" />
+                    Sugestões / Bugs
+                </Link>
                 <Link href="/perfil" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800">
                     <User className="h-4 w-4" />
                     {userName}

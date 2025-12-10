@@ -27,7 +27,7 @@ export default async function LigacoesPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold tracking-tight">Ligações entre Inquéritos</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Apensações entre Inquéritos</h1>
 
             <div className="rounded-md border bg-white shadow-sm dark:bg-gray-900">
                 <Table>
@@ -61,7 +61,7 @@ export default async function LigacoesPage() {
                         {links?.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={4} className="h-24 text-center">
-                                    Nenhuma ligação encontrada.
+                                    Nenhuma apensação encontrada.
                                 </TableCell>
                             </TableRow>
                         )}
