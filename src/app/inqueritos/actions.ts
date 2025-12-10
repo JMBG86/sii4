@@ -11,6 +11,7 @@ export async function createInquiry(formData: FormData) {
     const tipo_crime = formData.get('tipo_crime') as string
     const data_ocorrencia = formData.get('data_ocorrencia') as string
     const data_participacao = formData.get('data_participacao') as string
+    const data_atribuicao = formData.get('data_atribuicao') as string || new Date().toISOString().split('T')[0]
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
 
@@ -53,6 +54,7 @@ export async function createInquiry(formData: FormData) {
         tipo_crime,
         data_ocorrencia: data_ocorrencia || null,
         data_participacao: data_participacao || null,
+        data_atribuicao: data_atribuicao || null,
         classificacao,
         observacoes,
         denunciantes,
@@ -218,6 +220,7 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
     const tipo_crime = formData.get('tipo_crime') as string
     const data_ocorrencia = formData.get('data_ocorrencia') as string
     const data_participacao = formData.get('data_participacao') as string
+    const data_atribuicao = formData.get('data_atribuicao') as string
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
     const localizacao = formData.get('localizacao') as string // Keeping for legacy handling if needed, but we rely on new fields mostly
@@ -244,6 +247,7 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
             tipo_crime,
             data_ocorrencia: data_ocorrencia || null,
             data_participacao: data_participacao || null,
+            data_atribuicao: data_atribuicao || null,
             classificacao,
             observacoes,
             denunciantes,

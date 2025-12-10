@@ -94,12 +94,16 @@ export default async function InquiryDetailsPage({
                         <CardHeader><CardTitle>Informações Gerais</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-2 gap-4">
                             <div>
-                                <div className="text-sm font-medium text-muted-foreground">Ocorrência</div>
+                                <div className="text-sm font-medium text-muted-foreground">Data dos Factos</div>
                                 <div>{inquiry.data_ocorrencia || '-'}</div>
                             </div>
                             <div>
-                                <div className="text-sm font-medium text-muted-foreground">Participação</div>
+                                <div className="text-sm font-medium text-muted-foreground">Data de Conhecimento dos Factos</div>
                                 <div>{inquiry.data_participacao || '-'}</div>
+                            </div>
+                            <div>
+                                <div className="text-sm font-medium text-muted-foreground">Data de Atribuição</div>
+                                <div>{inquiry.data_atribuicao || '-'}</div>
                             </div>
                             {inquiry.numero_oficio && (
                                 <div className="col-span-2 md:col-span-1">

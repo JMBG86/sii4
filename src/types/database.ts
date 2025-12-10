@@ -6,6 +6,7 @@ export interface Inquiry {
     nuipc: string
     data_ocorrencia: string | null
     data_participacao: string | null
+    data_atribuicao: string | null
     data_inicio_investigacao: string | null
     tipo_crime: string | null
     estado: InquiryStatus

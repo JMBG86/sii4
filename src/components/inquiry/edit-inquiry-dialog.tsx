@@ -98,12 +98,16 @@ export function EditInquiryDialog({ inquiry }: EditInquiryDialogProps) {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="data_ocorrencia">Data da Ocorrência</Label>
+                            <Label htmlFor="data_ocorrencia">Data dos Factos</Label>
                             <Input type="date" id="data_ocorrencia" name="data_ocorrencia" defaultValue={inquiry.data_ocorrencia || ''} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="data_participacao">Data da Participação</Label>
+                            <Label htmlFor="data_participacao">Data de Conhecimento dos Factos</Label>
                             <Input type="date" id="data_participacao" name="data_participacao" defaultValue={inquiry.data_participacao || ''} />
+                        </div>
+                        <div className="col-span-2 md:col-span-1 space-y-2">
+                            <Label htmlFor="data_atribuicao">Data de Atribuição</Label>
+                            <Input type="date" id="data_atribuicao" name="data_atribuicao" defaultValue={inquiry.data_atribuicao || ''} />
                         </div>
                     </div>
 
