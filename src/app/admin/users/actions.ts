@@ -115,3 +115,35 @@ export async function updateUser(userId: string, formData: FormData) {
     revalidatePath('/admin/users')
     return { success: true }
 }
+
+export async function deleteUser(userId: string) {
+    const supabase = await createClient()
+
+    // 1. Check if requester is admin
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (profile?.role !== 'admin') return { error: 'Unauthorized' }
+
+    // 2. Delete User using Admin Client
+    const supabaseAdmin = getAdminClient()
+    if (!supabaseAdmin) {
+        return { error: 'Erro de Configuração: SUPABASE_SERVICE_ROLE_KEY necessário para apagar utilizadores.' }
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+    if (error) {
+        console.error('Error deleting user:', error)
+        return { error: 'Erro ao apagar utilizador: ' + error.message }
+    }
+
+    revalidatePath('/admin/users')
+    return { success: true }
+}

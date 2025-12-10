@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { redirect } from 'next/navigation'
 import { CreateUserDialog } from './create-user-dialog'
 import { EditUserDialog } from './edit-user-dialog'
+import { DeleteUserButton } from './delete-user-button'
 
 export default async function AdminUsersPage() {
     const supabase = await createClient()
@@ -79,8 +80,9 @@ export default async function AdminUsersPage() {
                                         {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end">
+                                        <div className="flex justify-end gap-1">
                                             <EditUserDialog user={profile} />
+                                            <DeleteUserButton userId={profile.id} userName={profile.full_name || profile.email} />
                                         </div>
                                     </TableCell>
                                 </TableRow>
