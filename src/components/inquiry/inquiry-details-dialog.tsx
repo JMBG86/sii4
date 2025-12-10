@@ -119,6 +119,29 @@ export function InquiryDetailsDialog({
                                 {inquiry.observacoes || 'Sem observações.'}
                             </div>
                         </div>
+
+                        {/* Conclusão Details */}
+                        {(inquiry.data_conclusao || inquiry.numero_oficio || inquiry.destino) && (
+                            <div className="col-span-2 bg-green-50 dark:bg-green-950 p-4 rounded-md border border-green-100 dark:border-green-900 mt-2">
+                                <h4 className="text-sm font-semibold text-green-800 dark:text-green-100 mb-3 flex items-center gap-2">
+                                    Dados de Conclusão
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <h5 className="text-xs font-medium text-green-700 dark:text-green-300">Data Conclusão</h5>
+                                        <p className="text-sm font-medium">{inquiry.data_conclusao ? new Date(inquiry.data_conclusao).toLocaleDateString() : '-'}</p>
+                                    </div>
+                                    <div>
+                                        <h5 className="text-xs font-medium text-green-700 dark:text-green-300">Ofício Nº</h5>
+                                        <p className="text-sm font-medium">{inquiry.numero_oficio || '-'}</p>
+                                    </div>
+                                    <div>
+                                        <h5 className="text-xs font-medium text-green-700 dark:text-green-300">Destino</h5>
+                                        <p className="text-sm font-medium">{inquiry.destino || '-'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
             </DialogContent>
