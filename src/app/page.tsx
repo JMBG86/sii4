@@ -125,15 +125,13 @@ export default async function Dashboard() {
   const getStatusLabel = (status: InquiryStatus) => {
     return status.replace('_', ' ').toUpperCase()
   }
-
   return (
     <div className="space-y-6">
 
       {/* 5.1 Counters (Cards) */}
-      {/* 5.1 Counters (Cards) */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Link href="/inqueritos" className="block hover:opacity-80 transition-opacity">
-          <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 items-stretch">
+        <Link href="/inqueritos" className="block hover:opacity-80 transition-opacity h-full">
+          <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Investigados</CardTitle>
             </CardHeader>
@@ -149,8 +147,8 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/inqueritos?status=por_iniciar" className="block hover:opacity-80 transition-opacity">
-          <Card>
+        <Link href="/inqueritos?status=por_iniciar" className="block hover:opacity-80 transition-opacity h-full">
+          <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Por Iniciar</CardTitle>
             </CardHeader>
@@ -159,8 +157,8 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/inqueritos?status=em_diligencias" className="block hover:opacity-80 transition-opacity">
-          <Card>
+        <Link href="/inqueritos?status=em_diligencias" className="block hover:opacity-80 transition-opacity h-full">
+          <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Em Diligências</CardTitle>
             </CardHeader>
@@ -169,8 +167,8 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/inqueritos?status=concluido" className="block hover:opacity-80 transition-opacity">
-          <Card>
+        <Link href="/inqueritos?status=concluido" className="block hover:opacity-80 transition-opacity h-full">
+          <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
             </CardHeader>
@@ -179,7 +177,7 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Card className="bg-indigo-50 border-indigo-100 dark:bg-indigo-950 dark:border-indigo-900">
+        <Card className="bg-indigo-50 border-indigo-100 dark:bg-indigo-950 dark:border-indigo-900 h-full">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-indigo-900 dark:text-indigo-100">Existências</CardTitle>
           </CardHeader>
@@ -189,8 +187,8 @@ export default async function Dashboard() {
             </div>
           </CardContent>
         </Card>
-        <Link href="/inqueritos?classificacao=relevo" className="block hover:opacity-80 transition-opacity">
-          <Card className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-900">
+        <Link href="/inqueritos?classificacao=relevo" className="block hover:opacity-80 transition-opacity h-full">
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-900 h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">Relevo</CardTitle>
             </CardHeader>
@@ -287,9 +285,7 @@ export default async function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         {/* Completed Diligences */}
         <Card className="col-span-3">
           <CardHeader>
