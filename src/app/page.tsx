@@ -130,11 +130,12 @@ export default async function Dashboard() {
     <div className="space-y-6">
 
       {/* 5.1 Counters (Cards) */}
+      {/* 5.1 Counters (Cards) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Link href="/inqueritos" className="block hover:opacity-80 transition-opacity">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Investigados</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalInqueries || 0}</div>
@@ -168,16 +169,6 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/inqueritos?status=tribunal" className="block hover:opacity-80 transition-opacity">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tribunal</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{courtInqueries || 0}</div>
-            </CardContent>
-          </Card>
-        </Link>
         <Link href="/inqueritos?status=concluido" className="block hover:opacity-80 transition-opacity">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -188,6 +179,16 @@ export default async function Dashboard() {
             </CardContent>
           </Card>
         </Link>
+        <Card className="bg-indigo-50 border-indigo-100 dark:bg-indigo-950 dark:border-indigo-900">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-indigo-900 dark:text-indigo-100">Existências</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
+              {(totalInqueries || 0) - (completedInqueries || 0)}
+            </div>
+          </CardContent>
+        </Card>
         <Link href="/inqueritos?classificacao=relevo" className="block hover:opacity-80 transition-opacity">
           <Card className="border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
