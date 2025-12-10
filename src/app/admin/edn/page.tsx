@@ -377,7 +377,7 @@ export default function EstadoDaNacaoPage() {
             const { data: { user } } = await supabase.auth.getUser()
             const currentUserName = user?.user_metadata?.full_name || 'Admin'
 
-            await generateWeeklyProductivityReport(reportDataAll, week.startDate, week.endDate, currentUserName)
+            await generateWeeklyProductivityReport(reportDataAll, stats, week.startDate, week.endDate, currentUserName)
             setReportDialogOpen(false)
 
         } catch (e) {
@@ -404,6 +404,7 @@ export default function EstadoDaNacaoPage() {
                     weekly: weeklyTeamStats,
                     monthly: monthlyTeamStats
                 },
+                stats,
                 currentUserName
             )
         } catch (error) {
@@ -512,7 +513,7 @@ export default function EstadoDaNacaoPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Militar</TableHead>
-                                <TableHead className="text-center">Ativos</TableHead>
+                                <TableHead className="text-center">Existentes (Ativos)</TableHead>
                                 <TableHead className="text-center">Concluídos (Total)</TableHead>
                                 <TableHead className="text-center">Total Atribuído</TableHead>
                                 <TableHead className="text-right">Carga</TableHead>

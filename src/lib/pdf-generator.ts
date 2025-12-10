@@ -189,6 +189,7 @@ interface UserProductivity {
 
 export async function generateWeeklyProductivityReport(
     teamData: UserProductivity[],
+    currentStats: any[], // UserStat[]
     startDate: Date,
     endDate: Date,
     userName: string
@@ -241,11 +242,42 @@ export async function generateWeeklyProductivityReport(
 
     let currentY = 100
 
-    // --- SUMMARY TABLE ---
+    // --- CURRENT WORKLOAD SNAPSHOT ---
     doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(0, 0, 0)
-    doc.text('Resumo da Equipa', 20, currentY)
+    doc.text('Estado Atual (Existentes)', 20, currentY)
+    currentY += 5
+
+    const snapshotData = currentStats
+        .sort((a, b) => b.activeInquiries - a.activeInquiries)
+        .map(u => [u.userName, u.activeInquiries.toString()])
+
+    // Add Total Row
+    const totalActive = currentStats.reduce((acc, curr) => acc + curr.activeInquiries, 0)
+    snapshotData.push(['TOTAL EQUIPA', totalActive.toString()])
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Militar', 'Processos Existentes (Ativos)']],
+        body: snapshotData,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: { fillColor: [44, 62, 80], halign: 'left' }, // Dark Blue/Grey
+        columnStyles: {
+            0: { cellWidth: 100 },
+            1: { cellWidth: 50, halign: 'center', fontStyle: 'bold' }
+        },
+        margin: { left: 20 },
+    })
+
+    currentY = (doc as any).lastAutoTable.finalY + 15
+
+    // --- SUMMARY TABLE (Concluded in Period) ---
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Resumo de Conclusões no Período', 20, currentY)
     currentY += 5
 
     const summaryData = teamData
@@ -341,6 +373,7 @@ export async function generateDashboardReport(
         weekly: any[],
         monthly: any[]
     },
+    currentStats: any[], // UserStat[]
     userName: string
 ) {
     const doc = new jsPDF({ orientation: 'landscape' })
@@ -410,7 +443,47 @@ export async function generateDashboardReport(
         margin: { left: 14, right: 14 }
     })
 
-    // PAGE 2: Team Performance (Weekly)
+    // PAGE 2: Current Workload (Snapshot)
+    doc.addPage()
+    addHeader('Carga de Trabalho Atual (Existentes)')
+
+    currentY = 25
+    doc.setFontSize(12)
+    doc.text('Distribuição atual de processos ativos por militar.', 14, currentY)
+    currentY += 10
+
+    const totalActive = currentStats.reduce((acc, curr) => acc + curr.activeInquiries, 0)
+    const totalClosedAllTime = currentStats.reduce((acc, curr) => acc + curr.closedInquiries, 0)
+
+    const snapshotBody = currentStats
+        .sort((a, b) => b.activeInquiries - a.activeInquiries)
+        .map(u => [
+            u.userName,
+            u.activeInquiries.toString(),
+            u.closedInquiries.toString(),
+            u.totalInquiries.toString()
+        ])
+
+    snapshotBody.push(['TOTAL EQUIPA', totalActive.toString(), totalClosedAllTime.toString(), (totalActive + totalClosedAllTime).toString()])
+
+    autoTable(doc, {
+        startY: currentY,
+        head: [['Militar', 'Existentes (Ativos)', 'Concluídos (Total Histórico)', 'Total Atribuído']],
+        body: snapshotBody,
+        theme: 'striped',
+        headStyles: { fillColor: [44, 62, 80], halign: 'center' },
+        columnStyles: {
+            0: { fontStyle: 'bold' },
+            1: { halign: 'center', fontStyle: 'bold', textColor: [41, 128, 185] },
+            2: { halign: 'center', textColor: [39, 174, 96] },
+            3: { halign: 'center' }
+        },
+        styles: { fontSize: 10, cellPadding: 3 },
+        margin: { left: 14, right: 14 }
+    })
+
+
+    // PAGE 3: Team Performance (Weekly)
     doc.addPage()
     addHeader('Performance da Equipa - Semanal')
 
@@ -445,7 +518,7 @@ export async function generateDashboardReport(
         })
     }
 
-    // PAGE 3: Team Performance (Monthly)
+    // PAGE 4: Team Performance (Monthly)
     doc.addPage()
     addHeader('Performance da Equipa - Mensal')
 
