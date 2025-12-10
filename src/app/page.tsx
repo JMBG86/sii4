@@ -43,13 +43,17 @@ export default async function Dashboard() {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  // Fetch all created_at dates for year stats (user only)
-  const { data: allInquiries } = await supabase.from('inqueritos').select('created_at').eq('user_id', user.id)
+  // Fetch all dates for year stats (user only)
+  // We prioritize data_atribuicao, falling back to created_at if null (though it should have a value)
+  const { data: allInquiries } = await supabase.from('inqueritos').select('created_at, data_atribuicao').eq('user_id', user.id)
 
   // Calculate breakdown
   const yearStats: Record<string, number> = {}
   allInquiries?.forEach(item => {
-    const date = new Date(item.created_at)
+    // Use data_atribuicao if available, otherwise created_at
+    const rawDate = item.data_atribuicao || item.created_at
+    const date = new Date(rawDate)
+
     if (!isNaN(date.getTime())) {
       const year = date.getFullYear().toString()
       yearStats[year] = (yearStats[year] || 0) + 1
