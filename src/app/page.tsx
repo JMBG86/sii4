@@ -43,15 +43,15 @@ export default async function Dashboard() {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  // Fetch all NUIPCs for year stats (user only)
-  const { data: allNuipcs } = await supabase.from('inqueritos').select('nuipc').eq('user_id', user.id)
+  // Fetch all created_at dates for year stats (user only)
+  const { data: allInquiries } = await supabase.from('inqueritos').select('created_at').eq('user_id', user.id)
 
   // Calculate breakdown
   const yearStats: Record<string, number> = {}
-  allNuipcs?.forEach(item => {
-    const match = item.nuipc.match(/\/(\d{2})\./)
-    if (match && match[1]) {
-      const year = `20${match[1]}`
+  allInquiries?.forEach(item => {
+    const date = new Date(item.created_at)
+    if (!isNaN(date.getTime())) {
+      const year = date.getFullYear().toString()
       yearStats[year] = (yearStats[year] || 0) + 1
     }
   })
