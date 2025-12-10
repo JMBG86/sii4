@@ -24,7 +24,10 @@ export default async function InquiryDetailsPage({
     // 1. Fetch Inquiry Details
     const { data: inquiry, error } = await supabase
         .from('inqueritos')
-        .select('*')
+        .select(`
+            *,
+            profiles:user_id ( full_name )
+        `)
         .eq('id', id)
         .single()
 
@@ -143,7 +146,7 @@ export default async function InquiryDetailsPage({
 
                 <div className="space-y-6">
                     <RelatedLinks inquiryId={inquiry.id} links={normalizedLinks} />
-                    <HistoryList inquiryId={inquiry.id} />
+                    <HistoryList inquiry={inquiry} />
                 </div>
             </div>
         </div>
