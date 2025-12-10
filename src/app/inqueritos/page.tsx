@@ -187,8 +187,14 @@ export default function InqueritosPage() {
                             <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('tipo_crime')}>
                                 <div className="flex items-center">Crime <SortIcon column="tipo_crime" /></div>
                             </TableHead>
-                            <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('data_ocorrencia')}>
-                                <div className="flex items-center">Data Ocorrência <SortIcon column="data_ocorrencia" /></div>
+                            <TableHead className="w-[110px] cursor-pointer hover:bg-gray-50" onClick={() => handleSort('data_ocorrencia')}>
+                                <div className="flex items-center">Data dos Factos <SortIcon column="data_ocorrencia" /></div>
+                            </TableHead>
+                            <TableHead className="w-[110px] cursor-pointer hover:bg-gray-50" onClick={() => handleSort('data_participacao')}>
+                                <div className="flex items-center">Data C. Factos <SortIcon column="data_participacao" /></div>
+                            </TableHead>
+                            <TableHead className="w-[110px] cursor-pointer hover:bg-gray-50" onClick={() => handleSort('data_atribuicao')}>
+                                <div className="flex items-center">Data Atribuição <SortIcon column="data_atribuicao" /></div>
                             </TableHead>
                             <TableHead className="cursor-pointer hover:bg-gray-50" onClick={() => handleSort('estado')}>
                                 <div className="flex items-center">Estado <SortIcon column="estado" /></div>
@@ -211,9 +217,19 @@ export default function InqueritosPage() {
                             >
                                 <TableCell className="font-medium">{inq.nuipc}</TableCell>
                                 <TableCell>{inq.tipo_crime || '-'}</TableCell>
-                                <TableCell>
+                                <TableCell className="text-sm">
                                     {inq.data_ocorrencia
                                         ? new Date(inq.data_ocorrencia).toLocaleDateString()
+                                        : '-'}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                    {inq.data_participacao
+                                        ? new Date(inq.data_participacao).toLocaleDateString()
+                                        : '-'}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                    {inq.data_atribuicao
+                                        ? new Date(inq.data_atribuicao).toLocaleDateString()
                                         : '-'}
                                 </TableCell>
                                 <TableCell>
@@ -245,8 +261,8 @@ export default function InqueritosPage() {
                                         )}
                                     </TableCell>
                                 )}
-                                <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <TableCell>
+                                    <div className="flex justify-end gap-2" max-width="100px" onClick={(e) => e.stopPropagation()}>
                                         <Link href={`/inqueritos/${inq.id}`}>
                                             <Button variant="outline" size="sm" className="gap-2">
                                                 <Eye className="h-4 w-4" />
