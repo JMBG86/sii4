@@ -75,7 +75,7 @@ export function RelatedLinks({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Ligações</CardTitle>
+                <CardTitle>Apensações</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex flex-col gap-2 p-4 border rounded-md bg-gray-50 dark:bg-gray-800">

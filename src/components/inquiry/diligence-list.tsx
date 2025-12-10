@@ -70,13 +70,15 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
 
     const handleAdd = async (formData: FormData) => {
         setLoading(true)
-        await addDiligence(formData)
-        // No need to manually update state if Realtime + router.refresh works, 
-        // BUT router.refresh is async. For best UX, we can optimistically update or just wait.
-        // The server action already revalidates path, so router.refresh() might be redundant 
-        // but the Realtime ensures updates from OTHER users are seen.
+        const result = await addDiligence(formData)
+
+        if (result?.error) {
+            alert(result.error) // Simple alert for now
+        } else {
+            setShowAdd(false)
+        }
+
         setLoading(false)
-        setShowAdd(false)
     }
 
     const handleRowClick = (diligence: Diligence) => {

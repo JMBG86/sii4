@@ -136,13 +136,17 @@ export async function addDiligence(formData: FormData) {
     })
 
     if (error) {
-        console.error(error)
-        return
+        console.error('Error adding diligence:', error)
+        return { error: error.message || 'Erro ao criar diligência.' }
     }
 
     revalidatePath(`/inqueritos/${inquerito_id}`)
     revalidatePath('/')
-    redirect(`/inqueritos/${inquerito_id}`)
+    // redirect is usually not needed if we just revalidate, especially if we want to stay on the same page context or if client handles it.
+    // The previous code had redirect, which forces a navigation.
+    // Let's remove redirect to handle the response client-side more gracefully, or keep it if success.
+    // Actually, redirecting inside a form action for a sub-item (diligence) on the same page is slightly jarring.
+    // Better to just revalidate.
 }
 
 export async function deleteInquiry(inquiryId: string) {
