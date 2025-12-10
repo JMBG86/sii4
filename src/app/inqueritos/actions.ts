@@ -76,7 +76,7 @@ export async function createInquiry(formData: FormData) {
     redirect('/inqueritos')
 }
 
-export async function updateInquiryState(inquiryId: string, newState: string, comment: string, numeroOficio?: string) {
+export async function updateInquiryState(inquiryId: string, newState: string, comment: string, numeroOficio?: string, destino?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -89,10 +89,11 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
     // 2. Prepare update data
     const updateData: any = { estado: newState }
 
-    // If marking as concluded, save office number and completion date
+    // If marking as concluded, save office number, completion date, and destination
     if (newState === 'concluido' && numeroOficio) {
         updateData.numero_oficio = numeroOficio
         updateData.data_conclusao = new Date().toISOString()
+        if (destino) updateData.destino = destino
     }
 
     // 3. Update Inquerito

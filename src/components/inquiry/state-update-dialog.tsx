@@ -36,6 +36,7 @@ export function StateUpdateDialog({
     const [newState, setNewState] = useState(currentState)
     const [comment, setComment] = useState('')
     const [numeroOficio, setNumeroOficio] = useState('')
+    const [destino, setDestino] = useState('')
 
     const handleUpdate = async () => {
         if (newState === currentState) {
@@ -43,15 +44,21 @@ export function StateUpdateDialog({
             return
         }
 
-        // Validate office number if concluding
-        if (newState === 'concluido' && !numeroOficio.trim()) {
-            alert('Por favor, insira o Número do Ofício')
-            return
+        // Validate office number and destination if concluding
+        if (newState === 'concluido') {
+            if (!numeroOficio.trim()) {
+                alert('Por favor, insira o Número do Ofício')
+                return
+            }
+            if (!destino.trim()) {
+                alert('Por favor, insira o Destino')
+                return
+            }
         }
 
         setLoading(true)
         try {
-            await updateInquiryState(inquiryId, newState, comment, numeroOficio)
+            await updateInquiryState(inquiryId, newState, comment, numeroOficio, destino)
             setOpen(false)
         } catch (e) {
             console.error(e)
@@ -91,26 +98,40 @@ export function StateUpdateDialog({
                         </Select>
                     </div>
                     {newState === 'concluido' && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="numeroOficio">Número do Ofício *</Label>
+                                <Input
+                                    id="numeroOficio"
+                                    value={numeroOficio}
+                                    onChange={(e) => setNumeroOficio(e.target.value)}
+                                    placeholder="Ex: 123/2024"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="destino">Destino *</Label>
+                                <Input
+                                    id="destino"
+                                    value={destino}
+                                    onChange={(e) => setDestino(e.target.value)}
+                                    placeholder="Ex: DIAP, Tribunal, Arquivo..."
+                                    required
+                                />
+                            </div>
+                        </>
+                    )}
+                    {newState !== 'concluido' && (
                         <div className="space-y-2">
-                            <Label htmlFor="numeroOficio">Número do Ofício *</Label>
-                            <Input
-                                id="numeroOficio"
-                                value={numeroOficio}
-                                onChange={(e) => setNumeroOficio(e.target.value)}
-                                placeholder="Ex: 123/2024"
-                                required
+                            <Label htmlFor="comment">Observações (opcional)</Label>
+                            <Textarea
+                                id="comment"
+                                value={comment}
+                                onChange={(e) => setComment(e.target.value)}
+                                placeholder="Razão da mudança..."
                             />
                         </div>
                     )}
-                    <div className="space-y-2">
-                        <Label htmlFor="comment">Observações (opcional)</Label>
-                        <Textarea
-                            id="comment"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
-                            placeholder="Razão da mudança..."
-                        />
-                    </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

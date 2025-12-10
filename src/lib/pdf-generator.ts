@@ -6,6 +6,7 @@ interface ConcludedInquiry {
     data_conclusao: string
     numero_oficio: string | null
     tipo_crime: string | null
+    destino?: string | null
 }
 
 export async function generateBrandedReport(
@@ -323,20 +324,22 @@ export async function generateWeeklyProductivityReport(
             inq.nuipc,
             inq.tipo_crime || '-',
             inq.data_conclusao ? new Date(inq.data_conclusao).toLocaleDateString('pt-PT') : '-',
-            inq.numero_oficio || '-'
+            inq.numero_oficio || '-',
+            inq.destino || '-'
         ])
 
         autoTable(doc, {
             startY: currentY,
-            head: [['NUIPC', 'Crime', 'Data Conclusão', 'Nº Ofício']],
+            head: [['NUIPC', 'Crime', 'Data Conclusão', 'Nº Ofício', 'Destino']],
             body: userTableData,
             styles: { fontSize: 9, cellPadding: 3 },
             headStyles: { fillColor: [100, 100, 100], fontSize: 9 }, // Gray header for sub-tables
             columnStyles: {
-                0: { cellWidth: 45, fontStyle: 'bold' },
-                1: { cellWidth: 60 },
-                2: { cellWidth: 35, halign: 'center' },
-                3: { cellWidth: 30, halign: 'center' },
+                0: { cellWidth: 40, fontStyle: 'bold' },
+                1: { cellWidth: 50 },
+                2: { cellWidth: 30, halign: 'center' },
+                3: { cellWidth: 25, halign: 'center' },
+                4: { cellWidth: 35, halign: 'center' },
             },
             margin: { left: 20 },
             pageBreak: 'avoid', // Try to keep user table together

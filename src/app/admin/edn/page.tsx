@@ -349,7 +349,7 @@ export default function EstadoDaNacaoPage() {
         try {
             const { data: reportInquiries, error } = await supabase
                 .from('inqueritos')
-                .select('nuipc, tipo_crime, data_conclusao, numero_oficio, user_id')
+                .select('nuipc, tipo_crime, data_conclusao, numero_oficio, user_id, destino')
                 .eq('estado', 'concluido')
                 .not('numero_oficio', 'is', null)
                 .gte('data_conclusao', week.startDate.toISOString())
