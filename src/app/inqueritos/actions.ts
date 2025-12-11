@@ -252,7 +252,9 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
             classificacao,
             observacoes,
             denunciantes,
-            denunciados
+            denunciados,
+            numero_oficio: formData.get('numero_oficio') as string || null,
+            destino: formData.get('destino') as string || null,
         })
         .eq('id', inquiryId)
 

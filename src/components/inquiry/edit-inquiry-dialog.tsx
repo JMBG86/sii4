@@ -116,6 +116,17 @@ export function EditInquiryDialog({ inquiry }: EditInquiryDialogProps) {
                         <Input id="tipo_crime" name="tipo_crime" defaultValue={inquiry.tipo_crime || ''} />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="numero_oficio">Nº Ofício de Saída</Label>
+                            <Input id="numero_oficio" name="numero_oficio" defaultValue={inquiry.numero_oficio || ''} placeholder="Opcional" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="destino">Destino / Entidade</Label>
+                            <Input id="destino" name="destino" defaultValue={inquiry.destino || ''} placeholder="Opcional" />
+                        </div>
+                    </div>
+
                     {/* Dynamic Fields Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg bg-gray-50/50">
                         {/* Denunciantes */}
