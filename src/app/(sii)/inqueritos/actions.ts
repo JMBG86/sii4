@@ -178,7 +178,7 @@ export async function deleteInquiry(inquiryId: string) {
 
         if (error) {
             console.error('Error unassigning SP inquiry:', error)
-            return { error: 'Failed to unassign inquiry' }
+            return { error: 'Erro ao desatribuir: ' + error.message }
         }
     } else {
         // Hard delete for manual inquiries

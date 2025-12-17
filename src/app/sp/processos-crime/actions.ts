@@ -196,7 +196,7 @@ export async function updateProcesso(id: string, formData: FormData) {
                     data_ocorrencia: updates.data_factos || null,
                     data_participacao: updates.data_conhecimento || null,
                     observacoes: `[Importado da SP] ${updates.observacoes || ''}`,
-                    destino: updates.localizacao || 'SII ALBUFEIRA'
+                    destino: updates.entidade_destino || 'SII ALBUFEIRA'
                 })
 
                 if (insertError) {
