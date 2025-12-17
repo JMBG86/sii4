@@ -155,16 +155,19 @@ export async function addDiligence(formData: FormData) {
 export async function deleteInquiry(inquiryId: string) {
     const supabase = await createClient()
 
-    // 1. Fetch to check origin
+    // 1. Fetch to check origin and assignment status
     const { data: inquiry } = await supabase
         .from('inqueritos')
-        .select('observacoes, nuipc')
+        .select('observacoes, nuipc, user_id')
         .eq('id', inquiryId)
         .single()
 
     const isSP = inquiry?.observacoes?.includes('[Importado da SP]')
+    const isUnassigned = inquiry?.user_id === null
 
-    if (isSP) {
+    // If it's from SP but already unassigned (e.g. from Distribution page), we allow Hard Delete to clear it.
+    // If it's from SP and assigned, we Soft Delete (Unassign) to prevent accidental data loss.
+    if (isSP && !isUnassigned) {
         // Soft delete: Unassign and reset status
         const { error } = await supabase
             .from('inqueritos')

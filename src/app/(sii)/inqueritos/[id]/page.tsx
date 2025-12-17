@@ -52,6 +52,13 @@ export default async function InquiryDetailsPage({
         ...(linksB || []).map(l => ({ id: l.id, razao: l.razao, other_id: l.inqueritos.id, other_nuipc: (l.inqueritos as any).nuipc }))
     ]
 
+    // 4. Fetch Correspondence (Soft link via NUIPC)
+    const { data: correspondence } = await supabase
+        .from('correspondencias')
+        .select('*')
+        .eq('nuipc', inquiry.nuipc)
+        .order('data_entrada', { ascending: false })
+
 
     const getStatusColor = (status: InquiryStatus) => {
         switch (status) {
@@ -155,7 +162,32 @@ export default async function InquiryDetailsPage({
                 </div>
 
                 <div className="space-y-6">
-                    <RelatedLinks inquiryId={inquiry.id} links={normalizedLinks} />
+                    {/* <RelatedLinks inquiryId={inquiry.id} links={normalizedLinks} /> */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Correspondência ({correspondence?.length || 0})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {correspondence && correspondence.length > 0 ? (
+                                <div className="space-y-4">
+                                    {correspondence.map((c) => (
+                                        <div key={c.id} className="flex flex-col gap-1 border-b pb-3 last:border-0 last:pb-0">
+                                            <div className="flex justify-between items-start">
+                                                <span className="font-semibold text-sm">{c.assunto}</span>
+                                                <span className="text-xs text-muted-foreground">{new Date(c.data_entrada).toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                <span className="font-medium text-gray-700 dark:text-gray-300">De:</span> {c.origem} <span className="mx-1">|</span>
+                                                <span className="font-medium text-gray-700 dark:text-gray-300">Ofício:</span> {c.numero_oficio || '-'}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">Sem correspondência registada.</p>
+                            )}
+                        </CardContent>
+                    </Card>
                     <HistoryList inquiry={inquiry} />
                 </div>
             </div>

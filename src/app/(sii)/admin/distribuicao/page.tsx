@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getUnassignedInquiries, getUsers, assignInquiry } from './actions'
+import { deleteInquiry } from '../../inqueritos/actions'
 import {
     Table,
     TableBody,
@@ -11,7 +12,7 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Loader2, UserCheck } from 'lucide-react'
+import { Loader2, UserCheck, Trash2 } from 'lucide-react'
 import {
     Select,
     SelectContent,
@@ -56,6 +57,18 @@ export default function DistribuicaoPage() {
         setAssigning(null)
     }
 
+    const handleDelete = async (inquiryId: string) => {
+        if (!confirm('Tem a certeza que deseja apagar este inquérito?')) return
+        setLoading(true) // or better partial loading
+        const res = await deleteInquiry(inquiryId)
+        if (res?.error) {
+            alert(res.error)
+        } else {
+            setInquiries(prev => prev.filter(i => i.id !== inquiryId))
+        }
+        setLoading(false)
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -81,6 +94,7 @@ export default function DistribuicaoPage() {
                                     <TableHead>Tipo Crime</TableHead>
                                     <TableHead>Origem</TableHead>
                                     <TableHead>Denunciados</TableHead>
+                                    <TableHead>Vítima/Lesado</TableHead>
                                     <TableHead>Data Entrada</TableHead>
                                     <TableHead>Atribuir a</TableHead>
                                     <TableHead className="w-[100px]"></TableHead>
@@ -116,6 +130,11 @@ export default function DistribuicaoPage() {
                                                     {inq.denunciados?.map((d: any) => d.nome).join(', ') || '-'}
                                                 </div>
                                             </TableCell>
+                                            <TableCell>
+                                                <div className="max-w-[200px] truncate text-xs">
+                                                    {inq.denunciantes?.map((d: any) => d.nome).join(', ') || '-'}
+                                                </div>
+                                            </TableCell>
                                             <TableCell>{new Date(inq.created_at).toLocaleDateString()}</TableCell>
                                             <TableCell>
                                                 <Select
@@ -146,6 +165,14 @@ export default function DistribuicaoPage() {
                                                         <UserCheck className="h-4 w-4" />
                                                     )}
                                                 </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleDelete(inq.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -155,6 +182,6 @@ export default function DistribuicaoPage() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }
