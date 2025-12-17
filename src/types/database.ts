@@ -96,6 +96,7 @@ export interface Suggestion {
     created_at: string
     // Joined
     profiles?: Profile
+}
 
 
 export interface Correspondence {
