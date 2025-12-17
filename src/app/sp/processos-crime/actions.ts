@@ -242,5 +242,6 @@ export async function deleteProcesso(id: string) {
 
 
     revalidatePath('/sp/processos-crime')
-    return { success: true }
+    revalidatePath('/sp/processos-crime')
+    return { success: true, error: null }
 }
