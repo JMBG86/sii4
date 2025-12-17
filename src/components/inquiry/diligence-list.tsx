@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Loader2 } from 'lucide-react'
-import { addDiligence } from '@/app/inqueritos/actions'
+import { addDiligence } from '@/app/(sii)/inqueritos/actions'
 import { DiligenceDetailDialog } from './diligence-detail-dialog'
 import { createClient } from '@/lib/supabase/client' // client component 
 import { useRouter } from 'next/navigation'

@@ -18,7 +18,7 @@ import {
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu'
-import { updateSuggestionStatus, deleteSuggestion } from '@/app/sugestoes/actions'
+import { updateSuggestionStatus, deleteSuggestion } from '@/app/(sii)/sugestoes/actions'
 import { formatDistanceToNow } from 'date-fns'
 import { pt } from 'date-fns/locale'
 

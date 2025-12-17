@@ -22,6 +22,7 @@ interface Profile {
     email: string | null
     full_name: string | null
     role: 'user' | 'admin'
+    access_sp?: boolean
 }
 
 export function EditUserDialog({ user }: { user: Profile }) {
@@ -100,6 +101,14 @@ export function EditUserDialog({ user }: { user: Profile }) {
                                 onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
                             />
                             <Label htmlFor="admin-edit">Acesso de Administrador</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="access_sp_edit"
+                                name="access_sp"
+                                defaultChecked={user.access_sp}
+                            />
+                            <Label htmlFor="access_sp_edit">Acesso SP (Processos)</Label>
                         </div>
                     </div>
                     <DialogFooter>

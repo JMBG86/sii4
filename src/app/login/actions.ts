@@ -7,9 +7,9 @@ import { createClient } from '@/lib/supabase/server'
 export async function login(formData: FormData) {
     const supabase = await createClient()
 
-    // Type-casting here for simplicity since we validate existence below
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+    const context = formData.get('context') as string // 'sii' | 'sp'
 
     if (!email || !password) {
         redirect('/login?error=Missing credentials')
@@ -22,8 +22,28 @@ export async function login(formData: FormData) {
 
     if (error) {
         redirect('/login?error=Could not authenticate user')
-        // Note: In a real app we might want to return the error to display it better
-        // but redirect is simple for now as requested.
+    }
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+        redirect('/login?error=Could not authenticate user')
+    }
+
+    if (context === 'sp') {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('access_sp')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.access_sp) {
+            await supabase.auth.signOut()
+            redirect('/login?error=Unauthorized: Sem acesso à Secção de Processos')
+        }
+
+        revalidatePath('/', 'layout')
+        redirect('/sp/dashboard')
     }
 
     revalidatePath('/', 'layout')

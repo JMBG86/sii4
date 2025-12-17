@@ -82,6 +82,13 @@ export function CreateUserDialog() {
                             />
                             <Label htmlFor="admin">Acesso de Administrador</Label>
                         </div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="access_sp"
+                                name="access_sp"
+                            />
+                            <Label htmlFor="access_sp">Acesso SP (Processos)</Label>
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>

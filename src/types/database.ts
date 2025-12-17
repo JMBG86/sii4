@@ -19,7 +19,7 @@ export interface Inquiry {
     data_conclusao: string | null
     destino: string | null
     created_at: string
-    user_id: string
+    user_id: string | null
 }
 
 export interface Diligence {
@@ -50,6 +50,7 @@ export interface Profile {
     email: string | null
     full_name: string | null
     role: 'user' | 'admin'
+    access_sp?: boolean
     created_at: string
 }
 
@@ -95,4 +96,54 @@ export interface Suggestion {
     created_at: string
     // Joined
     profiles?: Profile
+
+
+export interface Correspondence {
+    id: string
+    srv: string
+    numero_oficio: string
+    nuipc?: string
+    origem: string
+    assunto: string
+    destino: string
+    data_entrada: string
+    created_at: string
+    updated_at: string
+}
+
+export interface SPEntidade {
+    id: string
+    nome: string
+    created_at: string
+}
+
+export interface SPProcessoCrime {
+    id: string
+    numero_sequencial: number
+    nuipc_completo?: string
+    data_registo?: string
+    data_factos?: string
+    data_conhecimento?: string
+    detidos: boolean
+    // nacionalidade removed
+    total_detidos?: number // New field
+    localizacao?: string
+    tipo_crime?: string
+    denunciante?: string
+    vitima?: string
+    arguido?: string
+    envio_em?: string
+    numero_oficio_envio?: string
+    entidade_destino?: string
+    observacoes?: string
+    created_at: string
+    updated_at: string
+}
+
+export interface SPDetidoInfo {
+    id: string
+    processo_id: string
+    nacionalidade: string
+    quantidade: number
+    created_at: string
 }

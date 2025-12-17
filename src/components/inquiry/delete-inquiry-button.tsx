@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { deleteInquiry } from '@/app/inqueritos/actions'
+import { deleteInquiry } from '@/app/(sii)/inqueritos/actions'
 import { Button } from '@/components/ui/button'
 import {
     AlertDialog,

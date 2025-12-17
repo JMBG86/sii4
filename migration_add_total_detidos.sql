@@ -1,0 +1,1 @@
+ALTER TABLE sp_processos_crime ADD COLUMN IF NOT EXISTS total_detidos INTEGER DEFAULT 0;

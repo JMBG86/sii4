@@ -155,14 +155,42 @@ export async function addDiligence(formData: FormData) {
 export async function deleteInquiry(inquiryId: string) {
     const supabase = await createClient()
 
-    const { error } = await supabase
+    // 1. Fetch to check origin
+    const { data: inquiry } = await supabase
         .from('inqueritos')
-        .delete()
+        .select('observacoes, nuipc')
         .eq('id', inquiryId)
+        .single()
 
-    if (error) {
-        console.error('Error deleting inquiry:', error)
-        return { error: 'Failed to delete inquiry' }
+    const isSP = inquiry?.observacoes?.includes('[Importado da SP]')
+
+    if (isSP) {
+        // Soft delete: Unassign and reset status
+        const { error } = await supabase
+            .from('inqueritos')
+            .update({
+                user_id: null,
+                estado: 'por_iniciar',
+                data_atribuicao: null,
+                // data_inicio_investigacao: null // Optional: clear start date too? Probably yes.
+            })
+            .eq('id', inquiryId)
+
+        if (error) {
+            console.error('Error unassigning SP inquiry:', error)
+            return { error: 'Failed to unassign inquiry' }
+        }
+    } else {
+        // Hard delete for manual inquiries
+        const { error } = await supabase
+            .from('inqueritos')
+            .delete()
+            .eq('id', inquiryId)
+
+        if (error) {
+            console.error('Error deleting inquiry:', error)
+            return { error: 'Failed to delete inquiry' }
+        }
     }
 
     revalidatePath('/inqueritos')

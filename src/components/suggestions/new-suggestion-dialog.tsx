@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Loader2 } from 'lucide-react'
-import { createSuggestion } from '@/app/sugestoes/actions'
+import { createSuggestion } from '@/app/(sii)/sugestoes/actions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export function NewSuggestionDialog() {

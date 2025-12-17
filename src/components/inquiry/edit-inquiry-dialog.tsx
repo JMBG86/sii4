@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { Pencil, Loader2, Plus, X } from 'lucide-react'
-import { updateInquiry } from '@/app/inqueritos/actions'
+import { updateInquiry } from '@/app/(sii)/inqueritos/actions'
 
 interface EditInquiryDialogProps {
     inquiry: Inquiry

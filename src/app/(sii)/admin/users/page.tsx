@@ -62,6 +62,7 @@ export default async function AdminUsersPage() {
                                 <TableHead>Email</TableHead>
                                 <TableHead>Nome</TableHead>
                                 <TableHead>Role</TableHead>
+                                <TableHead>Acesso SP</TableHead>
                                 <TableHead>Criado em</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
@@ -75,6 +76,13 @@ export default async function AdminUsersPage() {
                                         <Badge variant={profile.role === 'admin' ? 'destructive' : 'secondary'}>
                                             {profile.role?.toUpperCase() || 'USER'}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {profile.access_sp && (
+                                            <Badge variant="outline" className="border-emerald-500 text-emerald-700 bg-emerald-50">
+                                                SP
+                                            </Badge>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}

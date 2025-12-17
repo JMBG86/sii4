@@ -1,0 +1,2 @@
+ALTER TABLE sp_processos_crime ADD COLUMN IF NOT EXISTS data_factos TIMESTAMP WITH TIME ZONE;
+ALTER TABLE sp_processos_crime ADD COLUMN IF NOT EXISTS data_conhecimento TIMESTAMP WITH TIME ZONE;

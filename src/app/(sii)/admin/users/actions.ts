@@ -66,7 +66,8 @@ export async function createUser(formData: FormData) {
             id: newUser.user.id,
             email: email,
             full_name: `${firstName} ${lastName}`.trim(),
-            role: role
+            role: role,
+            access_sp: formData.get('access_sp') === 'on'
         })
 
     if (profileError) return { error: 'Utilizador criado mas falha ao atualizar perfil: ' + profileError.message }
@@ -106,7 +107,8 @@ export async function updateUser(userId: string, formData: FormData) {
         .from('profiles')
         .update({
             full_name: fullName,
-            role: role
+            role: role,
+            access_sp: formData.get('access_sp') === 'on'
         })
         .eq('id', userId)
 

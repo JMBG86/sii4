@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { addDiligence } from '@/app/inqueritos/actions'
+import { addDiligence } from '@/app/(sii)/inqueritos/actions'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,

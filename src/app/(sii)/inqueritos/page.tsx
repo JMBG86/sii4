@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -41,7 +41,9 @@ function getStatusColor(status: InquiryStatus): string {
     return colors[status] || ''
 }
 
-export default function InqueritosPage() {
+// ... types and helpers ...
+
+function InqueritosContent() {
     const [inqueritos, setInqueritos] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const router = useRouter()
@@ -52,13 +54,8 @@ export default function InqueritosPage() {
     const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
 
     const fetchInqueritos = useCallback(async () => {
-        // Only set loading on initial fetch or major changes, not refresh? 
-        // For simplicity, we keep original behavior but maybe avoid full spinner if just refreshing?
-        // Let's keep it simple.
-
+        // ... same logic ...
         const supabase = createClient()
-
-        // Check user role (Ideally this should be cached or context, but keeping local for now)
         const { data: { user } } = await supabase.auth.getUser()
         let admin = false
         if (user) {
@@ -74,9 +71,8 @@ export default function InqueritosPage() {
         let query = supabase
             .from('inqueritos')
             .select('*')
-            .eq('user_id', user.id) // Restricted to current user only
+            .eq('user_id', user.id)
 
-        // Apply filters from URL parameters
         const status = searchParams.get('status')
         const classificacao = searchParams.get('classificacao')
 
@@ -87,7 +83,6 @@ export default function InqueritosPage() {
             query = query.eq('classificacao', classificacao)
         }
 
-        // Apply sorting
         if (sortConfig) {
             query = query.order(sortConfig.key, { ascending: sortConfig.direction === 'asc' })
         } else {
@@ -95,10 +90,8 @@ export default function InqueritosPage() {
         }
 
         const { data } = await query
-
         setInqueritos(data || [])
 
-        // If admin, fetch profiles for the users
         if (admin && data && data.length > 0) {
             const userIds = Array.from(new Set(data.map((i: any) => i.user_id).filter(Boolean)))
             if (userIds.length > 0) {
@@ -106,7 +99,6 @@ export default function InqueritosPage() {
                     .from('profiles')
                     .select('id, full_name, email')
                     .in('id', userIds)
-
                 if (profiles) {
                     const map: Record<string, any> = {}
                     profiles.forEach(p => {
@@ -116,30 +108,18 @@ export default function InqueritosPage() {
                 }
             }
         }
-
         setLoading(false)
     }, [searchParams, sortConfig])
 
     useEffect(() => {
         fetchInqueritos()
-
-        // Realtime Subscription
         const supabase = createClient()
         const channel = supabase
             .channel('inqueritos-list-changes')
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'inqueritos'
-                },
-                () => {
-                    fetchInqueritos()
-                }
-            )
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'inqueritos' }, () => {
+                fetchInqueritos()
+            })
             .subscribe()
-
         return () => {
             supabase.removeChannel(channel)
         }
@@ -149,7 +129,7 @@ export default function InqueritosPage() {
         setSortConfig((current) => {
             if (current?.key === key) {
                 if (current.direction === 'asc') return { key, direction: 'desc' }
-                return null // Reset to default
+                return null
             }
             return { key, direction: 'asc' }
         })
@@ -262,7 +242,7 @@ export default function InqueritosPage() {
                                     </TableCell>
                                 )}
                                 <TableCell>
-                                    <div className="flex justify-end gap-2" max-width="100px" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                                         <Link href={`/inqueritos/${inq.id}`}>
                                             <Button variant="outline" size="sm" className="gap-2">
                                                 <Eye className="h-4 w-4" />
@@ -285,5 +265,13 @@ export default function InqueritosPage() {
                 </Table>
             </div>
         </div>
+    )
+}
+
+export default function InqueritosPage() {
+    return (
+        <Suspense fallback={<div className="p-6">A carregar...</div>}>
+            <InqueritosContent />
+        </Suspense>
     )
 }

@@ -1,4 +1,4 @@
-Vou-te explicar a situacao e vais me ajudar a criar uma app para publicar online no vercel, a app deve correr lá, ter uma base de dados e um dashboard acessivel
+Vou-te explicar a situacao e vais me ajudar a criar uma app para publicar online no netify, a app deve correr lá, ter uma base de dados e um dashboard acessivel
 attraves de login seguro.
 
 a app destina-se a controlar o fluxo de inqueritos crime em investigacao numa equipa, ou seja, os inqueritos estao em investigacao, por vezes vao ao Tribunal para serem 
