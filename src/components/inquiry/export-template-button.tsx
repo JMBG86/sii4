@@ -30,6 +30,7 @@ export function ExportTemplateButton({ inquiry }: ExportTemplateButtonProps) {
                 ocorrencia: inquiry.data_ocorrencia ? format(new Date(inquiry.data_ocorrencia), 'dd/MM/yyyy') : '',
                 autuacao: inquiry.data_participacao ? format(new Date(inquiry.data_participacao), 'dd/MM/yyyy') : '',
                 registo: inquiry.created_at ? format(new Date(inquiry.created_at), 'dd/MM/yyyy') : '',
+                atribuicao: inquiry.data_atribuicao ? format(new Date(inquiry.data_atribuicao), 'dd/MM/yyyy') : '',
                 data_atual: format(new Date(), 'dd/MM/yyyy'),
             }
 
