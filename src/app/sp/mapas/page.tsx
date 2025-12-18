@@ -154,7 +154,7 @@ export default function MapasPage() {
 
     function generateMonthlyReportPDF(data: any[], from: Date, to: Date) {
         const doc = new jsPDF()
-        const primaryColor = [22, 163, 74] // Emerald-600
+        const primaryColor: [number, number, number] = [22, 163, 74] // Explicit Type for TS
 
         // Stats Aggregation
         let totalRegistados = data.length
@@ -347,7 +347,7 @@ export default function MapasPage() {
                     <CardContent>
                         <div className="text-2xl font-bold">Listagem Geral</div>
                         <p className="text-xs text-muted-foreground mb-4">
-                            PDF com todos os processos sequenciais. Inclui detalhes de detidos e apreensões por linha.
+                            Listagem completa de todos os processos registados (exclui vazios). Inclui detalhes de detidos e apreensões por linha.
                         </p>
                         <Button
                             className="w-full"
