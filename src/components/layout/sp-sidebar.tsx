@@ -37,6 +37,11 @@ const sidebarItems = [
         href: '/sp/pesquisa',
         icon: Search,
     },
+    {
+        title: 'Mapas',
+        href: '/sp/mapas',
+        icon: FileText,
+    },
 ]
 
 export function SPSidebar() {

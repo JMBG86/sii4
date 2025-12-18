@@ -19,6 +19,89 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { COUNTRIES } from '@/constants/countries'
 
+const WEAPON_CONFIG: Record<string, string[]> = {
+    'Armas de fogo': [
+        'Pistola', 'Revolver', 'Semi-automatica (excepto pistola)', 'Automatica',
+        'Carabinas', 'Espingardas (Caça)', 'Modificadas (Ex. canos serrados)',
+        'Transformadas (ex. gás para real)', 'Inutilizada ou desativada',
+        'Obsoleta', 'Replica', 'Outra'
+    ],
+    'Armas de alarme ou salva': [
+        'Pistola de alarme ou salva', 'Espingarda de Alarme ou salva', 'Outra'
+    ],
+    'Armas de ar comprimido': [
+        'Espingarda ar comprimido até 5.5', 'Espingarda ar comprimido + 5.5',
+        'Pistola ar comprimido até 5.5', 'Pistola + 5.5', 'Marcador de Paintball'
+    ],
+    'Armas brancas': [
+        'Arco', 'Besta', 'Arpão', 'Lanca', 'Machado', 'Espada', 'Sabre', 'Florete',
+        'Catana', 'Cutelo', 'Punhal', 'Faca', 'Abertura automatica', 'Navalha',
+        'X Acto', 'Outra'
+    ],
+    'Outros tipos de armas e objectos': [
+        'Aerossol de defesa (spray)', 'Arma lancadora de gases', 'Armas electricas',
+        'Soqueira', 'Bastao extensivel', 'Bastao', 'Moca', 'Pau', 'Pedra', 'Seringa'
+    ],
+    'Instrumentos de trabalho': [
+        'Pe de Cabra', 'Picareta', 'Chave de Fendas', 'Martelo', 'Marreta', 'Enxada', 'Outra'
+    ],
+    'Artigos Desportivos': [
+        'Taco de baseball', 'Taco de Golf', 'Matracas', 'Outra'
+    ],
+    'Outras': [
+        'Outra'
+    ]
+}
+
+const AMMO_CONFIG: Record<string, string[]> = {
+    'De armas de Fogo': [
+        '6.35mm', '7.62mm', '7.65mm', '9mm', 'Ponto 22', 'Ponto 32', 'Ponto 38', 'Ponto 44',
+        'Calibre 9 Caça', 'Calibre 12 Caça', 'Calibre 20 Caça', 'Outros', 'Outros Caça'
+    ],
+    'De outras armas': [
+        'Sinalizacao (pirotecnicos)', 'Gás', '7.62mm Salva', '8mm salva', '9mm salva',
+        'Alarme (qualquer cal)', 'Outras', 'Esfera Paintball', 'Chumbos até 5.5',
+        'Chumbos superior a 5.5mm'
+    ]
+}
+
+const EXPLOSIVES_CONFIG: Record<string, string[]> = {
+    'Engenhos explosivos convencionais': [
+        'Granda de mão', 'Granada de espingarda', 'Granada de morteiro', 'Projeteis de artilharia',
+        'Rockets', 'Bombas de avião', 'Cartuchos iluminados/sinalizacao', 'Espoletas', 'Outros'
+    ],
+    'Artigos de Pirotecnica': [
+        'Foguetes', 'Bateria de foguete', 'Balonas', 'Tubos propulsores',
+        'Petardos/Bombas/Bomboletas', 'Massa de tiro/Polvora pirotecnica(kg)', 'Outros'
+    ],
+    'Substancias e acessorios explosivos': [
+        'TNT (kg)', 'Outros explosivos militares (KG)', 'Cordão detonante (m)', 'Cordao rapido (m)',
+        'Cordao lento (m)', 'Dinamite (kg)', 'Hidrogel/emulsao (kg)', 'ANFO (kg)', 'Polvora (kg)',
+        'Outros explosivos industriais (kg)', 'Fulminantes (kg)', 'Outros'
+    ]
+}
+
+const IT_COMMS_TYPES = [
+    'Telemoveis', 'Computadores', 'Radios (ER)', 'Disco Externo',
+    'Pen Drive', 'Monitores', 'Cartoes de Memoria',
+    'Consolas de jogo', 'CD', 'DVD', 'Ipad', 'Tablet', 'Outros'
+]
+
+const DOC_TYPES = [
+    'Identidade (BI, CC, Passp, At. Resid, C. Cond, etc)',
+    'Veiculos (Livrete, DU, Seguro, Inspecao, etc)',
+    'Outros'
+]
+
+const VEHICLE_TYPES = [
+    'Ligeiro Passageiros', 'Ligeiro de Mercadorias', 'Pesado de Passageiros', 'Pesado de mercadorias',
+    'Motociclo', 'Ciclomotor', 'Velocipede', 'Triciclo', 'Trator', 'Moto 4', 'Microcar',
+    'Trotineta a motor', 'Maquina industrial', 'Maquina agricola', 'Semi-reboque', 'Reboque',
+    'Veiculo tracao animal', 'Indeterminado'
+]
+
+const CURRENCIES = ['Euros', 'Dolares', 'Libras', 'Outros']
+
 // Custom "Creatable" Select for Entities
 function EntitySelect({ value, onChange }: { value: string, onChange: (val: string) => void }) {
     const [entidades, setEntidades] = useState<SPEntidade[]>([])
@@ -98,6 +181,14 @@ export function ProcessoDetailDialog({
     const [criancas, setCriancas] = useState(processo.criancas_sinalizadas || false)
     const [apreensoes, setApreensoes] = useState(processo.apreensoes || false)
 
+    // UI State
+    const [showArmas, setShowArmas] = useState(false)
+    const [showAmmo, setShowAmmo] = useState(false)
+    const [showExplosives, setShowExplosives] = useState(false)
+    const [showVehicles, setShowVehicles] = useState(false)
+    const [showIt, setShowIt] = useState(false)
+    const [showDocs, setShowDocs] = useState(false)
+
     // Lists
     const [detaineesList, setDetaineesList] = useState<{ nacionalidade: string, quantidade: number, sexo: string }[]>([])
     const [childrenList, setChildrenList] = useState<{ nome: string, idade: number }[]>([])
@@ -112,6 +203,12 @@ export function ProcessoDetailDialog({
         setCriancas(processo.criancas_sinalizadas || false)
         setApreensoes(processo.apreensoes || false)
         setEntidade(processo.entidade_destino || '')
+        setShowArmas(false)
+        setShowAmmo(false)
+        setShowExplosives(false)
+        setShowVehicles(false)
+        setShowIt(false)
+        setShowDocs(false)
 
         if (open) {
             import('./actions').then(({ getDetidos, getCriancas, getApreensoes, getDrogas }) => {
@@ -122,7 +219,16 @@ export function ProcessoDetailDialog({
                     setChildrenList(data?.map((d: any) => ({ nome: d.nome, idade: d.idade || 0 })) || [])
                 })
                 getApreensoes(processo.id).then(data => {
-                    setSeizuresList(data?.map((d: any) => ({ tipo: d.tipo, descricao: d.descricao })) || [])
+                    const list = data?.map((d: any) => ({ tipo: d.tipo, descricao: d.descricao })) || []
+                    setSeizuresList(list)
+                    // Auto-open sections if items exist
+                    if (list.some((i: any) => i.tipo.startsWith('Armas:'))) setShowArmas(true)
+                    if (list.some((i: any) => i.tipo.startsWith('Munições:'))) setShowAmmo(true)
+                    if (list.some((i: any) => i.tipo.startsWith('Explosivos:'))) setShowExplosives(true)
+                    if (list.some((i: any) => i.tipo.startsWith('Material Informático:'))) setShowIt(true)
+                    if (list.some((i: any) => i.tipo.startsWith('Comunicações:'))) setShowIt(true) // handle both just in case
+                    if (list.some((i: any) => i.tipo.startsWith('Veículos:'))) setShowVehicles(true)
+                    if (list.some((i: any) => i.tipo.startsWith('Documentos:'))) setShowDocs(true)
                 })
                 getDrogas(processo.id).then(data => {
                     setDrugs(data || {})
@@ -162,9 +268,6 @@ export function ProcessoDetailDialog({
     }
 
     // --- Seizures Handlers ---
-    function addSeizureRow() {
-        setSeizuresList(prev => [...prev, { tipo: 'Armas', descricao: '' }])
-    }
     function removeSeizureRow(index: number) {
         setSeizuresList(prev => prev.filter((_, i) => i !== index))
     }
@@ -172,6 +275,13 @@ export function ProcessoDetailDialog({
         setSeizuresList(prev => {
             const copy = [...prev]
             copy[index] = { ...copy[index], [field]: value }
+            return copy
+        })
+    }
+    function updateSeizureType(index: number, value: string) {
+        setSeizuresList(prev => {
+            const copy = [...prev]
+            copy[index] = { ...copy[index], tipo: value }
             return copy
         })
     }
@@ -212,7 +322,7 @@ export function ProcessoDetailDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[900px] h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[95vw] h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         {processo.nuipc_completo ? 'Editar Processo' : `Registar Processo - Sequencial #${processo.numero_sequencial}`}
@@ -331,85 +441,717 @@ export function ProcessoDetailDialog({
                                 </div>
 
                                 {/* Seizures Section */}
-                                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-zinc-800">
+                                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
                                     <div className="flex items-center space-x-2">
                                         <Switch id="apreensoes" checked={apreensoes} onCheckedChange={setApreensoes} />
-                                        <Label htmlFor="apreensoes" className="font-semibold text-purple-600">Existem Apreensões?</Label>
+                                        <Label htmlFor="apreensoes" className="font-semibold text-purple-600 text-base">Existem Apreensões?</Label>
                                     </div>
 
                                     {apreensoes && (
-                                        <div className="space-y-4 mt-3 animate-in fade-in pl-2 border-l-2 border-purple-200">
-                                            {/* Drug Seizures Sub-Section */}
-                                            <div className="bg-purple-50 dark:bg-zinc-900/50 p-3 rounded-md space-y-3">
-                                                <h4 className="font-semibold text-sm text-purple-800 dark:text-purple-400">Estupefacientes</h4>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Cocaína (g)</Label>
-                                                        <Input type="number" step="0.01" value={drugs?.cocaina_g || ''} onChange={e => updateDrugField('cocaina_g', parseFloat(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Heroína (g)</Label>
-                                                        <Input type="number" step="0.01" value={drugs?.heroina_g || ''} onChange={e => updateDrugField('heroina_g', parseFloat(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Cannabis Folhas (g)</Label>
-                                                        <Input type="number" step="0.01" value={drugs?.cannabis_folhas_g || ''} onChange={e => updateDrugField('cannabis_folhas_g', parseFloat(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Cannabis Resina (g)</Label>
-                                                        <Input type="number" step="0.01" value={drugs?.cannabis_resina_g || ''} onChange={e => updateDrugField('cannabis_resina_g', parseFloat(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Cannabis Óleo (g)</Label>
-                                                        <Input type="number" step="0.01" value={drugs?.cannabis_oleo_g || ''} onChange={e => updateDrugField('cannabis_oleo_g', parseFloat(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Sintéticas (g)</Label>
-                                                        <Input type="number" step="0.01" value={drugs?.sinteticas_g || ''} onChange={e => updateDrugField('sinteticas_g', parseFloat(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Cannabis Plantas (Un)</Label>
-                                                        <Input type="number" value={drugs?.cannabis_plantas_un || ''} onChange={e => updateDrugField('cannabis_plantas_un', parseInt(e.target.value))} className="h-8" />
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <Label className="text-xs">Subst. Psicoativas (Un)</Label>
-                                                        <Input type="number" value={drugs?.substancias_psicoativas_un || ''} onChange={e => updateDrugField('substancias_psicoativas_un', parseInt(e.target.value))} className="h-8" />
+                                        <div className="space-y-6 mt-3 animate-in fade-in pl-4 border-l-2 border-purple-200">
+
+                                            {/* Sub-Category: Estupefacientes */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Switch
+                                                            id="cat_drugs"
+                                                            checked={Object.keys(drugs).length > 0}
+                                                            onCheckedChange={(checked) => {
+                                                                if (!checked) setDrugs({})
+                                                                else setDrugs({ heroina_g: 0 }) // init with dummy to toggle on
+                                                            }}
+                                                        />
+                                                        <Label htmlFor="cat_drugs" className="font-medium">Estupefacientes</Label>
                                                     </div>
                                                 </div>
+
+                                                {Object.keys(drugs).length > 0 && (
+                                                    <div className="bg-purple-50 dark:bg-zinc-900/50 p-4 rounded-md grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Cocaína (g)</Label>
+                                                            <Input type="number" step="0.01" value={drugs?.cocaina_g || ''} onChange={e => updateDrugField('cocaina_g', parseFloat(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Heroína (g)</Label>
+                                                            <Input type="number" step="0.01" value={drugs?.heroina_g || ''} onChange={e => updateDrugField('heroina_g', parseFloat(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Hashish/Resina (g)</Label>
+                                                            <Input type="number" step="0.01" value={drugs?.cannabis_resina_g || ''} onChange={e => updateDrugField('cannabis_resina_g', parseFloat(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Liamba/Folhas (g)</Label>
+                                                            <Input type="number" step="0.01" value={drugs?.cannabis_folhas_g || ''} onChange={e => updateDrugField('cannabis_folhas_g', parseFloat(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Óleo Cannabis (g)</Label>
+                                                            <Input type="number" step="0.01" value={drugs?.cannabis_oleo_g || ''} onChange={e => updateDrugField('cannabis_oleo_g', parseFloat(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Sintéticas (g)</Label>
+                                                            <Input type="number" step="0.01" value={drugs?.sinteticas_g || ''} onChange={e => updateDrugField('sinteticas_g', parseFloat(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Plantas (Un)</Label>
+                                                            <Input type="number" value={drugs?.cannabis_plantas_un || ''} onChange={e => updateDrugField('cannabis_plantas_un', parseInt(e.target.value))} className="h-8" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Subst. Psicoativas (Un)</Label>
+                                                            <Input type="number" value={drugs?.substancias_psicoativas_un || ''} onChange={e => updateDrugField('substancias_psicoativas_un', parseInt(e.target.value))} className="h-8" />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
-                                            {/* Generic Seizures List */}
+                                            {/* Sub-Category: Material Informático e Comunicações (NEW) */}
                                             <div className="space-y-2">
-                                                <h4 className="font-semibold text-sm text-muted-foreground">Outras Apreensões (Generic)</h4>
-                                                {seizuresList.map((item, idx) => (
-                                                    <div key={idx} className="flex gap-2 items-center">
-                                                        <Select value={item.tipo} onValueChange={(val) => updateSeizureRow(idx, 'tipo', val)}>
-                                                            <SelectTrigger className="w-1/3">
-                                                                <SelectValue placeholder="Tipo" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Armas">Armas</SelectItem>
-                                                                <SelectItem value="Numerário">Numerário</SelectItem>
-                                                                <SelectItem value="Veículos">Veículos</SelectItem>
-                                                                <SelectItem value="Outros">Outros</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <Input
-                                                            placeholder="Descrição"
-                                                            className="flex-1"
-                                                            value={item.descricao}
-                                                            onChange={(e) => updateSeizureRow(idx, 'descricao', e.target.value)}
-                                                        />
-                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(idx)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                                                            <Trash2 className="h-4 w-4" />
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_it"
+                                                        checked={showIt}
+                                                        onCheckedChange={(checked) => {
+                                                            setShowIt(checked)
+                                                            if (!checked) {
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Material Informático:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_it" className="font-medium">Material Informático e Comunicações</Label>
+                                                </div>
+
+                                                {showIt && (
+                                                    <div className="pl-4 border-l-2 border-slate-200 dark:border-zinc-700 ml-2 space-y-3 mt-2">
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <Switch
+                                                                    checked={seizuresList.some(s => s.tipo.startsWith('Material Informático:'))}
+                                                                    onCheckedChange={(checked) => {
+                                                                        if (checked) {
+                                                                            setSeizuresList(prev => [...prev, { tipo: `Material Informático: ${IT_COMMS_TYPES[0]}`, descricao: '1' }])
+                                                                        } else {
+                                                                            setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Material Informático:')))
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Label className="text-sm">Equipamentos</Label>
+                                                            </div>
+
+                                                            {seizuresList.some(s => s.tipo.startsWith('Material Informático:')) && (
+                                                                <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                                    {seizuresList.filter(s => s.tipo.startsWith('Material Informático:')).map((item, idx) => {
+                                                                        const realIdx = seizuresList.findIndex(s => s === item)
+                                                                        const currentType = item.tipo.split(':')[1]?.trim() || IT_COMMS_TYPES[0]
+
+                                                                        return (
+                                                                            <div key={idx} className="flex gap-2 items-center">
+                                                                                <Select
+                                                                                    value={currentType}
+                                                                                    onValueChange={(val) => updateSeizureType(realIdx, `Material Informático: ${val}`)}
+                                                                                >
+                                                                                    <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                        <SelectValue />
+                                                                                    </SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {IT_COMMS_TYPES.map(vt => (
+                                                                                            <SelectItem key={vt} value={vt}>{vt}</SelectItem>
+                                                                                        ))}
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    min="1"
+                                                                                    placeholder="Qtd"
+                                                                                    className="w-20 h-8 text-sm"
+                                                                                    value={item.descricao}
+                                                                                    onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                                />
+                                                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                                    <Trash2 className="h-3 w-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="text-xs text-slate-500"
+                                                                        onClick={() => setSeizuresList(prev => [...prev, { tipo: `Material Informático: ${IT_COMMS_TYPES[0]}`, descricao: '1' }])}
+                                                                    >
+                                                                        <Plus className="h-3 w-3 mr-1" /> Adicionar Equipamento
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Sub-Category: Armas (Detailed) */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_weapons"
+                                                        checked={showArmas}
+                                                        onCheckedChange={(checked) => {
+                                                            setShowArmas(checked)
+                                                            if (!checked) {
+                                                                // Remove all Armas related items
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Armas:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_weapons" className="font-medium">Armas</Label>
+                                                </div>
+
+                                                {/* Only show sub-options if showArmas is true */}
+                                                {showArmas && (
+                                                    <div className="pl-4 border-l-2 border-slate-200 dark:border-zinc-700 ml-2 space-y-3 mt-2">
+                                                        {Object.entries(WEAPON_CONFIG).map(([weaponCategory, options]) => {
+                                                            const fullTypePrefix = `Armas: ${weaponCategory}`
+                                                            // Check if any item of this category exists
+                                                            const existingItems = seizuresList.filter(s => s.tipo.startsWith(fullTypePrefix))
+                                                            const hasAnyItem = existingItems.length > 0
+
+                                                            return (
+                                                                <div key={weaponCategory} className="space-y-2">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Switch
+                                                                            checked={hasAnyItem}
+                                                                            onCheckedChange={(checked) => {
+                                                                                if (checked) {
+                                                                                    // Add default first option
+                                                                                    setSeizuresList(prev => [...prev, { tipo: `${fullTypePrefix}: ${options[0]}`, descricao: '1' }])
+                                                                                } else {
+                                                                                    // Remove all items of this category
+                                                                                    setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith(fullTypePrefix)))
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <Label className="text-sm">{weaponCategory}</Label>
+                                                                    </div>
+
+                                                                    {hasAnyItem && (
+                                                                        <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                                            {existingItems.map((item, idx) => {
+                                                                                const realIdx = seizuresList.findIndex(s => s === item)
+                                                                                // Extract specific subtype from "Armas: Category: Subtype"
+                                                                                const currentSubtype = item.tipo.split(':')[2]?.trim() || options[0]
+
+                                                                                return (
+                                                                                    <div key={idx} className="flex gap-2 items-center">
+                                                                                        <Select
+                                                                                            value={currentSubtype}
+                                                                                            onValueChange={(val) => updateSeizureType(realIdx, `${fullTypePrefix}: ${val}`)}
+                                                                                        >
+                                                                                            <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                                <SelectValue />
+                                                                                            </SelectTrigger>
+                                                                                            <SelectContent>
+                                                                                                {options.map(opt => (
+                                                                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                                                                ))}
+                                                                                            </SelectContent>
+                                                                                        </Select>
+                                                                                        <Input
+                                                                                            type="number"
+                                                                                            min="1"
+                                                                                            placeholder="Qtd"
+                                                                                            className="w-20 h-8 text-sm"
+                                                                                            value={item.descricao}
+                                                                                            onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                                        />
+                                                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                                            <Trash2 className="h-3 w-3" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="text-xs text-slate-500"
+                                                                                onClick={() => setSeizuresList(prev => [...prev, { tipo: `${fullTypePrefix}: ${options[0]}`, descricao: '1' }])}
+                                                                            >
+                                                                                <Plus className="h-3 w-3 mr-1" /> Adicionar
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Sub-Category: Munições */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_ammo"
+                                                        checked={showAmmo}
+                                                        onCheckedChange={(checked) => {
+                                                            setShowAmmo(checked)
+                                                            if (!checked) {
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Munições:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_ammo" className="font-medium">Munições</Label>
+                                                </div>
+
+                                                {showAmmo && (
+                                                    <div className="pl-4 border-l-2 border-slate-200 dark:border-zinc-700 ml-2 space-y-3 mt-2">
+                                                        {Object.entries(AMMO_CONFIG).map(([ammoCategory, options]) => {
+                                                            const fullTypePrefix = `Munições: ${ammoCategory}`
+                                                            const existingItems = seizuresList.filter(s => s.tipo.startsWith(fullTypePrefix))
+                                                            const hasAnyItem = existingItems.length > 0
+
+                                                            return (
+                                                                <div key={ammoCategory} className="space-y-2">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Switch
+                                                                            checked={hasAnyItem}
+                                                                            onCheckedChange={(checked) => {
+                                                                                if (checked) {
+                                                                                    setSeizuresList(prev => [...prev, { tipo: `${fullTypePrefix}: ${options[0]}`, descricao: '1' }])
+                                                                                } else {
+                                                                                    setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith(fullTypePrefix)))
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <Label className="text-sm">{ammoCategory}</Label>
+                                                                    </div>
+
+                                                                    {hasAnyItem && (
+                                                                        <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                                            {existingItems.map((item, idx) => {
+                                                                                const realIdx = seizuresList.findIndex(s => s === item)
+                                                                                const currentSubtype = item.tipo.split(':')[2]?.trim() || options[0]
+
+                                                                                return (
+                                                                                    <div key={idx} className="flex gap-2 items-center">
+                                                                                        <Select
+                                                                                            value={currentSubtype}
+                                                                                            onValueChange={(val) => updateSeizureType(realIdx, `${fullTypePrefix}: ${val}`)}
+                                                                                        >
+                                                                                            <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                                <SelectValue />
+                                                                                            </SelectTrigger>
+                                                                                            <SelectContent>
+                                                                                                {options.map(opt => (
+                                                                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                                                                ))}
+                                                                                            </SelectContent>
+                                                                                        </Select>
+                                                                                        <Input
+                                                                                            type="number"
+                                                                                            min="1"
+                                                                                            placeholder="Qtd"
+                                                                                            className="w-20 h-8 text-sm"
+                                                                                            value={item.descricao}
+                                                                                            onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                                        />
+                                                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                                            <Trash2 className="h-3 w-3" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="text-xs text-slate-500"
+                                                                                onClick={() => setSeizuresList(prev => [...prev, { tipo: `${fullTypePrefix}: ${options[0]}`, descricao: '1' }])}
+                                                                            >
+                                                                                <Plus className="h-3 w-3 mr-1" /> Adicionar
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Sub-Category: Explosivos */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_explosives"
+                                                        checked={showExplosives}
+                                                        onCheckedChange={(checked) => {
+                                                            setShowExplosives(checked)
+                                                            if (!checked) {
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Explosivos:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_explosives" className="font-medium">Explosivos</Label>
+                                                </div>
+
+                                                {showExplosives && (
+                                                    <div className="pl-4 border-l-2 border-slate-200 dark:border-zinc-700 ml-2 space-y-3 mt-2">
+                                                        {Object.entries(EXPLOSIVES_CONFIG).map(([explosiveCategory, options]) => {
+                                                            const fullTypePrefix = `Explosivos: ${explosiveCategory}`
+                                                            const existingItems = seizuresList.filter(s => s.tipo.startsWith(fullTypePrefix))
+                                                            const hasAnyItem = existingItems.length > 0
+
+                                                            return (
+                                                                <div key={explosiveCategory} className="space-y-2">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Switch
+                                                                            checked={hasAnyItem}
+                                                                            onCheckedChange={(checked) => {
+                                                                                if (checked) {
+                                                                                    setSeizuresList(prev => [...prev, { tipo: `${fullTypePrefix}: ${options[0]}`, descricao: '1' }])
+                                                                                } else {
+                                                                                    setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith(fullTypePrefix)))
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <Label className="text-sm">{explosiveCategory}</Label>
+                                                                    </div>
+
+                                                                    {hasAnyItem && (
+                                                                        <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                                            {existingItems.map((item, idx) => {
+                                                                                const realIdx = seizuresList.findIndex(s => s === item)
+                                                                                const currentSubtype = item.tipo.split(':')[2]?.trim() || options[0]
+
+                                                                                return (
+                                                                                    <div key={idx} className="flex gap-2 items-center">
+                                                                                        <Select
+                                                                                            value={currentSubtype}
+                                                                                            onValueChange={(val) => updateSeizureType(realIdx, `${fullTypePrefix}: ${val}`)}
+                                                                                        >
+                                                                                            <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                                <SelectValue />
+                                                                                            </SelectTrigger>
+                                                                                            <SelectContent>
+                                                                                                {options.map(opt => (
+                                                                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                                                                ))}
+                                                                                            </SelectContent>
+                                                                                        </Select>
+                                                                                        <Input
+                                                                                            type="number"
+                                                                                            min="1"
+                                                                                            placeholder="Qtd"
+                                                                                            className="w-20 h-8 text-sm"
+                                                                                            value={item.descricao}
+                                                                                            onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                                        />
+                                                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                                            <Trash2 className="h-3 w-3" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                )
+                                                                            })}
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                className="text-xs text-slate-500"
+                                                                                onClick={() => setSeizuresList(prev => [...prev, { tipo: `${fullTypePrefix}: ${options[0]}`, descricao: '1' }])}
+                                                                            >
+                                                                                <Plus className="h-3 w-3 mr-1" /> Adicionar
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Sub-Category: Numerário */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_cash"
+                                                        checked={seizuresList.some(s => s.tipo.startsWith('Numerário:'))}
+                                                        onCheckedChange={(checked) => {
+                                                            if (checked) {
+                                                                setSeizuresList(prev => [...prev, { tipo: 'Numerário: Euros', descricao: '' }])
+                                                            } else {
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Numerário:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_cash" className="font-medium">Numerário</Label>
+                                                </div>
+
+                                                {seizuresList.some(s => s.tipo.startsWith('Numerário:')) && (
+                                                    <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                        {seizuresList.filter(s => s.tipo.startsWith('Numerário:')).map((item, idx) => {
+                                                            const realIdx = seizuresList.findIndex(s => s === item)
+                                                            const currentCurrency = item.tipo.split(':')[1]?.trim() || 'Euros'
+                                                            return (
+                                                                <div key={idx} className="flex gap-2 items-center">
+                                                                    <Select
+                                                                        value={currentCurrency}
+                                                                        onValueChange={(val) => updateSeizureType(realIdx, `Numerário: ${val}`)}
+                                                                    >
+                                                                        <SelectTrigger className="w-40 h-8 text-sm">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <Input
+                                                                        type="number"
+                                                                        placeholder="Valor (0.00)"
+                                                                        className="w-32 h-8 text-sm"
+                                                                        value={item.descricao}
+                                                                        onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                    />
+                                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                        <Trash2 className="h-3 w-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-xs text-green-600 hover:text-green-700"
+                                                            onClick={() => setSeizuresList(prev => [...prev, { tipo: 'Numerário: Euros', descricao: '' }])}
+                                                        >
+                                                            <Plus className="h-3 w-3 mr-1" /> Adicionar Numerário
                                                         </Button>
                                                     </div>
-                                                ))}
-                                                <Button type="button" variant="outline" size="sm" onClick={addSeizureRow} className="w-full border-dashed text-muted-foreground border-purple-200 hover:border-purple-400 hover:text-purple-600">
-                                                    <Plus className="h-4 w-4 mr-2" />
-                                                    Adicionar Outra (Armas/Veículos/Etc)
-                                                </Button>
+                                                )}
                                             </div>
+
+                                            {/* Sub-Category: Veículos */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_vehicles"
+                                                        checked={showVehicles}
+                                                        onCheckedChange={(checked) => {
+                                                            setShowVehicles(checked)
+                                                            if (!checked) {
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Veículos:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_vehicles" className="font-medium">Veículos</Label>
+                                                </div>
+
+                                                {showVehicles && (
+                                                    <div className="pl-4 border-l-2 border-slate-200 dark:border-zinc-700 ml-2 space-y-3 mt-2">
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <Switch
+                                                                    checked={seizuresList.some(s => s.tipo.startsWith('Veículos:'))}
+                                                                    onCheckedChange={(checked) => {
+                                                                        if (checked) {
+                                                                            setSeizuresList(prev => [...prev, { tipo: `Veículos: ${VEHICLE_TYPES[0]}`, descricao: '1' }])
+                                                                        } else {
+                                                                            setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Veículos:')))
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Label className="text-sm">Lista de Veículos</Label>
+                                                            </div>
+
+                                                            {seizuresList.some(s => s.tipo.startsWith('Veículos:')) && (
+                                                                <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                                    {seizuresList.filter(s => s.tipo.startsWith('Veículos:')).map((item, idx) => {
+                                                                        const realIdx = seizuresList.findIndex(s => s === item)
+                                                                        const currentType = item.tipo.split(':')[1]?.trim() || VEHICLE_TYPES[0]
+
+                                                                        return (
+                                                                            <div key={idx} className="flex gap-2 items-center">
+                                                                                <Select
+                                                                                    value={currentType}
+                                                                                    onValueChange={(val) => updateSeizureType(realIdx, `Veículos: ${val}`)}
+                                                                                >
+                                                                                    <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                        <SelectValue />
+                                                                                    </SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {VEHICLE_TYPES.map(vt => (
+                                                                                            <SelectItem key={vt} value={vt}>{vt}</SelectItem>
+                                                                                        ))}
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    min="1"
+                                                                                    placeholder="Qtd"
+                                                                                    className="w-20 h-8 text-sm"
+                                                                                    value={item.descricao}
+                                                                                    onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                                />
+                                                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                                    <Trash2 className="h-3 w-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="text-xs text-slate-500"
+                                                                        onClick={() => setSeizuresList(prev => [...prev, { tipo: `Veículos: ${VEHICLE_TYPES[0]}`, descricao: '1' }])}
+                                                                    >
+                                                                        <Plus className="h-3 w-3 mr-1" /> Adicionar Veículo
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Sub-Category: Documentos (NEW) */}
+                                            <div className="space-y-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="cat_docs"
+                                                        checked={showDocs}
+                                                        onCheckedChange={(checked) => {
+                                                            setShowDocs(checked)
+                                                            if (!checked) {
+                                                                setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Documentos:')))
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Label htmlFor="cat_docs" className="font-medium">Documentos</Label>
+                                                </div>
+
+                                                {showDocs && (
+                                                    <div className="pl-4 border-l-2 border-slate-200 dark:border-zinc-700 ml-2 space-y-3 mt-2">
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center space-x-2">
+                                                                <Switch
+                                                                    checked={seizuresList.some(s => s.tipo.startsWith('Documentos:'))}
+                                                                    onCheckedChange={(checked) => {
+                                                                        if (checked) {
+                                                                            setSeizuresList(prev => [...prev, { tipo: `Documentos: ${DOC_TYPES[0]}`, descricao: '1' }])
+                                                                        } else {
+                                                                            setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Documentos:')))
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Label className="text-sm">Lista de Documentos</Label>
+                                                            </div>
+
+                                                            {seizuresList.some(s => s.tipo.startsWith('Documentos:')) && (
+                                                                <div className="pl-4 animate-in slide-in-from-top-2 space-y-2">
+                                                                    {seizuresList.filter(s => s.tipo.startsWith('Documentos:')).map((item, idx) => {
+                                                                        const realIdx = seizuresList.findIndex(s => s === item)
+                                                                        const currentType = item.tipo.split(':')[1]?.trim() || DOC_TYPES[0]
+
+                                                                        return (
+                                                                            <div key={idx} className="flex gap-2 items-center">
+                                                                                <Select
+                                                                                    value={currentType}
+                                                                                    onValueChange={(val) => updateSeizureType(realIdx, `Documentos: ${val}`)}
+                                                                                >
+                                                                                    <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                        <SelectValue />
+                                                                                    </SelectTrigger>
+                                                                                    <SelectContent>
+                                                                                        {DOC_TYPES.map(dt => (
+                                                                                            <SelectItem key={dt} value={dt}>{dt}</SelectItem>
+                                                                                        ))}
+                                                                                    </SelectContent>
+                                                                                </Select>
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    min="1"
+                                                                                    placeholder="Qtd"
+                                                                                    className="w-20 h-8 text-sm"
+                                                                                    value={item.descricao}
+                                                                                    onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                                />
+                                                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="h-8 w-8 text-red-500 hover:text-red-600">
+                                                                                    <Trash2 className="h-3 w-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        )
+                                                                    })}
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="text-xs text-slate-500"
+                                                                        onClick={() => setSeizuresList(prev => [...prev, { tipo: `Documentos: ${DOC_TYPES[0]}`, descricao: '1' }])}
+                                                                    >
+                                                                        <Plus className="h-3 w-3 mr-1" /> Adicionar Documento
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Generic Categories Handler */}
+                                            {['Outros'].map((cat) => {
+                                                const hasItems = seizuresList.some(s => s.tipo === cat)
+                                                return (
+                                                    <div key={cat} className="space-y-2">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Switch
+                                                                checked={hasItems}
+                                                                onCheckedChange={(checked) => {
+                                                                    if (checked) {
+                                                                        setSeizuresList(prev => [...prev, { tipo: cat, descricao: '' }])
+                                                                    } else {
+                                                                        setSeizuresList(prev => prev.filter(s => s.tipo !== cat))
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <Label className="font-medium">{cat}</Label>
+                                                        </div>
+
+                                                        {hasItems && (
+                                                            <div className="space-y-2 pl-4 animate-in slide-in-from-top-2">
+                                                                {seizuresList.filter(s => s.tipo === cat).map((item, idx) => {
+                                                                    // We need to find the real index in the main list to update correctly
+                                                                    const realIdx = seizuresList.findIndex(s => s === item)
+                                                                    return (
+                                                                        <div key={idx} className="flex gap-2 items-center">
+                                                                            <Input
+                                                                                placeholder={`Descrição de ${cat}...`}
+                                                                                className="flex-1"
+                                                                                value={item.descricao}
+                                                                                onChange={(e) => updateSeizureRow(realIdx, 'descricao', e.target.value)}
+                                                                            />
+                                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeSeizureRow(realIdx)} className="text-red-500 hover:text-red-600">
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="text-xs text-purple-600 hover:text-purple-700"
+                                                                    onClick={() => setSeizuresList(prev => [...prev, { tipo: cat, descricao: '' }])}
+                                                                >
+                                                                    <Plus className="h-3 w-3 mr-1" /> Adicionar mais {cat}
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+
                                         </div>
                                     )}
                                 </div>

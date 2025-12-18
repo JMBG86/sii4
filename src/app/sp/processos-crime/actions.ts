@@ -53,6 +53,47 @@ export async function fetchProcessos(page: number = 1, pageSize: number = 100, s
     return { data, count }
 }
 
+export async function fetchAllProcessosForExport() {
+    const supabase = await createClient()
+
+    // Fetch all records, ordered by sequence
+    const { data, error } = await supabase
+        .from('sp_processos_crime')
+        .select(`
+            *,
+            sp_detidos_info(*),
+            sp_apreensoes_info(*),
+            sp_apreensoes_drogas(*)
+        `)
+        .not('nuipc_completo', 'is', null) // Only registered
+        .order('numero_sequencial', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+export async function fetchProcessosByDateRange(startDate: string, endDate: string) {
+    const supabase = await createClient()
+
+    // Fetch processes where data_registo is between startDate and endDate
+    // JOIN all related tables for aggregation
+    const { data, error } = await supabase
+        .from('sp_processos_crime')
+        .select(`
+            *,
+            sp_detidos_info(*),
+            sp_apreensoes_info(*),
+            sp_apreensoes_drogas(*)
+        `)
+        .not('nuipc_completo', 'is', null) // Only registered
+        .gte('data_registo', startDate)
+        .lte('data_registo', endDate)
+        .order('numero_sequencial', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
 export async function getNextFreeProcesso() {
     // Finds the first record where NUIPC is null (meaning it's a "free slot")
     const supabase = await createClient()
