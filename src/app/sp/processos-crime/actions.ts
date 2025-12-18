@@ -408,6 +408,7 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
         .gte('data_conclusao', startDate)
         .lte('data_conclusao', endDate)
         .not('user_id', 'is', null) // Distributed
+        .not('observacoes', 'ilike', '%DEPRECADA%')
 
     const concluidos = countConcluded || 0
 
@@ -418,6 +419,7 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
         .select('*', { count: 'exact', head: true })
         .lt('created_at', startDate)
         .or(`estado.neq.concluido,data_conclusao.gte.${startDate}`)
+        .not('observacoes', 'ilike', '%DEPRECADA%')
 
     const pendentesAnterior = countStock || 0
 
@@ -425,10 +427,52 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     // Previous + Entries - Concluded
     const transitam = pendentesAnterior + entrados - concluidos
 
+    // --- DEPRECADA STATS ---
+
+    // D1. Deprecadas Pendentes Anterior
+    const { count: countStockDep } = await supabase
+        .from('inqueritos')
+        .select('*', { count: 'exact', head: true })
+        .lt('created_at', startDate)
+        .or(`estado.neq.concluido,data_conclusao.gte.${startDate}`)
+        .ilike('observacoes', '%DEPRECADA%')
+
+    const depPendentes = countStockDep || 0
+
+    // D2. Deprecadas Entradas (Registadas no mÃªs)
+    const { count: countEntradasDep } = await supabase
+        .from('inqueritos')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+        .ilike('observacoes', '%DEPRECADA%')
+
+    const depEntradas = countEntradasDep || 0
+
+    // D3. Deprecadas Concluidas (SaÃ­das)
+    const { count: countConcludedDep } = await supabase
+        .from('inqueritos')
+        .select('*', { count: 'exact', head: true })
+        .eq('estado', 'concluido')
+        .gte('data_conclusao', startDate)
+        .lte('data_conclusao', endDate)
+        .ilike('observacoes', '%DEPRECADA%')
+
+    const depConcluidas = countConcludedDep || 0
+
+    // D4. Deprecadas Transitadas
+    const depTransitam = depPendentes + depEntradas - depConcluidas
+
     return {
         pendentesAnterior,
         entrados,
         concluidos,
-        transitam
+        transitam,
+        deprecadas: {
+            pendentes: depPendentes,
+            entradas: depEntradas,
+            concluidas: depConcluidas,
+            transitam: depTransitam
+        }
     }
 }

@@ -12,9 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { InquiryStatus } from '@/types/database'
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Terminal } from 'lucide-react'
-
 export default async function Dashboard() {
   const supabase = await createClient()
 
@@ -22,30 +19,58 @@ export default async function Dashboard() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return <div>Access Denied</div>
 
-  // DEBUG: Check what the database actually sees
-  const { count: globalCount } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true })
-  const { count: userCount } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+  // 1. Fetch Counts (Filtered by User & Excluding Deprecadas)
+  const { count: totalInqueries } = await supabase.from('inqueritos')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
+
+  const { count: pendingInqueries } = await supabase.from('inqueritos')
+    .select('*', { count: 'exact', head: true })
+    .eq('estado', 'por_iniciar')
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
+
+  const { count: diligenceInqueries } = await supabase.from('inqueritos')
+    .select('*', { count: 'exact', head: true })
+    .eq('estado', 'em_diligencias')
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
+
+  const { count: courtInqueries } = await supabase.from('inqueritos')
+    .select('*', { count: 'exact', head: true })
+    .eq('estado', 'tribunal')
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
+
+  const { count: completedInqueries } = await supabase.from('inqueritos')
+    .select('*', { count: 'exact', head: true })
+    .eq('estado', 'concluido')
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
+
+  const { count: relevoInqueries } = await supabase.from('inqueritos')
+    .select('*', { count: 'exact', head: true })
+    .eq('classificacao', 'relevo')
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
 
 
-  // 1. Fetch Counts (Filtered by User)
-  const { count: totalInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
-  const { count: pendingInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'por_iniciar').eq('user_id', user.id)
-  const { count: diligenceInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'em_diligencias').eq('user_id', user.id)
-  const { count: courtInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'tribunal').eq('user_id', user.id)
-  const { count: completedInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'concluido').eq('user_id', user.id)
-  const { count: relevoInqueries } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('classificacao', 'relevo').eq('user_id', user.id)
-
-  // 2. Fetch Lists (Filtered by User)
+  // 2. Fetch Lists (Filtered by User & Excluding Deprecadas)
   const { data: recentInquiries } = await supabase
     .from('inqueritos')
     .select('*')
     .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
     .order('created_at', { ascending: false })
     .limit(10)
 
   // Fetch all dates for year stats (user only)
   // We prioritize data_atribuicao, falling back to created_at if null (though it should have a value)
-  const { data: allInquiries } = await supabase.from('inqueritos').select('created_at, data_atribuicao').eq('user_id', user.id)
+  const { data: allInquiries } = await supabase.from('inqueritos')
+    .select('created_at, data_atribuicao')
+    .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
 
   // Calculate breakdown
   const yearStats: Record<string, number> = {}
@@ -62,26 +87,26 @@ export default async function Dashboard() {
 
   const sortedYears = Object.keys(yearStats).sort()
 
-  // Diligences: Need to filter by inquiry owner, OR diligences assigned to user?
-  // Current schema: inqueritos has user_id, diligences are children. 
-  // We filter diligences where the parent inquiry belongs to the user.
-  // Supabase syntax for filtering on joined table: .eq('inqueritos.user_id', user.id) only works if we select it?
-  // Easier: Search diligences where inquerito_id is in (select id from inqueritos where user_id = me)
-  // Let's use the !inner join trick to filter by parent.
+  // Diligences: Excluding Deprecadas via Inner Join filter
+  // We need to filter by parent inquiry NOT being a Deprecada.
+  // We can add a filter on the joined table `inqueritos!inner.observacoes`?
+  // Supabase JOIN filters syntax: .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
 
   const { data: toDodiligences } = await supabase
     .from('diligencias')
-    .select('*, inqueritos!inner(nuipc, id, user_id)')
+    .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
     .eq('status', 'a_realizar')
     .eq('inqueritos.user_id', user.id)
+    .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
     .order('data_enviado', { ascending: true })
     .limit(10)
 
   const { data: completedDiligences } = await supabase
     .from('diligencias')
-    .select('*, inqueritos!inner(nuipc, id, user_id)')
+    .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
     .eq('status', 'realizado')
     .eq('inqueritos.user_id', user.id)
+    .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
     .order('data_enviado', { ascending: false })
     .limit(10)
 
@@ -91,15 +116,17 @@ export default async function Dashboard() {
     .select('*')
     .eq('estado', 'aguardando_resposta')
     .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
     .order('created_at', { ascending: false })
     .limit(10)
 
   // Diligences waiting response
   const { data: waitingDiligences } = await supabase
     .from('diligencias')
-    .select('*, inqueritos!inner(nuipc, id, user_id)')
+    .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
     .eq('status', 'enviado_aguardar')
     .eq('inqueritos.user_id', user.id)
+    .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
     .order('data_enviado', { ascending: false })
     .limit(10)
 
@@ -108,6 +135,7 @@ export default async function Dashboard() {
     .select('*')
     .eq('classificacao', 'relevo')
     .eq('user_id', user.id)
+    .not('observacoes', 'ilike', '%DEPRECADA%')
     .limit(10)
 
 

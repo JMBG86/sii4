@@ -13,7 +13,8 @@ import {
     User,
     LogOut,
     Search,
-    BarChart3
+    BarChart3,
+    AlertOctagon
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -32,6 +33,11 @@ const sidebarItems = [
         title: 'Inquéritos Externos',
         href: '/sp/inqueritos-externos',
         icon: Inbox,
+    },
+    {
+        title: 'Deprecadas',
+        href: '/sp/deprecadas',
+        icon: AlertOctagon,
     },
     {
         title: 'Correspondência',

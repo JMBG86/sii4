@@ -29,7 +29,7 @@ export default function SPPesquisaPage() {
         <div className="space-y-6 max-w-5xl mx-auto">
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Pesquisa Global</h1>
-                <p className="text-muted-foreground">Pesquise por NUIPC, Ofícios, Assuntos ou Nomes.</p>
+                <p className="text-muted-foreground">Pesquise por NUIPC, Ofícios, Assuntos, Nomes, Localização ou Observações.</p>
             </div>
 
             <form onSubmit={handleSearch} className="flex gap-2">
@@ -121,7 +121,7 @@ export default function SPPesquisaPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <FileText className="h-5 w-5" />
-                                Processos Crime ({results.processos?.length || 0})
+                                Processos Crime SP ({results.processos?.length || 0})
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -140,7 +140,8 @@ export default function SPPesquisaPage() {
                                                 </div>
                                                 <div className="text-xs text-muted-foreground mt-1">
                                                     {p.arguido && <span className="mr-2"><span className="font-bold">Arguido:</span> {p.arguido}</span>}
-                                                    {p.denunciante && <span><span className="font-bold">Denunciante:</span> {p.denunciante}</span>}
+                                                    {p.denunciante && <span className="mr-2"><span className="font-bold">Denunciante:</span> {p.denunciante}</span>}
+                                                    {p.localizacao && <span><span className="font-bold">Local:</span> {p.localizacao}</span>}
                                                 </div>
                                             </div>
                                             <div className="text-right">

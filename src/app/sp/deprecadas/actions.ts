@@ -3,20 +3,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function fetchInqueritosExternos(searchTerm: string = '') {
+export async function fetchDeprecadas(searchTerm: string = '') {
     const supabase = await createClient()
 
     let query = supabase
         .from('sp_inqueritos_externos')
         .select('*')
+        .ilike('observacoes', '%DEPRECADA%')
         .order('created_at', { ascending: false })
 
     if (searchTerm) {
+        // Broad search, but must still match DEPRECADA
         query = query.or(`nuipc.ilike.%${searchTerm}%,assunto.ilike.%${searchTerm}%,numero_oficio.ilike.%${searchTerm}%`)
     }
-
-    // Exclude Deprecadas (Observacoes containing DEPRECADA)
-    query = query.not('observacoes', 'ilike', '%DEPRECADA%')
 
     const { data, error } = await query
 
@@ -24,7 +23,7 @@ export async function fetchInqueritosExternos(searchTerm: string = '') {
     return data
 }
 
-export async function createInqueritoExterno(formData: FormData) {
+export async function createDeprecada(formData: FormData) {
     const supabase = await createClient()
 
     const rawData = {
@@ -35,7 +34,8 @@ export async function createInqueritoExterno(formData: FormData) {
         assunto: formData.get('assunto') as string,
         destino: formData.get('destino') as string,
         data_entrada: formData.get('data_entrada') as string,
-        observacoes: formData.get('observacoes') as string
+        // FORCE 'DEPRECADA' tag
+        observacoes: `DEPRECADA ${formData.get('observacoes') || ''}`
     }
 
     if (!rawData.nuipc) return { error: "NUIPC é obrigatório." }
@@ -46,7 +46,8 @@ export async function createInqueritoExterno(formData: FormData) {
 
     if (error) return { error: error.message }
 
-    // --- Integration: Create Inquiry if SII ALBUFEIRA ---
+    // Integration: Create Pending Inquiry if SII ALBUFEIRA
+    // (Same logic as External Inquiries)
     if (rawData.destino === 'SII ALBUFEIRA') {
         try {
             const { data: existing } = await supabase
@@ -62,27 +63,30 @@ export async function createInqueritoExterno(formData: FormData) {
                     classificacao: 'normal',
                     user_id: null,
                     numero_oficio: rawData.numero_oficio,
-                    observacoes: `[Importado de Inq. Externos] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
+                    observacoes: `[DEPRECADA] ${rawData.observacoes} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
                     destino: 'SII ALBUFEIRA',
                     denunciados: [],
                     denunciantes: []
                 })
-
-                if (insertError) {
-                    console.error('Error creating linked inquiry from External:', insertError)
-                }
+                if (insertError) console.error('Error creating linked inquiry:', insertError)
             }
         } catch (err) {
             console.error('Integration error:', err)
         }
     }
 
-    revalidatePath('/sp/inqueritos-externos')
+    revalidatePath('/sp/deprecadas')
     return { success: true }
 }
 
-export async function updateInqueritoExterno(id: string, formData: FormData) {
+export async function updateDeprecada(id: string, formData: FormData) {
     const supabase = await createClient()
+
+    // Ensure we keep 'DEPRECADA' if user edited it out, or just prepend it if missing
+    let obs = formData.get('observacoes') as string || ''
+    if (!obs.includes('DEPRECADA')) {
+        obs = `DEPRECADA ${obs}`
+    }
 
     const rawData = {
         srv: formData.get('srv') as string,
@@ -92,7 +96,7 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
         assunto: formData.get('assunto') as string,
         destino: formData.get('destino') as string,
         data_entrada: formData.get('data_entrada') as string,
-        observacoes: formData.get('observacoes') as string
+        observacoes: obs
     }
 
     if (!rawData.nuipc) return { error: "NUIPC é obrigatório." }
@@ -104,42 +108,11 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
 
     if (error) return { error: error.message }
 
-    // --- Integration: Create Inquiry if changed to SII ALBUFEIRA ---
-    if (rawData.destino === 'SII ALBUFEIRA') {
-        try {
-            const { data: existing } = await supabase
-                .from('inqueritos')
-                .select('id')
-                .eq('nuipc', rawData.nuipc)
-                .single()
-
-            if (!existing) {
-                const { error: insertError } = await supabase.from('inqueritos').insert({
-                    nuipc: rawData.nuipc,
-                    estado: 'por_iniciar',
-                    classificacao: 'normal',
-                    user_id: null,
-                    numero_oficio: rawData.numero_oficio,
-                    observacoes: `[Importado de Inq. Externos] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
-                    destino: 'SII ALBUFEIRA',
-                    denunciados: [],
-                    denunciantes: []
-                })
-
-                if (insertError) {
-                    console.error('Error creating linked inquiry from External Update:', insertError)
-                }
-            }
-        } catch (err) {
-            console.error('Integration error:', err)
-        }
-    }
-
-    revalidatePath('/sp/inqueritos-externos')
+    revalidatePath('/sp/deprecadas')
     return { success: true }
 }
 
-export async function deleteInqueritoExterno(id: string) {
+export async function deleteDeprecada(id: string) {
     const supabase = await createClient()
     const { error } = await supabase
         .from('sp_inqueritos_externos')
@@ -148,6 +121,6 @@ export async function deleteInqueritoExterno(id: string) {
 
     if (error) return { error: error.message }
 
-    revalidatePath('/sp/inqueritos-externos')
+    revalidatePath('/sp/deprecadas')
     return { success: true }
 }

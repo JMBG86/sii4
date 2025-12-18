@@ -189,71 +189,80 @@ function InqueritosContent() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {inqueritos?.map((inq) => (
-                            <TableRow
-                                key={inq.id}
-                                onClick={() => router.push(`/inqueritos/${inq.id}`)}
-                                className="cursor-pointer hover:bg-gray-50"
-                            >
-                                <TableCell className="font-medium">{inq.nuipc}</TableCell>
-                                <TableCell>{inq.tipo_crime || '-'}</TableCell>
-                                <TableCell className="text-sm">
-                                    {inq.data_ocorrencia
-                                        ? new Date(inq.data_ocorrencia).toLocaleDateString()
-                                        : '-'}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                    {inq.data_participacao
-                                        ? new Date(inq.data_participacao).toLocaleDateString()
-                                        : '-'}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                    {inq.data_atribuicao
-                                        ? new Date(inq.data_atribuicao).toLocaleDateString()
-                                        : '-'}
-                                </TableCell>
-                                <TableCell>
-                                    <Badge
-                                        className={`${getStatusColor(
-                                            inq.estado as InquiryStatus
-                                        )} hover:${getStatusColor(inq.estado as InquiryStatus)}`}
-                                    >
-                                        {getStatusLabel(inq.estado as InquiryStatus)}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>
-                                    {inq.classificacao === 'relevo' && (
-                                        <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-200 border-0">Relevo</Badge>
-                                    )}
-                                    {inq.classificacao === 'normal' && (
-                                        <span className="text-muted-foreground text-sm">Normal</span>
-                                    )}
-                                </TableCell>
-                                {isAdmin && (
+                        {inqueritos?.map((inq) => {
+                            const isDeprecada = inq.observacoes?.toUpperCase().includes('DEPRECADA')
+                            return (
+                                <TableRow
+                                    key={inq.id}
+                                    onClick={() => router.push(`/inqueritos/${inq.id}`)}
+                                    className={`cursor-pointer transition-colors ${isDeprecada
+                                        ? 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60'
+                                        : 'hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <TableCell className="font-medium">{inq.nuipc}</TableCell>
+                                    <TableCell>{inq.tipo_crime || '-'}</TableCell>
+                                    <TableCell className="text-sm">
+                                        {inq.data_ocorrencia
+                                            ? new Date(inq.data_ocorrencia).toLocaleDateString()
+                                            : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                        {inq.data_participacao
+                                            ? new Date(inq.data_participacao).toLocaleDateString()
+                                            : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-sm">
+                                        {inq.data_atribuicao
+                                            ? new Date(inq.data_atribuicao).toLocaleDateString()
+                                            : '-'}
+                                    </TableCell>
                                     <TableCell>
-                                        {profilesMap[inq.user_id] ? (
-                                            <div className="flex flex-col text-xs">
-                                                <span className="font-medium">{profilesMap[inq.user_id].full_name || 'Usuário'}</span>
-                                                <span className="text-muted-foreground">{profilesMap[inq.user_id].email}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground">-</span>
+                                        <Badge
+                                            className={`${getStatusColor(
+                                                inq.estado as InquiryStatus
+                                            )} hover:${getStatusColor(inq.estado as InquiryStatus)}`}
+                                        >
+                                            {getStatusLabel(inq.estado as InquiryStatus)}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {inq.classificacao === 'relevo' && (
+                                            <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-200 border-0">Relevo</Badge>
+                                        )}
+                                        {inq.classificacao === 'normal' && !isDeprecada && (
+                                            <span className="text-muted-foreground text-sm">Normal</span>
+                                        )}
+                                        {isDeprecada && (
+                                            <Badge className="bg-orange-500 hover:bg-orange-600">Deprecada</Badge>
                                         )}
                                     </TableCell>
-                                )}
-                                <TableCell>
-                                    <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                        <Link href={`/inqueritos/${inq.id}`}>
-                                            <Button variant="outline" size="sm" className="gap-2">
-                                                <Eye className="h-4 w-4" />
-                                                Ver Detalhes
-                                            </Button>
-                                        </Link>
-                                        <DeleteInquiryButton inquiryId={inq.id} nuipc={inq.nuipc} onSuccess={fetchInqueritos} />
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                                    {isAdmin && (
+                                        <TableCell>
+                                            {profilesMap[inq.user_id] ? (
+                                                <div className="flex flex-col text-xs">
+                                                    <span className="font-medium">{profilesMap[inq.user_id].full_name || 'Usuário'}</span>
+                                                    <span className="text-muted-foreground">{profilesMap[inq.user_id].email}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">-</span>
+                                            )}
+                                        </TableCell>
+                                    )}
+                                    <TableCell>
+                                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                            <Link href={`/inqueritos/${inq.id}`}>
+                                                <Button variant="outline" size="sm" className="gap-2">
+                                                    <Eye className="h-4 w-4" />
+                                                    Ver Detalhes
+                                                </Button>
+                                            </Link>
+                                            <DeleteInquiryButton inquiryId={inq.id} nuipc={inq.nuipc} onSuccess={fetchInqueritos} />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
                         {inqueritos?.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center">

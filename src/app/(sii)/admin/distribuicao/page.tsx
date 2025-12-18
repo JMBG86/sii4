@@ -103,79 +103,87 @@ export default function DistribuicaoPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="h-24 text-center">
+                                        <TableCell colSpan={8} className="h-24 text-center">
                                             <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                                         </TableCell>
                                     </TableRow>
                                 ) : inquiries.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                             Não existem inquéritos por distribuir.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    inquiries.map((inq) => (
-                                        <TableRow key={inq.id}>
-                                            <TableCell className="font-mono font-medium">{inq.nuipc}</TableCell>
-                                            <TableCell>{inq.tipo_crime || '-'}</TableCell>
-                                            <TableCell>
-                                                {inq.observacoes?.includes('[Importado da SP]') ? (
-                                                    <Badge variant="secondary">SP (Importado)</Badge>
-                                                ) : (
-                                                    'Manual'
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="max-w-[200px] truncate text-xs">
-                                                    {inq.denunciados?.map((d: any) => d.nome).join(', ') || '-'}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="max-w-[200px] truncate text-xs">
-                                                    {inq.denunciantes?.map((d: any) => d.nome).join(', ') || '-'}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{new Date(inq.created_at).toLocaleDateString()}</TableCell>
-                                            <TableCell>
-                                                <Select
-                                                    value={selectedUser[inq.id] || ''}
-                                                    onValueChange={(val) => setSelectedUser(prev => ({ ...prev, [inq.id]: val }))}
-                                                >
-                                                    <SelectTrigger className="w-[180px]">
-                                                        <SelectValue placeholder="Selecione..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {users.map(u => (
-                                                            <SelectItem key={u.id} value={u.id}>
-                                                                {u.full_name || u.email}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    size="sm"
-                                                    disabled={!selectedUser[inq.id] || assigning === inq.id}
-                                                    onClick={() => handleAssign(inq.id)}
-                                                >
-                                                    {assigning === inq.id ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    inquiries.map((inq) => {
+                                        const isDeprecada = inq.observacoes?.toUpperCase().includes('DEPRECADA')
+                                        return (
+                                            <TableRow
+                                                key={inq.id}
+                                                className={isDeprecada ? 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60' : ''}
+                                            >
+                                                <TableCell className="font-mono font-medium">{inq.nuipc}</TableCell>
+                                                <TableCell>{inq.tipo_crime || '-'}</TableCell>
+                                                <TableCell>
+                                                    {inq.observacoes?.includes('[Importado da SP]') ? (
+                                                        <Badge variant="secondary">SP (Importado)</Badge>
+                                                    ) : isDeprecada ? (
+                                                        <Badge className="bg-orange-500 hover:bg-orange-600">Deprecada</Badge>
                                                     ) : (
-                                                        <UserCheck className="h-4 w-4" />
+                                                        'Manual'
                                                     )}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleDelete(inq.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="max-w-[200px] truncate text-xs">
+                                                        {inq.denunciados?.map((d: any) => d.nome).join(', ') || '-'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="max-w-[200px] truncate text-xs">
+                                                        {inq.denunciantes?.map((d: any) => d.nome).join(', ') || '-'}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{new Date(inq.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        value={selectedUser[inq.id] || ''}
+                                                        onValueChange={(val) => setSelectedUser(prev => ({ ...prev, [inq.id]: val }))}
+                                                    >
+                                                        <SelectTrigger className="w-[180px]">
+                                                            <SelectValue placeholder="Selecione..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {users.map(u => (
+                                                                <SelectItem key={u.id} value={u.id}>
+                                                                    {u.full_name || u.email}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        size="sm"
+                                                        disabled={!selectedUser[inq.id] || assigning === inq.id}
+                                                        onClick={() => handleAssign(inq.id)}
+                                                    >
+                                                        {assigning === inq.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <UserCheck className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="ml-2 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleDelete(inq.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 )}
                             </TableBody>
                         </Table>

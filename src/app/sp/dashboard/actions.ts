@@ -20,6 +20,7 @@ export async function getDashboardCounts() {
     const { count: countInqueritosExternos } = await supabase
         .from('sp_inqueritos_externos')
         .select('*', { count: 'exact', head: true })
+        .not('observacoes', 'ilike', '%DEPRECADA%')
 
     const { count: countCorrespondencia } = await supabase
         .from('sp_correspondencia')

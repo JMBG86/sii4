@@ -260,6 +260,29 @@ export default function MapasPage() {
         })
         y = (doc as any).lastAutoTable.finalY + 15
 
+        // NEW: DEPRECADAS TABLE
+        doc.setFontSize(14)
+        doc.setTextColor(220, 38, 38) // Red color for Deprecadas distinction or just primary? keeping consistent styles but title distinction?
+        // Let's use standard color but distinct title
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+        doc.text('Movimento de Deprecadas', 14, y)
+        y += 8
+
+        autoTable(doc, {
+            startY: y,
+            head: [['Pendentes Mês Ant.', 'Registadas', 'Saídas (Concluídas)', 'Transitam p/ Seguinte']],
+            body: [[
+                stats.deprecadas?.pendentes || 0,
+                stats.deprecadas?.entradas || 0,
+                stats.deprecadas?.concluidas || 0,
+                stats.deprecadas?.transitam || 0
+            ]],
+            theme: 'grid',
+            headStyles: { fillColor: [220, 38, 38], halign: 'center' }, // Red header for Deprecadas
+            bodyStyles: { halign: 'center', fontStyle: 'bold' }
+        })
+        y = (doc as any).lastAutoTable.finalY + 15
+
         // 1. Process Stats Breakdown
         doc.setFontSize(14)
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])

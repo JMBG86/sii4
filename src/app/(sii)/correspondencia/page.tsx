@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ExternalLink } from 'lucide-react'
 import { MarkAsReadButton } from './mark-read-button'
+import { format } from 'date-fns'
 
 export default async function CorrespondenciaPage() {
     const supabase = await createClient()
@@ -85,7 +86,7 @@ export default async function CorrespondenciaPage() {
                                             <TableCell>
                                                 {isUnread && <span className="inline-block w-2 h-2 rounded-full bg-blue-500" title="Não lida" />}
                                             </TableCell>
-                                            <TableCell className={isUnread ? 'font-semibold' : ''}>{new Date(c.data_entrada).toLocaleDateString()}</TableCell>
+                                            <TableCell className={isUnread ? 'font-semibold' : ''}>{format(new Date(c.data_entrada), 'dd/MM/yyyy')}</TableCell>
                                             <TableCell className="font-medium">{c.assunto}</TableCell>
                                             <TableCell>{c.origem}</TableCell>
                                             <TableCell>{c.numero_oficio || '-'}</TableCell>

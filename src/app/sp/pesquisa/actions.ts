@@ -16,7 +16,9 @@ export async function searchSPGlobal(query: string) {
         .order('data_entrada', { ascending: false })
         .limit(10)
 
-    // 2. Search Inquiries (to find owner/status)
+    // 2. Search Inquiries (SII) - Basic NUIPC Search
+    // Note: Searching JSONB parties (denunciantes/denunciados) is complex with basic OR filters.
+    // Focusing on NUIPC for now as per specific SP request alignment.
     const { data: inquiries } = await supabase
         .from('inqueritos')
         .select(`
@@ -29,12 +31,13 @@ export async function searchSPGlobal(query: string) {
         .ilike('nuipc', term)
         .limit(5)
 
-    // 3. Search SP Processes
+    // 3. Search SP Processos Crime (BROAD SEARCH)
+    // Includes: NUIPC, Parties, Location, Observations, Office Numbers
     const { data: processos } = await supabase
         .from('sp_processos_crime')
         .select('*')
-        .or(`nuipc_completo.ilike.${term},denunciante.ilike.${term},arguido.ilike.${term},vitima.ilike.${term}`)
-        .limit(5)
+        .or(`nuipc_completo.ilike.${term},denunciante.ilike.${term},arguido.ilike.${term},vitima.ilike.${term},localizacao.ilike.${term},observacoes.ilike.${term},numero_oficio_envio.ilike.${term}`)
+        .limit(10)
 
     return {
         correspondence: correspondence || [],
