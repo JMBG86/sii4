@@ -30,6 +30,34 @@ export async function createCorrespondence(formData: FormData) {
         return { error: error.message }
     }
 
+    // Auto-create Inquiry for Distribution if SII and NUIPC is present
+    if (destino === 'SII' && nuipc) {
+        // Check if inquiry exists
+        const { data: existing } = await supabase
+            .from('inqueritos')
+            .select('id')
+            .eq('nuipc', nuipc)
+            .single()
+
+        if (!existing) {
+            // Create new "Skeleton" Inquiry for distribution
+            const { error: createError } = await supabase
+                .from('inqueritos')
+                .insert({
+                    nuipc,
+                    estado: 'por_iniciar',
+                    classificacao: 'normal', // Default
+                    observacoes: `[CRIADO VIA CORRESPONDÊNCIA SP]\nAssunto: ${assunto}\nOrigem: ${origem}\nOfício: ${numero_oficio}`,
+                    user_id: null // Explicitly null for distribution
+                })
+
+            if (createError) {
+                console.error('Failed to auto-create inquiry:', createError)
+                // We don't fail the correspondence creation, just log error
+            }
+        }
+    }
+
     revalidatePath('/sp/correspondencia')
     return { success: true }
 }

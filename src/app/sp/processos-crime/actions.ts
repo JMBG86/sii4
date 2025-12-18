@@ -93,6 +93,24 @@ export async function getDetidos(processoId: string) {
     return data
 }
 
+export async function getCriancas(processoId: string) {
+    const supabase = await createClient()
+    const { data } = await supabase.from('sp_criancas_info').select('*').eq('processo_id', processoId)
+    return data || []
+}
+
+export async function getApreensoes(processoId: string) {
+    const supabase = await createClient()
+    const { data } = await supabase.from('sp_apreensoes_info').select('*').eq('processo_id', processoId)
+    return data || []
+}
+
+export async function getDrogas(processoId: string) {
+    const supabase = await createClient()
+    const { data } = await supabase.from('sp_apreensoes_drogas').select('*').eq('processo_id', processoId).single()
+    return data || null
+}
+
 export async function updateProcesso(id: string, formData: FormData) {
     const supabase = await createClient()
 
@@ -112,63 +130,107 @@ export async function updateProcesso(id: string, formData: FormData) {
         if (value !== null) updates[field] = value
     })
 
-    // Handle Booleans
+    // Booleans
     updates.detidos = formData.get('detidos') === 'on'
+    updates.criancas_sinalizadas = formData.get('criancas_sinalizadas') === 'on'
+    updates.apreensoes = formData.get('apreensoes') === 'on'
 
-
-
-    // Handle Detainees Logic & Total
-    const detidosInfoJson = formData.get('detidos_info_json') as string
-    let detidosList: any[] = []
-
-    if (detidosInfoJson) {
-        try {
-            detidosList = JSON.parse(detidosInfoJson)
-        } catch (e) {
-            console.error(e)
-        }
-    }
-
-    if (updates.detidos) {
-        // Calculate Total
-        const total = detidosList.reduce((acc, curr) => acc + (parseInt(curr.quantidade) || 0), 0)
-        updates.total_detidos = total
-    } else {
-        updates.total_detidos = 0
-    }
-
-    // Update main process first
-    const { error } = await supabase
+    // Update Main Process
+    const { error: processError } = await supabase
         .from('sp_processos_crime')
         .update(updates)
         .eq('id', id)
 
-    if (error) return { error: error.message }
+    if (processError) return { error: processError.message }
 
-    // Update Detail Table
+    // --- Related Tables Handlers ---
+
+    // 1. Detainees
+    const detidosInfoJson = formData.get('detidos_info_json') as string
+    let detidosList: any[] = []
     if (detidosInfoJson) {
-        try {
-            // 1. Delete existing
-            await supabase.from('sp_detidos_info').delete().eq('processo_id', id)
-
-            // 2. Insert new
-            if (updates.detidos && Array.isArray(detidosList) && detidosList.length > 0) {
-                const rows = detidosList.map((d: any) => ({
-                    processo_id: id,
-                    nacionalidade: d.nacionalidade,
-                    quantidade: parseInt(d.quantidade)
-                }))
-                await supabase.from('sp_detidos_info').insert(rows)
-            }
-        } catch (e) {
-            console.error('Error processing detainees:', e)
-        }
+        try { detidosList = JSON.parse(detidosInfoJson) } catch (e) { }
     }
 
-    // Link with SII if destination is SII ALBUFEIRA
+    await supabase.from('sp_detidos_info').delete().eq('processo_id', id)
+    if (updates.detidos && detidosList.length > 0) {
+        const rows = detidosList.map((d: any) => ({
+            processo_id: id,
+            nacionalidade: d.nacionalidade,
+            quantidade: parseInt(d.quantidade),
+            sexo: d.sexo
+        }))
+        await supabase.from('sp_detidos_info').insert(rows)
+
+        // Update Total Detainees count on parent
+        const total = detidosList.reduce((acc: number, curr: any) => acc + (parseInt(curr.quantidade) || 0), 0)
+        await supabase.from('sp_processos_crime').update({ total_detidos: total }).eq('id', id)
+    } else {
+        await supabase.from('sp_processos_crime').update({ total_detidos: 0 }).eq('id', id)
+    }
+
+    // 2. Children (Criancas)
+    const criancasInfoJson = formData.get('criancas_info_json') as string
+    let criancasList: any[] = []
+    if (criancasInfoJson) {
+        try { criancasList = JSON.parse(criancasInfoJson) } catch (e) { }
+    }
+
+    await supabase.from('sp_criancas_info').delete().eq('processo_id', id)
+    if (updates.criancas_sinalizadas && criancasList.length > 0) {
+        const rows = criancasList.map((d: any) => ({
+            processo_id: id,
+            nome: d.nome,
+            idade: parseInt(d.idade)
+        }))
+        await supabase.from('sp_criancas_info').insert(rows)
+    }
+
+    // 3. Generic Seizures (Apreensoes Info)
+    const apreensoesInfoJson = formData.get('apreensoes_info_json') as string
+    let seizuresList: any[] = []
+    if (apreensoesInfoJson) {
+        try { seizuresList = JSON.parse(apreensoesInfoJson) } catch (e) { }
+    }
+
+    await supabase.from('sp_apreensoes_info').delete().eq('processo_id', id)
+    if (updates.apreensoes && seizuresList.length > 0) {
+        const rows = seizuresList.map((d: any) => ({
+            processo_id: id,
+            tipo: d.tipo,
+            descricao: d.descricao
+        }))
+        await supabase.from('sp_apreensoes_info').insert(rows)
+    }
+
+    // 4. Drug Seizures (SPApreensaoDroga - 1:1 relationship)
+    const drogasInfoJson = formData.get('drogas_info_json') as string
+    let drogasData: any = {}
+    if (drogasInfoJson) {
+        try { drogasData = JSON.parse(drogasInfoJson) } catch (e) { }
+    }
+
+    await supabase.from('sp_apreensoes_drogas').delete().eq('processo_id', id)
+    if (updates.apreensoes && Object.keys(drogasData).length > 0) {
+        const drugRow = {
+            processo_id: id,
+            heroina_g: parseFloat(drogasData.heroina_g) || 0,
+            cocaina_g: parseFloat(drogasData.cocaina_g) || 0,
+            cannabis_folhas_g: parseFloat(drogasData.cannabis_folhas_g) || 0,
+            cannabis_resina_g: parseFloat(drogasData.cannabis_resina_g) || 0,
+            cannabis_oleo_g: parseFloat(drogasData.cannabis_oleo_g) || 0,
+            sinteticas_g: parseFloat(drogasData.sinteticas_g) || 0,
+            cannabis_plantas_un: parseInt(drogasData.cannabis_plantas_un) || 0,
+            substancias_psicoativas_un: parseInt(drogasData.substancias_psicoativas_un) || 0
+        }
+
+        await supabase.from('sp_apreensoes_drogas').insert(drugRow)
+    }
+
+    // --- Integration: Create Inquiry if SII ALBUFEIRA ---
     if (updates.entidade_destino === 'SII ALBUFEIRA' && updates.nuipc_completo) {
         try {
-            // Check if already exists in inqueritos
+            // Check if exists
             const { data: existing } = await supabase
                 .from('inqueritos')
                 .select('id')
@@ -196,7 +258,7 @@ export async function updateProcesso(id: string, formData: FormData) {
                     data_ocorrencia: updates.data_factos || null,
                     data_participacao: updates.data_conhecimento || null,
                     observacoes: `[Importado da SP] ${updates.observacoes || ''}`,
-                    destino: updates.entidade_destino || 'SII ALBUFEIRA'
+                    destino: 'SII ALBUFEIRA'
                 })
 
                 if (insertError) {
@@ -217,6 +279,9 @@ export async function deleteProcesso(id: string) {
 
     // 1. Delete Detainees
     await supabase.from('sp_detidos_info').delete().eq('processo_id', id)
+    await supabase.from('sp_criancas_info').delete().eq('processo_id', id)
+    await supabase.from('sp_apreensoes_info').delete().eq('processo_id', id)
+    await supabase.from('sp_apreensoes_drogas').delete().eq('processo_id', id)
 
     // 2. Reset the process record (don't delete the row, just clear fields)
     const { error } = await supabase
@@ -226,6 +291,8 @@ export async function deleteProcesso(id: string) {
             data_registo: null,
             detidos: false,
             total_detidos: 0,
+            criancas_sinalizadas: false,
+            apreensoes: false,
             localizacao: null,
             tipo_crime: null,
             denunciante: null,
@@ -239,9 +306,6 @@ export async function deleteProcesso(id: string) {
         })
         .eq('id', id)
 
-
-
-    revalidatePath('/sp/processos-crime')
     revalidatePath('/sp/processos-crime')
     return { success: true, error: null }
 }

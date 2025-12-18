@@ -20,7 +20,8 @@ export default function NewCorrespondencePage() {
     const [nuipc, setNuipc] = useState('')
     const [searchingNuipc, setSearchingNuipc] = useState(false)
     const [nuipcMessage, setNuipcMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null)
-    const [destino, setDestino] = useState('')
+    const [destino, setDestino] = useState('SII')
+    const [customDestino, setCustomDestino] = useState('')
 
     // Debounce search manually for now if hook not available, or just onBlur/Button
     // User asked for "active search function", likely onChange with debounce or specialized button?
@@ -35,7 +36,7 @@ export default function NewCorrespondencePage() {
                 try {
                     const ownerName = await checkNuipcOwner(nuipc)
                     if (ownerName) {
-                        setDestino(ownerName)
+                        // setDestino(ownerName) // REMOVED as per request. Destino field stays as dropdown.
                         setNuipcMessage({ text: `Inquérito encontrado. Responsável: ${ownerName}`, type: 'success' })
                     } else {
                         setNuipcMessage({ text: 'Inquérito não encontrado ou sem responsável atribuído.', type: 'info' })
@@ -118,15 +119,27 @@ export default function NewCorrespondencePage() {
                                 <Input id="origem" name="origem" required placeholder="Entidade remetente" />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="destino">Destino *</Label>
-                                <Input
-                                    id="destino"
-                                    name="destino"
-                                    required
-                                    placeholder="Ao cuidado de..."
+                                <Label htmlFor="destino_select">Destino *</Label>
+                                <select
+                                    id="destino_select"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                     value={destino}
                                     onChange={(e) => setDestino(e.target.value)}
-                                />
+                                >
+                                    <option value="SII">SII (Investigação)</option>
+                                    <option value="SP">SP (Processos)</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                                <input type="hidden" name="destino" value={destino === 'Outros' ? customDestino : destino} />
+
+                                {destino === 'Outros' && (
+                                    <Input
+                                        placeholder="Especifique o destino..."
+                                        value={customDestino}
+                                        onChange={(e) => setCustomDestino(e.target.value)}
+                                        required={destino === 'Outros'}
+                                    />
+                                )}
                             </div>
                         </div>
 

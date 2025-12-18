@@ -12,6 +12,7 @@ import {
     PlusCircle,
     User,
     LogOut,
+    Search,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -22,24 +23,19 @@ const sidebarItems = [
         icon: LayoutDashboard,
     },
     {
-        title: 'Nova Correspondência',
-        href: '/sp/correspondencia/nova',
-        icon: PlusCircle,
-    },
-    {
         title: 'Correspondência',
         href: '/sp/correspondencia',
         icon: Inbox,
     },
     {
-        title: 'Novo Processo Crime',
-        href: '/sp/novo-processo-crime',
-        icon: PlusCircle,
-    },
-    {
         title: 'Mapa de Processos',
         href: '/sp/processos-crime',
         icon: FileText,
+    },
+    {
+        title: 'Pesquisa Global',
+        href: '/sp/pesquisa',
+        icon: Search,
     },
 ]
 

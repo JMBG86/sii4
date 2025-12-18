@@ -137,6 +137,9 @@ export interface SPProcessoCrime {
     numero_oficio_envio?: string
     entidade_destino?: string
     observacoes?: string
+    // New Flags
+    criancas_sinalizadas?: boolean
+    apreensoes?: boolean
     created_at: string
     updated_at: string
 }
@@ -146,5 +149,36 @@ export interface SPDetidoInfo {
     processo_id: string
     nacionalidade: string
     quantidade: number
+    sexo?: string // New
+    created_at: string
+}
+
+export interface SPCriancaInfo {
+    id: string
+    processo_id: string
+    nome: string    // Changed from nacionalidade/qtd
+    idade: number   // Changed from nacionalidade/qtd
+    created_at: string
+}
+
+export interface SPApreensaoInfo {
+    id: string
+    processo_id: string
+    tipo: string
+    descricao: string
+    created_at: string
+}
+
+export interface SPApreensaoDroga {
+    id: string
+    processo_id: string
+    heroina_g: number
+    cocaina_g: number
+    cannabis_folhas_g: number
+    cannabis_resina_g: number
+    cannabis_oleo_g: number
+    sinteticas_g: number
+    cannabis_plantas_un: number
+    substancias_psicoativas_un: number
     created_at: string
 }
