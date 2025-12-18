@@ -35,7 +35,11 @@ export async function fetchProcessos(page: number = 1, pageSize: number = 100, s
 
     let query = supabase
         .from('sp_processos_crime')
-        .select('*', { count: 'exact' })
+        .select(`
+            *,
+            sp_apreensoes_info(tipo),
+            sp_apreensoes_drogas(id)
+        `, { count: 'exact' })
 
     if (searchTerm) {
         query = query.or(`nuipc_completo.ilike.%${searchTerm}%,arguido.ilike.%${searchTerm}%,denunciante.ilike.%${searchTerm}%`)
@@ -47,7 +51,7 @@ export async function fetchProcessos(page: number = 1, pageSize: number = 100, s
     const start = (page - 1) * pageSize
     const end = start + pageSize - 1
 
-    const { data, error, count } = await query.range(start, end)
+    const { data, count, error } = await query.range(start, end)
 
     if (error) throw new Error(error.message)
     return { data, count }
@@ -75,8 +79,6 @@ export async function fetchAllProcessosForExport() {
 export async function fetchProcessosByDateRange(startDate: string, endDate: string) {
     const supabase = await createClient()
 
-    // Fetch processes where data_registo is between startDate and endDate
-    // JOIN all related tables for aggregation
     const { data, error } = await supabase
         .from('sp_processos_crime')
         .select(`
@@ -89,6 +91,26 @@ export async function fetchProcessosByDateRange(startDate: string, endDate: stri
         .gte('data_registo', startDate)
         .lte('data_registo', endDate)
         .order('numero_sequencial', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+export async function fetchStatisticsData() {
+    const supabase = await createClient()
+
+    // Fetch all processes with related data for Charts
+    const { data, error } = await supabase
+        .from('sp_processos_crime')
+        .select(`
+            id,
+            data_registo,
+            total_detidos,
+            sp_detidos_info(nacionalidade),
+            sp_apreensoes_drogas(*)
+        `)
+        .not('nuipc_completo', 'is', null)
+        .order('data_registo', { ascending: true })
 
     if (error) throw new Error(error.message)
     return data
@@ -349,4 +371,64 @@ export async function deleteProcesso(id: string) {
 
     revalidatePath('/sp/processos-crime')
     return { success: true, error: null }
+}
+
+// --- Stats for PDF Report ---
+
+export async function fetchMonthlyReportStats(startDate: string, endDate: string) {
+    const supabase = await createClient()
+
+    // 1. ENTRIES IN MONTH (Entrados) for SP Report
+    // User requested specifically to match the "Enviados SII" column of the details table.
+    // The details table only uses 'sp_processos_crime', so we limit this to 'sp_processos_crime'.
+
+    // a) SP Processos Crime -> 'SII ALBUFEIRA'
+    const { count: countProc } = await supabase
+        .from('sp_processos_crime')
+        .select('*', { count: 'exact', head: true })
+        .not('nuipc_completo', 'is', null)
+        .gte('data_registo', startDate)
+        .lte('data_registo', endDate)
+        .eq('entidade_destino', 'SII ALBUFEIRA')
+
+    /* EXCLUDED External Inquiries per user request
+    const { count: countExt } = await supabase
+        .from('sp_inqueritos_externos')
+        ...
+    */
+
+    const entrados = countProc || 0
+
+    // 2. CONCLUDED IN MONTH (Concluídos)
+    // Completed in SII during this period (Distributed + Concluded)
+    const { count: countConcluded } = await supabase
+        .from('inqueritos')
+        .select('*', { count: 'exact', head: true })
+        .eq('estado', 'concluido')
+        .gte('data_conclusao', startDate)
+        .lte('data_conclusao', endDate)
+        .not('user_id', 'is', null) // Distributed
+
+    const concluidos = countConcluded || 0
+
+    // 3. PENDING PREVIOUS MONTH (Stock Inicial)
+    // Active Inquiries created < startDate.
+    const { count: countStock } = await supabase
+        .from('inqueritos')
+        .select('*', { count: 'exact', head: true })
+        .lt('created_at', startDate)
+        .or(`estado.neq.concluido,data_conclusao.gte.${startDate}`)
+
+    const pendentesAnterior = countStock || 0
+
+    // 4. TRANSIT (Stock Final)
+    // Previous + Entries - Concluded
+    const transitam = pendentesAnterior + entrados - concluidos
+
+    return {
+        pendentesAnterior,
+        entrados,
+        concluidos,
+        transitam
+    }
 }

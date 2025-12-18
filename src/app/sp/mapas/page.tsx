@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Loader2, Download, Calendar as CalendarIcon } from 'lucide-react'
-import { fetchAllProcessosForExport, fetchProcessosByDateRange } from '../processos-crime/actions'
+import { fetchAllProcessosForExport, fetchProcessosByDateRange, fetchMonthlyReportStats } from '../processos-crime/actions'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Calendar } from '@/components/ui/calendar'
@@ -53,15 +53,19 @@ export default function MapasPage() {
         try {
             const startDate = date.from.toISOString().split('T')[0]
             const endDate = date.to.toISOString().split('T')[0]
-            const data: any[] = await fetchProcessosByDateRange(startDate, endDate)
+
+            // Parallel Fetch
+            const [data, stats] = await Promise.all([
+                fetchProcessosByDateRange(startDate, endDate),
+                fetchMonthlyReportStats(startDate, endDate)
+            ])
 
             if (!data || data.length === 0) {
-                alert('Não existem dados para este período.')
-                setLoadingMonthly(false)
-                return
+                // Warning only? Maybe there are no new entries but stats exist?
+                // For now, let's proceed even if empty list, stats might be relevant.
             }
 
-            generateMonthlyReportPDF(data, date.from, date.to)
+            generateMonthlyReportPDF(data || [], date.from, date.to, stats)
 
         } catch (error) {
             console.error(error)
@@ -152,11 +156,11 @@ export default function MapasPage() {
         doc.save(`mapa_processos_geral.pdf`)
     }
 
-    function generateMonthlyReportPDF(data: any[], from: Date, to: Date) {
+    function generateMonthlyReportPDF(data: any[], from: Date, to: Date, stats: any) {
         const doc = new jsPDF()
         const primaryColor: [number, number, number] = [22, 163, 74] // Explicit Type for TS
 
-        // Stats Aggregation
+        // Stats Aggregation (for Lists)
         let totalRegistados = data.length
         let enviadosDIAP = 0
         let enviadosSII = 0
@@ -177,7 +181,7 @@ export default function MapasPage() {
         }
 
         data.forEach(p => {
-            // Process Stats
+            // Process Stats (for the internal breakdown table)
             if (p.entidade_destino?.toUpperCase().includes('DIAP')) enviadosDIAP++
             if (p.entidade_destino?.toUpperCase().includes('SII')) enviadosSII++
 
@@ -197,16 +201,9 @@ export default function MapasPage() {
             // Seizures Stats (Generic)
             if (p.sp_apreensoes_info) {
                 p.sp_apreensoes_info.forEach((a: any) => {
-                    // Try to extract number from description or count as 1 occurrence
-                    // Simple aggregation by SubType (a.tipo)
-                    // If description contains a number at start, use it, else 1
-                    // Heuristic: "1 Pistola" -> 1. "Vários documentos" -> 1.
                     const desc = a.descricao || ''
                     const match = desc.match(/^\d+/)
                     const qtd = match ? parseInt(match[0]) : 1
-
-                    // Key format: "Category - Subcategory"
-                    // a.tipo already contains "Category: Subcategory" often.
                     const key = a.tipo || 'Outros'
                     apreensoesStats[key] = (apreensoesStats[key] || 0) + qtd
                 })
@@ -242,10 +239,31 @@ export default function MapasPage() {
         doc.text(`Período: ${format(from, 'dd/MM/yyyy')} a ${format(to, 'dd/MM/yyyy')}`, 105, y, { align: 'center' })
         y += 15
 
-        // 1. Process Stats
+        // NEW SUMMARY TABLE (Header)
         doc.setFontSize(14)
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-        doc.text('Processos Crime', 14, y)
+        doc.text('Resumo de Movimento', 14, y)
+        y += 8
+
+        autoTable(doc, {
+            startY: y,
+            head: [['Pendentes Mês Ant.', 'Entrados (Registados)', 'Concluídos', 'Transitam p/ Seguinte']],
+            body: [[
+                stats.pendentesAnterior,
+                stats.entrados,
+                stats.concluidos,
+                stats.transitam
+            ]],
+            theme: 'grid',
+            headStyles: { fillColor: primaryColor, halign: 'center' },
+            bodyStyles: { halign: 'center', fontStyle: 'bold' }
+        })
+        y = (doc as any).lastAutoTable.finalY + 15
+
+        // 1. Process Stats Breakdown
+        doc.setFontSize(14)
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+        doc.text('Detalhe de Processos (Registo Mensal)', 14, y)
         y += 8
 
         autoTable(doc, {
@@ -270,7 +288,6 @@ export default function MapasPage() {
 
         const nacRows = Object.entries(detidosNacionalidade).map(([k, v]) => [k, v])
 
-        // Two tables side by side? Or just one combined
         autoTable(doc, {
             startY: y,
             head: [['Total', 'Masculinos', 'Femininos']],
@@ -287,7 +304,7 @@ export default function MapasPage() {
                 head: [['Nacionalidade', 'Qtd']],
                 body: nacRows,
                 theme: 'grid',
-                headStyles: { fillColor: [100, 100, 100] } // Gray header for sub-table
+                headStyles: { fillColor: [100, 100, 100] }
             })
         }
 
@@ -299,14 +316,13 @@ export default function MapasPage() {
         doc.text('Apreensões e Estupefacientes', 14, y)
         y += 8
 
-        // Combine Generic and Drugs stats into one table?
         const seizureRows = Object.entries(apreensoesStats)
             .sort((a, b) => b[1] - a[1]) // Sort by count descending
             .map(([k, v]) => [k, v])
 
         const drugRows = Object.entries(drogasStats)
             .filter(([_, v]) => v > 0)
-            .map(([k, v]) => [k, v.toFixed(2)]) // Format decimals
+            .map(([k, v]) => [k, v.toFixed(2)])
 
         const finalSeizureBody = [...drugRows, ...seizureRows]
 

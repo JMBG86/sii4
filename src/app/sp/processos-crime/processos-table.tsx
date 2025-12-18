@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Search, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
-import { ProcessoDetailDialog } from './detail-dialog' // Will create next
+import { ProcessoDetailDialog } from './detail-dialog'
 import { cn } from '@/lib/utils'
 
 export function ProcessosTable() {
@@ -46,6 +46,32 @@ export function ProcessosTable() {
         }, 500)
         return () => clearTimeout(timer)
     }, [loadData])
+
+    // --- Helper to extract Seizure Categories ---
+    function getSeizureCategories(p: SPProcessoCrime) {
+        const categories = new Set<string>()
+
+        // 1. Drugs
+        const drugData = p.sp_apreensoes_drogas
+        let hasDrugs = false
+        if (Array.isArray(drugData) && drugData.length > 0) hasDrugs = true
+        else if (drugData && typeof drugData === 'object' && !Array.isArray(drugData)) hasDrugs = true
+
+        if (hasDrugs) categories.add('Estupefaciente')
+
+        // 2. Generic Seizures
+        if (p.sp_apreensoes_info && p.sp_apreensoes_info.length > 0) {
+            p.sp_apreensoes_info.forEach(a => {
+                if (a.tipo) {
+                    // Extract main category (e.g. "Armas: Pistola" -> "Armas")
+                    const mainCat = a.tipo.split(':')[0].trim()
+                    categories.add(mainCat)
+                }
+            })
+        }
+
+        return Array.from(categories)
+    }
 
     return (
         <div className="space-y-4">
@@ -97,6 +123,7 @@ export function ProcessosTable() {
                             <TableHead>NUIPC</TableHead>
                             <TableHead>Data Registo</TableHead>
                             <TableHead>Detidos</TableHead>
+                            <TableHead>Apreensões</TableHead> {/* NEW COLUMN */}
                             <TableHead>Localização</TableHead>
                             <TableHead>Tipo Crime</TableHead>
                             <TableHead>Denunciante</TableHead>
@@ -109,54 +136,71 @@ export function ProcessosTable() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={9} className="h-24 text-center">
+                                <TableCell colSpan={10} className="h-24 text-center">
                                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                                 </TableCell>
                             </TableRow>
-                        ) : data.map((row) => (
-                            <TableRow key={row.id} className={cn(!row.nuipc_completo && "opacity-50 hover:opacity-80")}>
-                                <TableCell className="font-mono font-bold text-muted-foreground">
-                                    {row.numero_sequencial}
-                                </TableCell>
-                                <TableCell>
-                                    {row.nuipc_completo ? (
-                                        <Badge variant="outline">{row.nuipc_completo}</Badge>
-                                    ) : (
-                                        <span className="text-xs text-muted-foreground italic">Vazio</span>
-                                    )}
-                                </TableCell>
-                                <TableCell>{row.data_registo ? new Date(row.data_registo).toLocaleDateString() : '-'}</TableCell>
-                                <TableCell>
-                                    {row.detidos ? (
-                                        <Badge variant="destructive" className="font-mono">
-                                            {row.total_detidos || 0} DETIDO(S)
-                                        </Badge>
-                                    ) : (
-                                        <span className="text-muted-foreground text-xs">Não</span>
-                                    )}
-                                </TableCell>
-                                <TableCell>{row.localizacao || '-'}</TableCell>
-                                <TableCell className="max-w-[150px] truncate" title={row.tipo_crime}>{row.tipo_crime || '-'}</TableCell>
-                                <TableCell className="max-w-[150px] truncate" title={row.denunciante}>{row.denunciante || '-'}</TableCell>
-                                <TableCell className="max-w-[150px] truncate" title={row.vitima}>{row.vitima || '-'}</TableCell>
-                                <TableCell className="max-w-[150px] truncate" title={row.arguido}>{row.arguido || '-'}</TableCell>
-                                <TableCell className="max-w-[150px] truncate" title={row.entidade_destino}>
-                                    {row.entidade_destino === 'SII ALBUFEIRA' ? (
-                                        <Badge className="bg-blue-600 hover:bg-blue-700 border-0">
-                                            SII (Integrado)
-                                        </Badge>
-                                    ) : row.entidade_destino ? (
-                                        <Badge variant="secondary">{row.entidade_destino}</Badge>
-                                    ) : '-'}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button variant="ghost" size="sm" onClick={() => setSelectedProcess(row)}>
-                                        <Edit2 className="h-3 w-3 mr-1" />
-                                        {row.nuipc_completo ? 'Editar' : 'Registar'}
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        ) : data.map((row) => {
+                            const cats = getSeizureCategories(row)
+
+                            return (
+                                <TableRow key={row.id} className={cn(!row.nuipc_completo && "opacity-50 hover:opacity-80")}>
+                                    <TableCell className="font-mono font-bold text-muted-foreground">
+                                        {row.numero_sequencial}
+                                    </TableCell>
+                                    <TableCell>
+                                        {row.nuipc_completo ? (
+                                            <Badge variant="outline">{row.nuipc_completo}</Badge>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground italic">Vazio</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>{row.data_registo ? new Date(row.data_registo).toLocaleDateString() : '-'}</TableCell>
+                                    <TableCell>
+                                        {row.detidos ? (
+                                            <Badge variant="destructive" className="font-mono">
+                                                {row.total_detidos || 0} DETIDO(S)
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">Não</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {cats.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                                {cats.map(c => (
+                                                    <Badge key={c} variant="secondary" className="text-[10px] h-5 px-1 bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">
+                                                        {c.toUpperCase()}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>{row.localizacao || '-'}</TableCell>
+                                    <TableCell className="max-w-[150px] truncate" title={row.tipo_crime}>{row.tipo_crime || '-'}</TableCell>
+                                    <TableCell className="max-w-[150px] truncate" title={row.denunciante}>{row.denunciante || '-'}</TableCell>
+                                    <TableCell className="max-w-[150px] truncate" title={row.vitima}>{row.vitima || '-'}</TableCell>
+                                    <TableCell className="max-w-[150px] truncate" title={row.arguido}>{row.arguido || '-'}</TableCell>
+                                    <TableCell className="max-w-[150px] truncate" title={row.entidade_destino}>
+                                        {row.entidade_destino === 'SII ALBUFEIRA' ? (
+                                            <Badge className="bg-blue-600 hover:bg-blue-700 border-0">
+                                                SII (Integrado)
+                                            </Badge>
+                                        ) : row.entidade_destino ? (
+                                            <Badge variant="secondary">{row.entidade_destino}</Badge>
+                                        ) : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="sm" onClick={() => setSelectedProcess(row)}>
+                                            <Edit2 className="h-3 w-3 mr-1" />
+                                            {row.nuipc_completo ? 'Editar' : 'Registar'}
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
                     </TableBody>
                 </Table>
             </div>

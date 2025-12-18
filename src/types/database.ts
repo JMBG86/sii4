@@ -140,6 +140,9 @@ export interface SPProcessoCrime {
     // New Flags
     criancas_sinalizadas?: boolean
     apreensoes?: boolean
+    // Joined
+    sp_apreensoes_info?: { tipo: string }[]
+    sp_apreensoes_drogas?: { id: string }[] | any
     created_at: string
     updated_at: string
 }
@@ -180,5 +183,18 @@ export interface SPApreensaoDroga {
     sinteticas_g: number
     cannabis_plantas_un: number
     substancias_psicoativas_un: number
+    created_at: string
+}
+
+export interface SPInqueritoExterno {
+    id: string
+    srv?: string
+    numero_oficio?: string
+    nuipc: string // Mandatory per user request
+    origem?: string
+    assunto?: string
+    destino?: string
+    data_entrada?: string
+    observacoes?: string
     created_at: string
 }

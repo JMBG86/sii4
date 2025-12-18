@@ -13,6 +13,7 @@ import {
     User,
     LogOut,
     Search,
+    BarChart3
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -23,14 +24,19 @@ const sidebarItems = [
         icon: LayoutDashboard,
     },
     {
-        title: 'Correspondência',
-        href: '/sp/correspondencia',
-        icon: Inbox,
-    },
-    {
         title: 'Mapa de Processos',
         href: '/sp/processos-crime',
         icon: FileText,
+    },
+    {
+        title: 'Inquéritos Externos',
+        href: '/sp/inqueritos-externos',
+        icon: Inbox,
+    },
+    {
+        title: 'Correspondência',
+        href: '/sp/correspondencia',
+        icon: Inbox,
     },
     {
         title: 'Pesquisa Global',
@@ -41,6 +47,11 @@ const sidebarItems = [
         title: 'Mapas',
         href: '/sp/mapas',
         icon: FileText,
+    },
+    {
+        title: 'Estatísticas',
+        href: '/sp/estatisticas',
+        icon: BarChart3,
     },
 ]
 
