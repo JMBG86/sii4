@@ -21,7 +21,9 @@ import { format } from 'date-fns'
 import { ImagensEditDialog } from './edit-dialog'
 import { ImagensNotificationDialog } from './notification-dialog'
 
-export default function ImagensPage() {
+import { Suspense } from 'react'
+
+function ImagensContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const pathname = usePathname()
@@ -196,5 +198,13 @@ export default function ImagensPage() {
                 onOpenChange={setNotificationOpen}
             />
         </div>
+    )
+}
+
+export default function ImagensPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <ImagensContent />
+        </Suspense>
     )
 }
