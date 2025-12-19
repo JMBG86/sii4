@@ -180,6 +180,8 @@ export function ProcessoDetailDialog({
     // New Flags
     const [criancas, setCriancas] = useState(processo.criancas_sinalizadas || false)
     const [apreensoes, setApreensoes] = useState(processo.apreensoes || false)
+    const [imagens, setImagens] = useState(processo.imagens_associadas || false)
+    const [notificacao, setNotificacao] = useState(processo.notificacao_imagens || false)
 
     // UI State
     const [showArmas, setShowArmas] = useState(false)
@@ -202,6 +204,8 @@ export function ProcessoDetailDialog({
         setDetidos(processo.detidos || false)
         setCriancas(processo.criancas_sinalizadas || false)
         setApreensoes(processo.apreensoes || false)
+        setImagens(processo.imagens_associadas || false)
+        setNotificacao(processo.notificacao_imagens || false)
         setEntidade(processo.entidade_destino || '')
         setShowArmas(false)
         setShowAmmo(false)
@@ -299,6 +303,8 @@ export function ProcessoDetailDialog({
         formData.set('detidos', detidos ? 'on' : 'off')
         formData.set('criancas_sinalizadas', criancas ? 'on' : 'off')
         formData.set('apreensoes', apreensoes ? 'on' : 'off')
+        formData.set('imagens_associadas', imagens ? 'on' : 'off')
+        formData.set('notificacao_imagens', notificacao ? 'on' : 'off')
 
         // Serialize Lists
         formData.set('detidos_info_json', detidos ? JSON.stringify(detaineesList) : '[]')
@@ -1152,6 +1158,26 @@ export function ProcessoDetailDialog({
                                                 )
                                             })}
 
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Imagens Section */}
+                                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
+                                    <div className="flex items-center space-x-2">
+                                        <Switch id="imagens" checked={imagens} onCheckedChange={setImagens} />
+                                        <Label htmlFor="imagens" className="font-semibold text-pink-600 text-base">Tem Imagens?</Label>
+                                    </div>
+
+                                    {imagens && (
+                                        <div className="space-y-3 mt-3 animate-in fade-in pl-4 border-l-2 border-pink-200">
+                                            <div className="flex items-center space-x-2">
+                                                <Switch id="notificacao" checked={notificacao} onCheckedChange={setNotificacao} />
+                                                <Label htmlFor="notificacao" className="font-medium">Foi feita a Notificação?</Label>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Sim + Sim = <span className="text-emerald-600 font-bold">Verde</span> | Sim + Não = <span className="text-red-600 font-bold">Vermelho</span> no separador Imagens.
+                                            </p>
                                         </div>
                                     )}
                                 </div>

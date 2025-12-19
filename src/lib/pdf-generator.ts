@@ -74,27 +74,28 @@ export async function generateBrandedReport(
         inq.tipo_crime || '-',
         inq.data_conclusao ? new Date(inq.data_conclusao).toLocaleDateString('pt-PT') : '-',
         inq.numero_oficio || '-',
+        inq.destino || '-'
     ])
 
     // Calculate table width and center it
-    const tableWidth = 45 + 60 + 40 + 35 // Sum of column widths
+    const tableWidth = 45 + 50 + 35 + 30 + 30 // Adjusted widths for 5 columns
     const horizontalMargin = (pageWidth - tableWidth) / 2
 
     // Generate modern table
     autoTable(doc, {
         startY: 98,
-        head: [['NUIPC', 'Crime', 'Data de Conclusão', 'Nº Ofício']],
+        head: [['NUIPC', 'Crime', 'Data Conclusão', 'Nº Ofício', 'Destino']],
         body: tableData,
         styles: {
-            fontSize: 9,
-            cellPadding: 5,
+            fontSize: 8, // Reduced slightly to fit
+            cellPadding: 4,
             lineColor: [220, 220, 220],
             lineWidth: 0.1,
         },
         headStyles: {
             fillColor: [41, 128, 185],
             textColor: [255, 255, 255],
-            fontSize: 10,
+            fontSize: 9,
             fontStyle: 'bold',
             halign: 'center',
         },
@@ -103,9 +104,10 @@ export async function generateBrandedReport(
         },
         columnStyles: {
             0: { cellWidth: 45, fontStyle: 'bold' },
-            1: { cellWidth: 60 },
-            2: { cellWidth: 40, halign: 'center' },
-            3: { cellWidth: 35, halign: 'center' },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 35, halign: 'center' },
+            3: { cellWidth: 30, halign: 'center' },
+            4: { cellWidth: 30, halign: 'center' },
         },
         margin: { left: horizontalMargin, right: horizontalMargin, top: 20 },
         didDrawPage: (data) => {

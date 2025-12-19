@@ -14,7 +14,8 @@ import {
     LogOut,
     Search,
     BarChart3,
-    AlertOctagon
+    AlertOctagon,
+    Image as ImageIcon
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -48,6 +49,12 @@ const sidebarItems = [
         title: 'Pesquisa Global',
         href: '/sp/pesquisa',
         icon: Search,
+    },
+
+    {
+        title: 'Imagens',
+        href: '/sp/imagens',
+        icon: ImageIcon,
     },
     {
         title: 'Mapas',

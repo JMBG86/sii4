@@ -197,6 +197,8 @@ export async function updateProcesso(id: string, formData: FormData) {
     updates.detidos = formData.get('detidos') === 'on'
     updates.criancas_sinalizadas = formData.get('criancas_sinalizadas') === 'on'
     updates.apreensoes = formData.get('apreensoes') === 'on'
+    updates.imagens_associadas = formData.get('imagens_associadas') === 'on'
+    updates.notificacao_imagens = formData.get('notificacao_imagens') === 'on'
 
     // Update Main Process
     const { error: processError } = await supabase

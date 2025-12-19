@@ -55,6 +55,13 @@ export default function RelatoriosPage() {
         setLoading(true)
         try {
             const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) {
+                alert('Sessão inválida')
+                setLoading(false)
+                return
+            }
 
             const today = new Date()
             const dayOfWeek = today.getDay()
@@ -69,8 +76,9 @@ export default function RelatoriosPage() {
 
             const { data: inquiries } = await supabase
                 .from('inqueritos')
-                .select('nuipc, data_conclusao, numero_oficio, tipo_crime')
+                .select('nuipc, data_conclusao, numero_oficio, tipo_crime, destino')
                 .eq('estado', 'concluido')
+                .eq('user_id', user.id) // Filter by current user
                 .gte('data_conclusao', lastFriday.toISOString())
                 .lte('data_conclusao', nextFriday.toISOString())
                 .order('data_conclusao', { ascending: false })

@@ -123,7 +123,7 @@ export function ProcessosTable() {
                             <TableHead>NUIPC</TableHead>
                             <TableHead>Data Registo</TableHead>
                             <TableHead>Detidos</TableHead>
-                            <TableHead>Apreensões</TableHead> {/* NEW COLUMN */}
+                            <TableHead>Apreensões</TableHead>
                             <TableHead>Localização</TableHead>
                             <TableHead>Tipo Crime</TableHead>
                             <TableHead>Denunciante</TableHead>
@@ -209,7 +209,7 @@ export function ProcessosTable() {
                 <ProcessoDetailDialog
                     processo={selectedProcess}
                     open={!!selectedProcess}
-                    onOpenChange={(open) => {
+                    onOpenChange={(open: boolean) => {
                         if (!open) {
                             setSelectedProcess(null)
                             // Small delay to ensure DB propagation/revalidation

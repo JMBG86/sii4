@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download, Loader2, Users, FileText } from 'lucide-react'
+import { Download, Loader2, Users, FileText, AlertCircle, Trophy } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -31,8 +31,27 @@ type UserStat = {
     totalInquiries: number
 }
 
+type RankingStat = {
+    userId: string
+    name: string
+    email: string
+    total: number
+    active: number
+    concluded: number
+}
+
 export default function EstadoDaNacaoPage() {
     const [stats, setStats] = useState<UserStat[]>([])
+
+    // Deprecadas State
+    const [deprecadasStats, setDeprecadasStats] = useState({
+        registered: 0,
+        distributed: 0,
+        concluded: 0
+    })
+    const [deprecadasList, setDeprecadasList] = useState<any[]>([])
+    const [deprecadasRanking, setDeprecadasRanking] = useState<RankingStat[]>([])
+
     // Analytics Data
     const [weeklyData, setWeeklyData] = useState<any[]>([])
     const [monthlyData, setMonthlyData] = useState<any[]>([])
@@ -59,6 +78,8 @@ export default function EstadoDaNacaoPage() {
 
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
+    const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
+
 
     const generateAvailableWeeks = (inquiries: any[]) => {
         const weeks = []
@@ -138,16 +159,65 @@ export default function EstadoDaNacaoPage() {
 
             const profiles = rawProfiles?.filter(p => p.email !== 'user@sapo.pt')
 
+            // Map for quick lookup
+            const pMap: Record<string, any> = {}
+            rawProfiles?.forEach(p => pMap[p.id] = p)
+            setProfilesMap(pMap)
+
             // 2. Fetch Inquiries
             const { data: inquiries, error: inqError } = await supabase
                 .from('inqueritos')
-                .select('id, user_id, estado, created_at, data_conclusao, numero_oficio')
+                // Added observacoes and destino and nuipc
+                .select('id, nuipc, user_id, estado, created_at, data_conclusao, numero_oficio, observacoes, destino')
 
             if (inqError) {
                 console.error('Error fetching inquiries', inqError)
                 setLoading(false)
                 return
             }
+
+            // --- DEPRECADAS PROCESSING ---
+            const deprecadas = inquiries?.filter(i => i.observacoes?.toUpperCase().includes('DEPRECADA')) || []
+            const deprecadasReg = deprecadas.length
+            const deprecadasDist = deprecadas.filter(i => i.user_id).length
+            const deprecadasConc = deprecadas.filter(i => i.estado === 'concluido').length
+
+            setDeprecadasStats({
+                registered: deprecadasReg,
+                distributed: deprecadasDist,
+                concluded: deprecadasConc
+            })
+            setDeprecadasList(deprecadas)
+
+            // Calculate Ranking
+            const rankingMap: Record<string, RankingStat> = {}
+            profiles?.forEach(p => {
+                rankingMap[p.id] = {
+                    userId: p.id,
+                    name: p.full_name || 'Sem Nome',
+                    email: p.email,
+                    total: 0,
+                    active: 0,
+                    concluded: 0
+                }
+            })
+
+            deprecadas.forEach(d => {
+                if (d.user_id && rankingMap[d.user_id]) {
+                    rankingMap[d.user_id].total++
+                    if (d.estado === 'concluido') {
+                        rankingMap[d.user_id].concluded++
+                    } else {
+                        rankingMap[d.user_id].active++
+                    }
+                }
+            })
+
+            const ranking = Object.values(rankingMap)
+                .sort((a, b) => b.total - a.total)
+
+            setDeprecadasRanking(ranking)
+
 
             // --- KPI PROCESSING ---
             const statsMap: Record<string, UserStat> = {}
@@ -164,6 +234,8 @@ export default function EstadoDaNacaoPage() {
 
             inquiries?.forEach(inq => {
                 if (inq.user_id && statsMap[inq.user_id]) {
+                    if (inq.observacoes?.toUpperCase().includes('DEPRECADA')) return
+
                     if (inq.estado === 'concluido') {
                         statsMap[inq.user_id].closedInquiries++
                     } else {
@@ -174,10 +246,13 @@ export default function EstadoDaNacaoPage() {
             })
             setStats(Object.values(statsMap).sort((a, b) => b.activeInquiries - a.activeInquiries))
 
-            setRawInquiries(inquiries || [])
-            generateAvailableWeeks(inquiries || [])
+            // Filter out deprecadas for general analytics too
+            const normalInquiries = inquiries?.filter(i => !i.observacoes?.toUpperCase().includes('DEPRECADA')) || []
 
-            // --- TEMPORAL ANALYTICS PROCESSING ---
+            setRawInquiries(normalInquiries) // Use filtered inquiries for reports
+            generateAvailableWeeks(normalInquiries)
+
+            // --- TEMPORAL ANALYTICS PROCESSING (Use normalInquiries) ---
             const processPeriods = (data: any[], type: 'week' | 'month' | 'quarter') => {
                 const map: Record<string, { created: number, concluded: number }> = {}
                 data.forEach(inq => {
@@ -204,9 +279,9 @@ export default function EstadoDaNacaoPage() {
                 return Object.entries(map).map(([period, vals]) => ({ period, ...vals })).sort((a, b) => a.period.localeCompare(b.period))
             }
 
-            setWeeklyData(processPeriods(inquiries || [], 'week'))
-            setMonthlyData(processPeriods(inquiries || [], 'month'))
-            setQuarterlyData(processPeriods(inquiries || [], 'quarter'))
+            setWeeklyData(processPeriods(normalInquiries, 'week'))
+            setMonthlyData(processPeriods(normalInquiries, 'month'))
+            setQuarterlyData(processPeriods(normalInquiries, 'quarter'))
 
 
             // --- TEAM TABLE PROCESSING (Helper) ---
@@ -222,7 +297,7 @@ export default function EstadoDaNacaoPage() {
                     let totalConcluded = 0
 
                     // Pre-calculate user's relevant inquiries to avoid full scan inside loop
-                    const userInquiries = inquiries?.filter(i => i.user_id === user.id) || []
+                    const userInquiries = normalInquiries.filter(i => i.user_id === user.id)
 
                     keys.forEach((key, idx) => {
                         const periodStart = periods[idx]
@@ -272,23 +347,14 @@ export default function EstadoDaNacaoPage() {
                                 }
                             }
 
-                            // Calculate Balance (Active at end of period)
-                            // Created before or during period AND (Not concluded OR concluded AFTER period)
+                            // Calculate Balance
                             const isCreatedBeforeEnd = createdDate <= periodEnd
-                            const isActiveAtEnd = !inq.data_conclusao || parseISO(inq.data_conclusao) > periodEnd
-
-                            // Special case: If status is 'concluido' but no data_conclusao (legacy data issue?), assume not active? 
-                            // Logic: If status='concluido' AND data_conclusao is null -> Treat as active? No, treat as concluded long ago?
-                            // Safe bet: defined 'isCreatedBeforeEnd' and 'isActiveAtEnd' check covers mostly.
-                            // Wait, strict check:
-                            // Active = Created <= End AND (Status != Concluded OR (Status == Concluded AND Date > End))
 
                             let effectivelyActive = false
                             if (isCreatedBeforeEnd) {
                                 if (inq.estado !== 'concluido') {
                                     effectivelyActive = true
                                 } else {
-                                    // It IS concluded, but was it concluded AFTER this period?
                                     if (inq.data_conclusao && parseISO(inq.data_conclusao) > periodEnd) {
                                         effectivelyActive = true
                                     }
@@ -577,6 +643,159 @@ export default function EstadoDaNacaoPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* DEPRECADA SECTION */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                    <AlertCircle className="h-6 w-6 text-orange-600" />
+                    <h2 className="text-2xl font-bold tracking-tight text-orange-800">Deprecadas</h2>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                    <Card className="border-orange-200 bg-orange-50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-orange-900">Registadas (Total)</CardTitle>
+                            <FileText className="h-4 w-4 text-orange-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-orange-700">{deprecadasStats.registered}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-orange-200 bg-orange-50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-orange-900">Distribuídas</CardTitle>
+                            <Users className="h-4 w-4 text-orange-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-orange-700">{deprecadasStats.distributed}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-green-200 bg-green-50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-green-900">Concluídas</CardTitle>
+                            <div className="h-4 w-4 rounded-full bg-green-500/20" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-green-700">{deprecadasStats.concluded}</div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                    <Card className="border-orange-100 col-span-1">
+                        <CardHeader>
+                            <CardTitle>Listagem de Deprecadas</CardTitle>
+                            <CardDescription>Detalhe de movimentação.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="max-h-[500px] overflow-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Ref</TableHead>
+                                        <TableHead>Militar</TableHead>
+                                        <TableHead className="text-center">Estado</TableHead>
+                                        <TableHead className="text-center">Conclusão</TableHead>
+                                        <TableHead>Destino</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {deprecadasList.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                                Nenhuma deprecada registada.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        deprecadasList.map((dep) => {
+                                            const user = profilesMap[dep.user_id]
+                                            return (
+                                                <TableRow key={dep.id} className="hover:bg-orange-50/50">
+                                                    <TableCell className="font-medium font-mono text-xs">
+                                                        {dep.nuipc || 'S/ Ref'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {user ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Avatar className="h-5 w-5">
+                                                                    <AvatarFallback className="text-[10px]">{user.full_name?.charAt(0)}</AvatarFallback>
+                                                                </Avatar>
+                                                                <span className="text-xs">{user.full_name?.split(' ')[0]}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted-foreground text-xs italic">Por atribuir</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {dep.estado === 'concluido' ? (
+                                                            <div className="h-2 w-2 rounded-full bg-green-500 mx-auto" title="Concluído"></div>
+                                                        ) : (
+                                                            <div className="h-2 w-2 rounded-full bg-orange-400 mx-auto" title="Em Curso"></div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-center text-xs">
+                                                        {dep.data_conclusao ? new Date(dep.data_conclusao).toLocaleDateString() : '-'}
+                                                    </TableCell>
+                                                    <TableCell className="text-xs truncate max-w-[100px]" title={dep.destino}>
+                                                        {dep.destino || '-'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-orange-100 col-span-1">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Trophy className="h-5 w-5 text-orange-500" />
+                                Ranking de Atribuição
+                            </CardTitle>
+                            <CardDescription>Quem tem mais deprecadas atribuídas.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Militar</TableHead>
+                                        <TableHead className="text-center text-xs">Ativas</TableHead>
+                                        <TableHead className="text-center text-xs">Concluídas</TableHead>
+                                        <TableHead className="text-center font-bold">Total</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {deprecadasRanking.map((rank) => (
+                                        <TableRow key={rank.userId}>
+                                            <TableCell className="font-medium">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-8 w-8">
+                                                        <AvatarImage src={`https://avatar.vercel.sh/${rank.email}`} />
+                                                        <AvatarFallback>{rank.name.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm">{rank.name}</span>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="outline" className="border-orange-200 text-orange-700">{rank.active}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="outline" className="border-green-200 text-green-700">{rank.concluded}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center font-bold text-lg">
+                                                {rank.total}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     )
 }

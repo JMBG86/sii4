@@ -1,6 +1,6 @@
 'use client'
 
-import { ProcessosTable } from './processos-table'
+import { ProcessosTable } from './processos-list'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, PlusCircle } from 'lucide-react'
