@@ -1,3 +1,4 @@
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -133,4 +134,10 @@
   .responsive-table table {
     min-width: 600px;
   }
+}
+
+/* Hide default calendar icon on date inputs to allow fast tabbing */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
 }

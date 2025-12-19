@@ -114,12 +114,37 @@ export async function updateDeprecada(id: string, formData: FormData) {
 
 export async function deleteDeprecada(id: string) {
     const supabase = await createClient()
+
+    // 1. Get NUIPC before deleting to sync with SII
+    const { data: deprecada } = await supabase
+        .from('sp_inqueritos_externos')
+        .select('nuipc')
+        .eq('id', id)
+        .single()
+
+    // 2. Delete from SP (Source of Truth)
     const { error } = await supabase
         .from('sp_inqueritos_externos')
         .delete()
         .eq('id', id)
 
     if (error) return { error: error.message }
+
+    // 3. Sync: Delete Linked Inquiry in SII if it exists
+    if (deprecada?.nuipc) {
+        try {
+            // Safety: Only delete if it has the DEPRECADA tag in observations to avoid accidental deletes
+            const { error: syncError } = await supabase
+                .from('inqueritos')
+                .delete()
+                .eq('nuipc', deprecada.nuipc)
+                .ilike('observacoes', '%DEPRECADA%')
+
+            if (syncError) console.error('Error syncing delete to SII:', syncError)
+        } catch (err) {
+            console.error('Error in sync delete:', err)
+        }
+    }
 
     revalidatePath('/sp/deprecadas')
     return { success: true }

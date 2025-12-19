@@ -480,36 +480,52 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
 
     // --- DEPRECADA STATS ---
 
+    // --- DEPRECADA STATS (Deduplicated by NUIPC) ---
+    // We use Sets to count unique NUIPCs to prevent double-counting if duplicate records exist.
+
     // D1. Deprecadas Pendentes Anterior
-    const { count: countStockDep } = await supabase
+    const { data: depPendData } = await supabase
         .from('inqueritos')
-        .select('*', { count: 'exact', head: true })
+        .select('nuipc')
         .lt('created_at', startDate)
         .or(`estado.neq.concluido,data_conclusao.gte.${startDate}`)
         .ilike('observacoes', '%DEPRECADA%')
 
-    const depPendentes = countStockDep || 0
+    // Filter valid NUIPCs and deduplicate
+    const depPendentes = new Set(
+        depPendData
+            ?.map(d => d.nuipc?.trim().toUpperCase())
+            .filter(n => n) || []
+    ).size
 
-    // D2. Deprecadas Entradas (Registadas no mÃªs)
-    const { count: countEntradasDep } = await supabase
+    // D2. Deprecadas Entradas (Registadas no mês)
+    const { data: depEntradasData } = await supabase
         .from('inqueritos')
-        .select('*', { count: 'exact', head: true })
+        .select('nuipc')
         .gte('created_at', startDate)
         .lte('created_at', endDate)
         .ilike('observacoes', '%DEPRECADA%')
 
-    const depEntradas = countEntradasDep || 0
+    const depEntradas = new Set(
+        depEntradasData
+            ?.map(d => d.nuipc?.trim().toUpperCase())
+            .filter(n => n) || []
+    ).size
 
-    // D3. Deprecadas Concluidas (SaÃ­das)
-    const { count: countConcludedDep } = await supabase
+    // D3. Deprecadas Concluidas (Saídas)
+    const { data: depConcluidasData } = await supabase
         .from('inqueritos')
-        .select('*', { count: 'exact', head: true })
+        .select('nuipc')
         .eq('estado', 'concluido')
         .gte('data_conclusao', startDate)
         .lte('data_conclusao', endDate)
         .ilike('observacoes', '%DEPRECADA%')
 
-    const depConcluidas = countConcludedDep || 0
+    const depConcluidas = new Set(
+        depConcluidasData
+            ?.map(d => d.nuipc?.trim().toUpperCase())
+            .filter(n => n) || []
+    ).size
 
     // D4. Deprecadas Transitadas
     const depTransitam = depPendentes + depEntradas - depConcluidas
