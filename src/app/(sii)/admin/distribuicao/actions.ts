@@ -61,3 +61,58 @@ export async function assignInquiry(inquiryId: string, userId: string) {
     revalidatePath('/inqueritos')
     return { success: true }
 }
+
+export async function getSuggestedAssignments(inquiryIds: string[]) {
+    const supabase = await createClient()
+
+    if (!inquiryIds || inquiryIds.length === 0) return {}
+
+    // 1. Get NUIPCs and Observations for these inquiries
+    const { data: currentInqs } = await supabase
+        .from('inqueritos')
+        .select('id, nuipc, observacoes')
+        .in('id', inquiryIds)
+
+    if (!currentInqs || currentInqs.length === 0) return {}
+
+    const suggestions: Record<string, string> = {}
+    const nuipcsToSearch: string[] = []
+
+    // 2. First pass: Check observations for "[Anterior Responsável: UUID]" tag
+    currentInqs.forEach(inq => {
+        if (inq.observacoes) {
+            const match = inq.observacoes.match(/\[Anterior Responsável: ([0-9a-fA-F-]+)\]/)
+            if (match && match[1]) {
+                suggestions[inq.id] = match[1]
+            } else {
+                if (inq.nuipc) nuipcsToSearch.push(inq.nuipc)
+            }
+        } else {
+            if (inq.nuipc) nuipcsToSearch.push(inq.nuipc)
+        }
+    })
+
+    // 3. Second pass: For remaining NUIPCs, find the most recent PREVIOUS owner in history
+    if (nuipcsToSearch.length > 0) {
+        const { data: historical } = await supabase
+            .from('inqueritos')
+            .select('nuipc, user_id, created_at')
+            .in('nuipc', nuipcsToSearch)
+            .not('user_id', 'is', null)
+            .order('created_at', { ascending: false })
+
+        if (historical) {
+            currentInqs.forEach(curr => {
+                // Skip if already found via observations
+                if (suggestions[curr.id]) return
+
+                const match = historical.find(h => h.nuipc === curr.nuipc && h.user_id)
+                if (match) {
+                    suggestions[curr.id] = match.user_id
+                }
+            })
+        }
+    }
+
+    return suggestions
+}

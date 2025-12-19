@@ -76,6 +76,33 @@ export async function fetchAllProcessosForExport() {
     return data
 }
 
+export async function fetchInqueritosForExcel() {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('inqueritos')
+        .select(`
+            *,
+            profiles:user_id ( full_name )
+        `)
+        .order('created_at', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
+export async function fetchCorrespondenciaForExcel() {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('correspondencias')
+        .select('*')
+        .order('data_entrada', { ascending: true })
+
+    if (error) throw new Error(error.message)
+    return data
+}
+
 export async function fetchProcessosByDateRange(startDate: string, endDate: string) {
     const supabase = await createClient()
 

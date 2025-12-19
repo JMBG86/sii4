@@ -30,7 +30,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Loader2, Plus, Search, Trash2, Edit } from 'lucide-react'
-import { fetchInqueritosExternos, createInqueritoExterno, updateInqueritoExterno, deleteInqueritoExterno } from './actions'
+import { fetchInqueritosExternos, createInqueritoExterno, updateInqueritoExterno, deleteInqueritoExterno, checkNuipcAssociation } from './actions'
 import { getEntidades } from '../processos-crime/actions'
 import { SPInqueritoExterno, SPEntidade } from '@/types/database'
 
@@ -41,6 +41,7 @@ export default function InqueritosExternosPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [open, setOpen] = useState(false)
     const [editingItem, setEditingItem] = useState<SPInqueritoExterno | null>(null)
+    const [associatedUser, setAssociatedUser] = useState<string | null>(null)
 
     // Form State
     const [formData, setFormData] = useState({
@@ -66,7 +67,6 @@ export default function InqueritosExternosPage() {
             setData(res || [])
         } catch (error) {
             console.error(error)
-            // alert("Erro ao carregar dados") // Too noisy on load
         } finally {
             setLoading(false)
         }
@@ -81,7 +81,21 @@ export default function InqueritosExternosPage() {
         }
     }
 
+    async function handleNuipcBlur() {
+        if (!formData.nuipc) {
+            setAssociatedUser(null)
+            return
+        }
+        const result = await checkNuipcAssociation(formData.nuipc)
+        if (result && result.hasUser) {
+            setAssociatedUser(`${result.userName} (${result.status})`)
+        } else {
+            setAssociatedUser(null)
+        }
+    }
+
     function handleOpen(item?: SPInqueritoExterno) {
+        setAssociatedUser(null)
         if (item) {
             setEditingItem(item)
             setFormData({
@@ -94,6 +108,14 @@ export default function InqueritosExternosPage() {
                 data_entrada: item.data_entrada || new Date().toISOString().split('T')[0],
                 observacoes: item.observacoes || ''
             })
+            // Optionally check on edit too?
+            if (item.nuipc) {
+                checkNuipcAssociation(item.nuipc).then(res => {
+                    if (res && res.hasUser) {
+                        setAssociatedUser(`${res.userName} (${res.status})`)
+                    }
+                })
+            }
         } else {
             setEditingItem(null)
             setFormData({
@@ -239,7 +261,18 @@ export default function InqueritosExternosPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>NUIPC (Obrigatório)</Label>
-                                <Input value={formData.nuipc} onChange={e => setFormData({ ...formData, nuipc: e.target.value })} required placeholder="####/##.#..." />
+                                <Input
+                                    value={formData.nuipc}
+                                    onChange={e => setFormData({ ...formData, nuipc: e.target.value })}
+                                    onBlur={handleNuipcBlur}
+                                    required
+                                    placeholder="####/##.#..."
+                                />
+                                {associatedUser && (
+                                    <p className="text-xs text-amber-600 font-medium animate-pulse">
+                                        ⚠️ {associatedUser.includes('CONCLUÍDO') || associatedUser.includes('concluido') ? 'Processo Anterorior:' : 'Já associado:'} {associatedUser}
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">

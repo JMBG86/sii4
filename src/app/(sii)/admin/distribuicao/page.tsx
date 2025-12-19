@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getUnassignedInquiries, getUsers, assignInquiry } from './actions'
+import { getUnassignedInquiries, getUsers, assignInquiry, getSuggestedAssignments } from './actions'
 import { deleteInquiry } from '../../inqueritos/actions'
 import {
     Table,
@@ -39,6 +39,15 @@ export default function DistribuicaoPage() {
         const [inqs, usrs] = await Promise.all([getUnassignedInquiries(), getUsers()])
         setInquiries(inqs)
         setUsers(usrs)
+
+        // Auto-fill suggestions
+        if (inqs.length > 0) {
+            const suggestions = await getSuggestedAssignments(inqs.map(i => i.id))
+            if (suggestions && Object.keys(suggestions).length > 0) {
+                setSelectedUser(prev => ({ ...prev, ...suggestions }))
+            }
+        }
+
         setLoading(false)
     }
 

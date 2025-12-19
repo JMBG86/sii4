@@ -141,7 +141,7 @@ function ImagensContent() {
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm" onClick={(e) => {
                                                 e.stopPropagation()
-                                                router.push(`/sp/processos-crime?highlight=${row.id}`)
+                                                setSelectedProcess(row)
                                             }}>
                                                 <ExternalLink className="h-4 w-4 mr-2" />
                                                 Ver Detalhes

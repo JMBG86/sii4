@@ -13,6 +13,7 @@ import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { DateRange } from 'react-day-picker'
+import { ExcelExportCard } from '@/components/sp/maps/excel-export-card'
 
 export default function MapasPage() {
     const [loadingAll, setLoadingAll] = useState(false)
@@ -262,8 +263,6 @@ export default function MapasPage() {
 
         // NEW: DEPRECADAS TABLE
         doc.setFontSize(14)
-        doc.setTextColor(220, 38, 38) // Red color for Deprecadas distinction or just primary? keeping consistent styles but title distinction?
-        // Let's use standard color but distinct title
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
         doc.text('Movimento de Deprecadas', 14, y)
         y += 8
@@ -465,6 +464,8 @@ export default function MapasPage() {
                         </Button>
                     </CardContent>
                 </Card>
+
+                <ExcelExportCard />
             </div>
         </div>
     )

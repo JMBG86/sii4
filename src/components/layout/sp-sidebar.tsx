@@ -68,12 +68,15 @@ const sidebarItems = [
     },
 ]
 
+import { getPendingImagesCount } from '@/app/sp/imagens/actions'
+
 export function SPSidebar() {
     const pathname = usePathname()
     const router = useRouter()
     const supabase = createClient()
 
     const [userName, setUserName] = useState('')
+    const [pendingCount, setPendingCount] = useState(0)
 
     useEffect(() => {
         const getUser = async () => {
@@ -82,7 +85,17 @@ export function SPSidebar() {
                 setUserName(user.user_metadata.full_name || user.email?.split('@')[0] || 'Utilizador')
             }
         }
+
+        const getCount = async () => {
+            const count = await getPendingImagesCount()
+            setPendingCount(count)
+        }
+
         getUser()
+        getCount()
+
+        // Optional: Interval to refresh count? Or use Realtime? 
+        // For now, fetch on mount is enough as per typical request.
     }, [supabase])
 
     const handleLogout = async () => {
@@ -93,9 +106,7 @@ export function SPSidebar() {
     return (
         <div className="flex h-screen w-64 flex-col border-r bg-stone-50 dark:bg-zinc-950">
             <Link href="/sp/dashboard" className="flex flex-col items-center justify-center p-6 border-b hover:bg-stone-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer">
-                {/* Maybe a different logo or color variant in the future */}
                 <div className="relative h-24 w-24 mb-3 opacity-90">
-                    {/* Temporarily reuse logo but smaller or grayscale? keeping same for now */}
                     <Image
                         src="/LOGO.png"
                         alt="Logo SII"
@@ -115,14 +126,19 @@ export function SPSidebar() {
                             key={index}
                             href={item.href}
                             className={cn(
-                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-emerald-700',
+                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all group',
                                 pathname === item.href
                                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400'
-                                    : 'text-gray-500 hover:bg-stone-100 dark:text-gray-400 dark:hover:bg-zinc-900'
+                                    : 'text-gray-500 hover:bg-stone-100 dark:text-gray-400 dark:hover:bg-zinc-900 hover:text-emerald-700'
                             )}
                         >
                             <item.icon className="h-4 w-4" />
-                            {item.title}
+                            <span className="flex-1">{item.title}</span>
+                            {item.title === 'Imagens' && pendingCount > 0 && (
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm ring-1 ring-red-600 animate-in zoom-in">
+                                    {pendingCount}
+                                </span>
+                            )}
                         </Link>
                     ))}
                 </nav>
