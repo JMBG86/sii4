@@ -1,5 +1,6 @@
 import { login } from './actions'
-import { Button } from '@/components/ui/button'
+
+import { LoginButton } from './login-button'
 import {
     Card,
     CardContent,
@@ -71,9 +72,7 @@ export default async function LoginPage({
                                 {error}
                             </div>
                         )}
-                        <Button type="submit" className="w-full">
-                            Entrar
-                        </Button>
+                        <LoginButton />
                     </form>
                 </CardContent>
             </Card>

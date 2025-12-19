@@ -18,41 +18,40 @@ export default async function InquiryDetailsPage({
 }: {
     params: Promise<{ id: string }>
 }) {
-    const supabase = await createClient()
     const { id } = await params
+    const supabase = await createClient()
 
-    // 1. Fetch Inquiry Details
-    const { data: inquiry, error } = await supabase
-        .from('inqueritos')
-        .select(`
-            *,
-            profiles:user_id ( full_name )
-        `)
-        .eq('id', id)
-        .single()
+    // 1. Parallel Fetch: Inquiry, Diligences, Links
+    const [
+        { data: inquiry, error },
+        { data: diligences },
+        { data: linksA },
+        { data: linksB }
+    ] = await Promise.all([
+        // Inquiry
+        supabase.from('inqueritos')
+            .select(`*, profiles:user_id ( full_name )`)
+            .eq('id', id)
+            .single(),
+
+        // Diligences
+        supabase.from('diligencias')
+            .select('*')
+            .eq('inquerito_id', id)
+            .order('created_at', { ascending: false }),
+
+        // Links A
+        supabase.from('ligacoes').select('*, inqueritos:inquerito_b(id, nuipc)').eq('inquerito_a', id),
+
+        // Links B
+        supabase.from('ligacoes').select('*, inqueritos:inquerito_a(id, nuipc)').eq('inquerito_b', id)
+    ])
 
     if (error || !inquiry) {
         return <div>Inquérito não encontrado.</div>
     }
 
-    // 2. Fetch Diligences
-    const { data: diligences } = await supabase
-        .from('diligencias')
-        .select('*')
-        .eq('inquerito_id', id)
-        .order('created_at', { ascending: false })
-
-    // 3. Fetch Links
-    const { data: linksA } = await supabase.from('ligacoes').select('*, inqueritos:inquerito_b(id, nuipc)').eq('inquerito_a', id)
-    const { data: linksB } = await supabase.from('ligacoes').select('*, inqueritos:inquerito_a(id, nuipc)').eq('inquerito_b', id)
-
-    // Normalize links
-    const normalizedLinks = [
-        ...(linksA || []).map(l => ({ id: l.id, razao: l.razao, other_id: l.inqueritos.id, other_nuipc: (l.inqueritos as any).nuipc })),
-        ...(linksB || []).map(l => ({ id: l.id, razao: l.razao, other_id: l.inqueritos.id, other_nuipc: (l.inqueritos as any).nuipc }))
-    ]
-
-    // 4. Fetch Correspondence (Soft link via NUIPC)
+    // 2. Fetch Correspondence (Dependent on NUIPC)
     const { data: correspondence } = await supabase
         .from('correspondencias')
         .select('*')

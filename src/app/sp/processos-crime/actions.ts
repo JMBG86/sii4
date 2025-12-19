@@ -3,34 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// --- Entidades ---
-
-export async function getEntidades() {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('sp_entidades')
-        .select('*')
-        .order('nome')
-
-    if (error) throw new Error(error.message)
-    return data
-}
-
-export async function createEntidade(nome: string) {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('sp_entidades')
-        .insert({ nome: nome.toUpperCase() })
-        .select()
-        .single()
-
-    if (error) return { error: error.message }
-    return { data }
-}
-
-// --- Processos Crime ---
-
-export async function fetchProcessos(page: number = 1, pageSize: number = 100, searchTerm: string = '') {
+export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '') {
     const supabase = await createClient()
 
     let query = supabase
@@ -235,7 +208,8 @@ export async function updateProcesso(id: string, formData: FormData) {
 
     if (processError) return { error: processError.message }
 
-    // --- Related Tables Handlers ---
+    // --- Related Tables Handlers (Optimized with Promise.all) ---
+    const promises = []
 
     // 1. Detainees
     const detidosInfoJson = formData.get('detidos_info_json') as string
@@ -244,22 +218,25 @@ export async function updateProcesso(id: string, formData: FormData) {
         try { detidosList = JSON.parse(detidosInfoJson) } catch (e) { }
     }
 
-    await supabase.from('sp_detidos_info').delete().eq('processo_id', id)
-    if (updates.detidos && detidosList.length > 0) {
-        const rows = detidosList.map((d: any) => ({
-            processo_id: id,
-            nacionalidade: d.nacionalidade,
-            quantidade: parseInt(d.quantidade),
-            sexo: d.sexo
-        }))
-        await supabase.from('sp_detidos_info').insert(rows)
+    const updateDetidos = async () => {
+        await supabase.from('sp_detidos_info').delete().eq('processo_id', id)
+        if (updates.detidos && detidosList.length > 0) {
+            const rows = detidosList.map((d: any) => ({
+                processo_id: id,
+                nacionalidade: d.nacionalidade,
+                quantidade: parseInt(d.quantidade),
+                sexo: d.sexo
+            }))
+            await supabase.from('sp_detidos_info').insert(rows)
 
-        // Update Total Detainees count on parent
-        const total = detidosList.reduce((acc: number, curr: any) => acc + (parseInt(curr.quantidade) || 0), 0)
-        await supabase.from('sp_processos_crime').update({ total_detidos: total }).eq('id', id)
-    } else {
-        await supabase.from('sp_processos_crime').update({ total_detidos: 0 }).eq('id', id)
+            // Update Total Detainees count on parent
+            const total = detidosList.reduce((acc: number, curr: any) => acc + (parseInt(curr.quantidade) || 0), 0)
+            await supabase.from('sp_processos_crime').update({ total_detidos: total }).eq('id', id)
+        } else {
+            await supabase.from('sp_processos_crime').update({ total_detidos: 0 }).eq('id', id)
+        }
     }
+    promises.push(updateDetidos())
 
     // 2. Children (Criancas)
     const criancasInfoJson = formData.get('criancas_info_json') as string
@@ -268,15 +245,18 @@ export async function updateProcesso(id: string, formData: FormData) {
         try { criancasList = JSON.parse(criancasInfoJson) } catch (e) { }
     }
 
-    await supabase.from('sp_criancas_info').delete().eq('processo_id', id)
-    if (updates.criancas_sinalizadas && criancasList.length > 0) {
-        const rows = criancasList.map((d: any) => ({
-            processo_id: id,
-            nome: d.nome,
-            idade: parseInt(d.idade)
-        }))
-        await supabase.from('sp_criancas_info').insert(rows)
+    const updateCriancas = async () => {
+        await supabase.from('sp_criancas_info').delete().eq('processo_id', id)
+        if (updates.criancas_sinalizadas && criancasList.length > 0) {
+            const rows = criancasList.map((d: any) => ({
+                processo_id: id,
+                nome: d.nome,
+                idade: parseInt(d.idade)
+            }))
+            await supabase.from('sp_criancas_info').insert(rows)
+        }
     }
+    promises.push(updateCriancas())
 
     // 3. Generic Seizures (Apreensoes Info)
     const apreensoesInfoJson = formData.get('apreensoes_info_json') as string
@@ -285,15 +265,18 @@ export async function updateProcesso(id: string, formData: FormData) {
         try { seizuresList = JSON.parse(apreensoesInfoJson) } catch (e) { }
     }
 
-    await supabase.from('sp_apreensoes_info').delete().eq('processo_id', id)
-    if (updates.apreensoes && seizuresList.length > 0) {
-        const rows = seizuresList.map((d: any) => ({
-            processo_id: id,
-            tipo: d.tipo,
-            descricao: d.descricao
-        }))
-        await supabase.from('sp_apreensoes_info').insert(rows)
+    const updateApreensoes = async () => {
+        await supabase.from('sp_apreensoes_info').delete().eq('processo_id', id)
+        if (updates.apreensoes && seizuresList.length > 0) {
+            const rows = seizuresList.map((d: any) => ({
+                processo_id: id,
+                tipo: d.tipo,
+                descricao: d.descricao
+            }))
+            await supabase.from('sp_apreensoes_info').insert(rows)
+        }
     }
+    promises.push(updateApreensoes())
 
     // 4. Drug Seizures (SPApreensaoDroga - 1:1 relationship)
     const drogasInfoJson = formData.get('drogas_info_json') as string
@@ -302,65 +285,73 @@ export async function updateProcesso(id: string, formData: FormData) {
         try { drogasData = JSON.parse(drogasInfoJson) } catch (e) { }
     }
 
-    await supabase.from('sp_apreensoes_drogas').delete().eq('processo_id', id)
-    if (updates.apreensoes && Object.keys(drogasData).length > 0) {
-        const drugRow = {
-            processo_id: id,
-            heroina_g: parseFloat(drogasData.heroina_g) || 0,
-            cocaina_g: parseFloat(drogasData.cocaina_g) || 0,
-            cannabis_folhas_g: parseFloat(drogasData.cannabis_folhas_g) || 0,
-            cannabis_resina_g: parseFloat(drogasData.cannabis_resina_g) || 0,
-            cannabis_oleo_g: parseFloat(drogasData.cannabis_oleo_g) || 0,
-            sinteticas_g: parseFloat(drogasData.sinteticas_g) || 0,
-            cannabis_plantas_un: parseInt(drogasData.cannabis_plantas_un) || 0,
-            substancias_psicoativas_un: parseInt(drogasData.substancias_psicoativas_un) || 0
+    const updateDrogas = async () => {
+        await supabase.from('sp_apreensoes_drogas').delete().eq('processo_id', id)
+        if (updates.apreensoes && Object.keys(drogasData).length > 0) {
+            const drugRow = {
+                processo_id: id,
+                heroina_g: parseFloat(drogasData.heroina_g) || 0,
+                cocaina_g: parseFloat(drogasData.cocaina_g) || 0,
+                cannabis_folhas_g: parseFloat(drogasData.cannabis_folhas_g) || 0,
+                cannabis_resina_g: parseFloat(drogasData.cannabis_resina_g) || 0,
+                cannabis_oleo_g: parseFloat(drogasData.cannabis_oleo_g) || 0,
+                sinteticas_g: parseFloat(drogasData.sinteticas_g) || 0,
+                cannabis_plantas_un: parseInt(drogasData.cannabis_plantas_un) || 0,
+                substancias_psicoativas_un: parseInt(drogasData.substancias_psicoativas_un) || 0
+            }
+            await supabase.from('sp_apreensoes_drogas').insert(drugRow)
         }
-
-        await supabase.from('sp_apreensoes_drogas').insert(drugRow)
     }
+    promises.push(updateDrogas())
 
     // --- Integration: Create Inquiry if SII ALBUFEIRA ---
-    if (updates.entidade_destino === 'SII ALBUFEIRA' && updates.nuipc_completo) {
-        try {
-            // Check if exists
-            const { data: existing } = await supabase
-                .from('inqueritos')
-                .select('id')
-                .eq('nuipc', updates.nuipc_completo)
-                .single()
+    const updateIntegration = async () => {
+        if (updates.entidade_destino === 'SII ALBUFEIRA' && updates.nuipc_completo) {
+            try {
+                // Check if exists
+                const { data: existing } = await supabase
+                    .from('inqueritos')
+                    .select('id')
+                    .eq('nuipc', updates.nuipc_completo)
+                    .single()
 
-            if (!existing) {
-                // Prepare arrays for JSONB
-                const denunciadosList = []
-                if (updates.arguido) denunciadosList.push({ nome: updates.arguido })
+                if (!existing) {
+                    // Prepare arrays for JSONB
+                    const denunciadosList = []
+                    if (updates.arguido) denunciadosList.push({ nome: updates.arguido })
 
-                const denunciantesList = []
-                if (updates.denunciante) denunciantesList.push({ nome: updates.denunciante })
-                if (updates.vitima) denunciantesList.push({ nome: updates.vitima })
+                    const denunciantesList = []
+                    if (updates.denunciante) denunciantesList.push({ nome: updates.denunciante })
+                    if (updates.vitima) denunciantesList.push({ nome: updates.vitima })
 
-                // Create Pending Inquiry
-                const { error: insertError } = await supabase.from('inqueritos').insert({
-                    nuipc: updates.nuipc_completo,
-                    tipo_crime: updates.tipo_crime,
-                    estado: 'por_iniciar',
-                    classificacao: 'normal',
-                    user_id: null,
-                    denunciados: denunciadosList,
-                    denunciantes: denunciantesList,
-                    data_ocorrencia: updates.data_factos || null,
-                    data_participacao: updates.data_conhecimento || null,
-                    observacoes: `[Importado da SP] ${updates.observacoes || ''}`,
-                    destino: 'SII ALBUFEIRA'
-                })
+                    // Create Pending Inquiry
+                    const { error: insertError } = await supabase.from('inqueritos').insert({
+                        nuipc: updates.nuipc_completo,
+                        tipo_crime: updates.tipo_crime,
+                        estado: 'por_iniciar',
+                        classificacao: 'normal',
+                        user_id: null,
+                        denunciados: denunciadosList,
+                        denunciantes: denunciantesList,
+                        data_ocorrencia: updates.data_factos || null,
+                        data_participacao: updates.data_conhecimento || null,
+                        observacoes: `[Importado da SP] ${updates.observacoes || ''}`,
+                        destino: 'SII ALBUFEIRA'
+                    })
 
-                if (insertError) {
-                    console.error('Error creating linked inquiry:', insertError)
+                    if (insertError) {
+                        console.error('Error creating linked inquiry:', insertError)
+                    }
                 }
+            } catch (err) {
+                console.error('Integration error:', err)
             }
-        } catch (err) {
-            console.error('Integration error:', err)
         }
     }
+    promises.push(updateIntegration())
+
+    // AWAIT ALL PARALLEL
+    await Promise.all(promises)
 
     revalidatePath('/sp/processos-crime')
     return { success: true }
@@ -370,10 +361,12 @@ export async function deleteProcesso(id: string) {
     const supabase = await createClient()
 
     // 1. Delete Detainees
-    await supabase.from('sp_detidos_info').delete().eq('processo_id', id)
-    await supabase.from('sp_criancas_info').delete().eq('processo_id', id)
-    await supabase.from('sp_apreensoes_info').delete().eq('processo_id', id)
-    await supabase.from('sp_apreensoes_drogas').delete().eq('processo_id', id)
+    await Promise.all([
+        supabase.from('sp_detidos_info').delete().eq('processo_id', id),
+        supabase.from('sp_criancas_info').delete().eq('processo_id', id),
+        supabase.from('sp_apreensoes_info').delete().eq('processo_id', id),
+        supabase.from('sp_apreensoes_drogas').delete().eq('processo_id', id)
+    ])
 
     // 2. Reset the process record (don't delete the row, just clear fields)
     const { error } = await supabase
@@ -408,25 +401,54 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     const supabase = await createClient()
 
     // 1. ENTRIES IN MONTH (Entrados) for SP Report
-    // User requested specifically to match the "Enviados SII" column of the details table.
-    // The details table only uses 'sp_processos_crime', so we limit this to 'sp_processos_crime'.
+    // Sum of Processos Crime -> 'SII ALBUFEIRA' AND External Inquiries -> 'SII ALBUFEIRA'
+    // DEDUPLICATED by NUIPC.
 
     // a) SP Processos Crime -> 'SII ALBUFEIRA'
-    const { count: countProc } = await supabase
+    const { data: procSIIData } = await supabase
         .from('sp_processos_crime')
-        .select('*', { count: 'exact', head: true })
+        .select('nuipc_completo')
         .not('nuipc_completo', 'is', null)
         .gte('data_registo', startDate)
         .lte('data_registo', endDate)
         .eq('entidade_destino', 'SII ALBUFEIRA')
 
-    /* EXCLUDED External Inquiries per user request
-    const { count: countExt } = await supabase
+    // b) External Inquiries -> 'SII ALBUFEIRA'
+    const { data: extSIIData } = await supabase
         .from('sp_inqueritos_externos')
-        ...
-    */
+        .select('nuipc, id')
+        .gte('data_entrada', startDate)
+        .lte('data_entrada', endDate)
+        .eq('destino', 'SII ALBUFEIRA')
 
-    const entrados = countProc || 0
+    // Combine and Count Unique NUIPCs to avoid double counting
+    const nuipcs = new Set<string>()
+
+    // Fetch Deprecated NUIPCs to exclude them (Global Check)
+    // We check ANY query with 'DEPRECADA' in observations to act as a blacklist.
+    const { data: deprecatedData } = await supabase
+        .from('inqueritos')
+        .select('nuipc')
+        .ilike('observacoes', '%DEPRECADA%')
+        .not('nuipc', 'is', null)
+
+    const deprecatedSet = new Set(deprecatedData?.map(d => d.nuipc?.trim().toUpperCase()) || [])
+
+    procSIIData?.forEach(p => {
+        if (p.nuipc_completo) {
+            const n = p.nuipc_completo.trim().toUpperCase()
+            if (!deprecatedSet.has(n)) nuipcs.add(n)
+        }
+    })
+
+    extSIIData?.forEach(e => {
+        if (e.nuipc) {
+            const n = e.nuipc.trim().toUpperCase()
+            if (!deprecatedSet.has(n)) nuipcs.add(n)
+        }
+    })
+
+    const entrados = nuipcs.size
 
     // 2. CONCLUDED IN MONTH (Concluídos)
     // Completed in SII during this period (Distributed + Concluded)
@@ -504,4 +526,19 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
             transitam: depTransitam
         }
     }
+}
+
+// --- Entidades (Destinations) ---
+export async function getEntidades() {
+    const supabase = await createClient()
+    const { data } = await supabase.from('sp_entidades').select('*').order('nome', { ascending: true })
+    return data || []
+}
+
+export async function createEntidade(nome: string) {
+    const supabase = await createClient()
+    const { data, error } = await supabase.from('sp_entidades').insert({ nome }).select().single()
+    if (error) return { error: error.message }
+    revalidatePath('/sp/processos-crime')
+    return { data }
 }

@@ -11,34 +11,36 @@ export type SeizureCategoryStats = {
 export async function getDashboardCounts() {
     const supabase = await createClient()
 
-    // 1. Basic Counts
-    const { count: countProcessos } = await supabase
-        .from('sp_processos_crime')
-        .select('*', { count: 'exact', head: true })
-        .not('nuipc_completo', 'is', null)
+    // Execute all independent queries in parallel
+    const [
+        { count: countProcessos },
+        { count: countInqueritosExternos },
+        { count: countCorrespondencia },
+        { data: detaineesData },
+        { data: seizuresData },
+        { data: drugsData }
+    ] = await Promise.all([
+        // 1. Basic Counts
+        supabase.from('sp_processos_crime').select('*', { count: 'exact', head: true }).not('nuipc_completo', 'is', null),
+        supabase.from('sp_inqueritos_externos').select('*', { count: 'exact', head: true }).not('observacoes', 'ilike', '%DEPRECADA%'),
+        supabase.from('sp_correspondencia').select('*', { count: 'exact', head: true }),
 
-    const { count: countInqueritosExternos } = await supabase
-        .from('sp_inqueritos_externos')
-        .select('*', { count: 'exact', head: true })
-        .not('observacoes', 'ilike', '%DEPRECADA%')
+        // 2. Total Detainees Data
+        supabase.from('sp_processos_crime').select('total_detidos').not('nuipc_completo', 'is', null),
 
-    const { count: countCorrespondencia } = await supabase
-        .from('sp_correspondencia')
-        .select('*', { count: 'exact', head: true })
+        // 3. Seizures Data
+        supabase.from('sp_apreensoes_info').select('tipo, descricao'),
 
-    // 2. Total Detainees
-    const { data: detaineesData } = await supabase
-        .from('sp_processos_crime')
-        .select('total_detidos')
-        .not('nuipc_completo', 'is', null)
+        // 4. Drugs Data
+        supabase.from('sp_apreensoes_drogas').select('*')
+    ])
 
+    // --- Processing ---
+
+    // Total Detainees
     const totalDetidos = detaineesData?.reduce((acc, curr) => acc + (curr.total_detidos || 0), 0) || 0
 
-    // 3. Seizures Aggregation (Hierarchical)
-    const { data: seizuresData } = await supabase
-        .from('sp_apreensoes_info')
-        .select('tipo, descricao')
-
+    // Seizures Aggregation (Hierarchical)
     // Structure: Category -> { total: number, isValue: bool, subs: { SubCat: number } }
     const seizuresTree: Record<string, SeizureCategoryStats> = {}
 
@@ -89,11 +91,7 @@ export async function getDashboardCounts() {
         }
     })
 
-    // 4. Drug Seizures Aggregation
-    const { data: drugsData } = await supabase
-        .from('sp_apreensoes_drogas')
-        .select('*')
-
+    // Drug Seizures Aggregation
     const drugsTotals = {
         'Heroína (g)': 0,
         'Cocaína (g)': 0,

@@ -110,6 +110,7 @@ export async function createInqueritoExterno(formData: FormData) {
     }
 
     revalidatePath('/sp/inqueritos-externos')
+    revalidatePath('/sp/mapas')
     return { success: true }
 }
 
@@ -191,6 +192,7 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
     }
 
     revalidatePath('/sp/inqueritos-externos')
+    revalidatePath('/sp/mapas')
     return { success: true }
 }
 
@@ -204,6 +206,7 @@ export async function deleteInqueritoExterno(id: string) {
     if (error) return { error: error.message }
 
     revalidatePath('/sp/inqueritos-externos')
+    revalidatePath('/sp/mapas') // Ensure stats are updated
     return { success: true }
 }
 
