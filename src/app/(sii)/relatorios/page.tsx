@@ -106,6 +106,13 @@ export default function RelatoriosPage() {
         setCustomLoading(true)
         try {
             const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) {
+                alert('Sessão inválida')
+                setCustomLoading(false)
+                return
+            }
 
             const endDate = new Date()
             endDate.setHours(23, 59, 59, 999)
@@ -117,12 +124,13 @@ export default function RelatoriosPage() {
                 .from('inqueritos')
                 .select('nuipc, data_conclusao, numero_oficio, tipo_crime')
                 .eq('estado', 'concluido')
+                .eq('user_id', user.id) // Filter by current user
                 .gte('data_conclusao', start.toISOString())
                 .lte('data_conclusao', endDate.toISOString())
                 .order('data_conclusao', { ascending: false })
 
             if (!inquiries || inquiries.length === 0) {
-                alert('Nenhum inquérito concluído neste período')
+                alert('Nenhum inquérito concluído neste período para o utilizador atual.')
                 return
             }
 
@@ -149,6 +157,13 @@ export default function RelatoriosPage() {
         setGlobalLoading(true)
         try {
             const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) {
+                alert('Sessão inválida')
+                setGlobalLoading(false)
+                return
+            }
 
             const start = new Date(globalStartDate)
             start.setHours(0, 0, 0, 0)
@@ -158,14 +173,15 @@ export default function RelatoriosPage() {
 
             const { data: inquiries } = await supabase
                 .from('inqueritos')
-                .select('nuipc, tipo_crime, estado, classificacao, data_ocorrencia, created_at')
+                .select('nuipc, tipo_crime, estado, classificacao, data_ocorrencia, created_at, numero_oficio, destino')
                 .in('estado', selectedStates)
+                .eq('user_id', user.id) // Filter by current user
                 .gte('created_at', start.toISOString())
                 .lte('created_at', end.toISOString())
                 .order('created_at', { ascending: false })
 
             if (!inquiries || inquiries.length === 0) {
-                alert('Nenhum inquérito encontrado com os filtros selecionados')
+                alert('Nenhum inquérito encontrado com os filtros selecionados para o utilizador atual.')
                 return
             }
 

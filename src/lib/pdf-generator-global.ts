@@ -8,6 +8,8 @@ interface GlobalInquiry {
     classificacao: string
     data_ocorrencia: string | null
     created_at: string
+    numero_oficio: string | null
+    destino: string | null
 }
 
 export async function generateGlobalReport(
@@ -22,35 +24,53 @@ export async function generateGlobalReport(
     const pageHeight = doc.internal.pageSize.getHeight()
 
     // Load and embed logo
+    let logoBottomY = 40 // Default backup if logo fails
     try {
         const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
-        const maxLogoWidth = 52.5
-        const logoWidth = maxLogoWidth
-        const logoHeight = maxLogoWidth / aspectRatio
-        const logoX = (pageWidth - logoWidth) / 2
-        doc.addImage(dataURL, 'PNG', logoX, 15, logoWidth, logoHeight)
+        // Resize logo to be smaller for the header side-by-side layout
+        const logoWidth = 25
+        const logoHeight = logoWidth / aspectRatio
+        const logoX = 14 // Left margin
+        const logoY = 10 // Top margin
+
+        doc.addImage(dataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
+
+        logoBottomY = logoY + logoHeight + 5
+
+        // Header Text block next to Logo
+        const textX = logoX + logoWidth + 5
+        const textCenterY = logoY + (logoHeight / 2)
+
+        // Organization name
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+        doc.text(orgText, textX, textCenterY - 2)
+
+        // User name
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        const userText = `Exportado por: ${userName}`
+        doc.text(userText, textX, textCenterY + 4)
+
     } catch (error) {
         console.error('Failed to load logo:', error)
+        // Fallback text positioning if logo fails
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.text('SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS', 14, 15)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Exportado por: ${userName}`, 14, 22)
     }
 
-    // Organization name
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
-    const orgTextWidth = doc.getTextWidth(orgText)
-    doc.text(orgText, (pageWidth - orgTextWidth) / 2, 62)
-
-    // User name
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    const userText = `Exportado por: ${userName}`
-    const userTextWidth = doc.getTextWidth(userText)
-    doc.text(userText, (pageWidth - userTextWidth) / 2, 68)
+    // Adjust content start Y
+    const startY = 35 // Moved up to valid space below header
 
     // Separator line
     doc.setDrawColor(41, 128, 185)
     doc.setLineWidth(0.5)
-    doc.line(20, 73, pageWidth - 20, 73)
+    doc.line(14, startY, pageWidth - 14, startY)
 
     // Title
     doc.setFontSize(14)
@@ -58,7 +78,7 @@ export async function generateGlobalReport(
     doc.setTextColor(41, 128, 185)
     const title = 'Relatório Global de Inquéritos'
     const titleWidth = doc.getTextWidth(title)
-    doc.text(title, (pageWidth - titleWidth) / 2, 82)
+    doc.text(title, (pageWidth - titleWidth) / 2, startY + 8) // Reduced gap
 
     // Date range and filters
     doc.setFontSize(9)
@@ -66,41 +86,42 @@ export async function generateGlobalReport(
     doc.setTextColor(0, 0, 0)
     const dateRange = `Período: ${startDate.toLocaleDateString('pt-PT')} a ${endDate.toLocaleDateString('pt-PT')}`
     const dateRangeWidth = doc.getTextWidth(dateRange)
-    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, 90)
+    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, startY + 14) // Reduced gap
 
     const statesText = `Estados: ${selectedStates.join(', ')}`
     const statesTextWidth = doc.getTextWidth(statesText)
-    doc.text(statesText, (pageWidth - statesTextWidth) / 2, 96)
+    doc.text(statesText, (pageWidth - statesTextWidth) / 2, startY + 19) // Reduced gap
 
     // Table data
     const tableData = inquiries.map((inq) => [
         inq.nuipc,
         inq.tipo_crime || '-',
         translateState(inq.estado),
-        inq.classificacao === 'relevo' ? 'Relevo' : 'Normal',
+        inq.numero_oficio || '-',
+        inq.destino || '-',
         inq.data_ocorrencia ? new Date(inq.data_ocorrencia).toLocaleDateString('pt-PT') : '-',
         new Date(inq.created_at).toLocaleDateString('pt-PT'),
     ])
 
     // Calculate table width and center it
-    const tableWidth = 40 + 60 + 35 + 30 + 30 + 30 // Sum of column widths
+    const tableWidth = 40 + 50 + 30 + 30 + 40 + 25 + 25 // Sum of column widths
     const horizontalMargin = (pageWidth - tableWidth) / 2
 
     // Generate modern table
     autoTable(doc, {
-        startY: 104,
-        head: [['NUIPC', 'Crime', 'Estado', 'Classificação', 'Data Ocorrência', 'Data Criação']],
+        startY: startY + 25, // Reduced gap
+        head: [['NUIPC', 'Crime', 'Estado', 'Nº Ofício', 'Destino', 'Dt. Ocorrência', 'Dt. Criação']],
         body: tableData,
         styles: {
-            fontSize: 8,
-            cellPadding: 3,
+            fontSize: 7, // Slightly smaller font to fit more columns
+            cellPadding: 2,
             lineColor: [220, 220, 220],
             lineWidth: 0.1,
         },
         headStyles: {
             fillColor: [41, 128, 185],
             textColor: [255, 255, 255],
-            fontSize: 9,
+            fontSize: 8,
             fontStyle: 'bold',
             halign: 'center',
         },
@@ -109,13 +130,14 @@ export async function generateGlobalReport(
         },
         columnStyles: {
             0: { cellWidth: 40, fontStyle: 'bold' },
-            1: { cellWidth: 60 },
-            2: { cellWidth: 35, halign: 'center' },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 30, halign: 'center' },
             3: { cellWidth: 30, halign: 'center' },
-            4: { cellWidth: 30, halign: 'center' },
-            5: { cellWidth: 30, halign: 'center' },
+            4: { cellWidth: 40 }, // Destino can be long
+            5: { cellWidth: 25, halign: 'center' },
+            6: { cellWidth: 25, halign: 'center' },
         },
-        margin: { left: horizontalMargin, right: horizontalMargin, top: 20 },
+        margin: { left: horizontalMargin, right: horizontalMargin, top: 20, bottom: 20 }, // Added bottom margin to avoid footer collision
         didDrawPage: (data) => {
             // Only draw header on first page
             if (data.pageNumber === 1) {

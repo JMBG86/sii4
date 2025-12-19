@@ -69,7 +69,7 @@ function ImagensContent() {
                         Repositório de Imagens
                     </h1>
                     <p className="text-muted-foreground">
-                        Processos sinalizados com imagens/fotografias associadas.
+                        Processos sinalizados com imagens de videovigilancia.
                     </p>
                 </div>
                 <Button onClick={() => setNotificationOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -96,6 +96,7 @@ function ImagensContent() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[150px]">NUIPC</TableHead>
+                            <TableHead className="w-[180px]">Prazo (30 Dias)</TableHead>
                             <TableHead>Crime</TableHead>
                             <TableHead className="w-[120px]">Data Registo</TableHead>
                             <TableHead>Localização</TableHead>
@@ -105,7 +106,7 @@ function ImagensContent() {
                     <TableBody>
                         {rows.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                                     {loading ? 'A carregar...' : 'Nenhum processo com imagens encontrado.'}
                                 </TableCell>
                             </TableRow>
@@ -116,6 +117,36 @@ function ImagensContent() {
                                     ? 'cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-l-4 border-l-emerald-600 bg-emerald-100/50 font-medium'
                                     : 'cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 border-l-4 border-l-red-600 bg-red-100/50 font-medium'
 
+                                // Countdown Logic
+                                let countdownContent: React.ReactNode = '-'
+                                if (row.data_factos && !isNotified) {
+                                    const today = new Date()
+                                    const factDate = new Date(row.data_factos)
+                                    const diffTime = Math.abs(today.getTime() - factDate.getTime())
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                                    // Actually differenceInDays is safer but math is fine too: 
+                                    // Real logic: We want (FactDate + 30) - Today
+
+                                    // Let's use precise day diff
+                                    const deadline = new Date(factDate)
+                                    deadline.setDate(deadline.getDate() + 30)
+
+                                    // Difference in milliseconds
+                                    const msPerDay = 1000 * 60 * 60 * 24
+                                    const remainingTime = deadline.getTime() - today.getTime()
+                                    const remainingDays = Math.ceil(remainingTime / msPerDay)
+
+                                    if (remainingDays < 0) {
+                                        countdownContent = <span className="text-red-600 font-bold text-xs bg-red-200 dark:bg-red-900 px-2 py-1 rounded">PERÍODO ULTRAPASSADO</span>
+                                    } else {
+                                        countdownContent = <span className={remainingDays <= 5 ? "text-amber-600 font-bold" : "text-emerald-700 font-bold"}>{remainingDays} dias restantes</span>
+                                    }
+                                } else if (isNotified) {
+                                    countdownContent = <Badge variant="outline" className="text-emerald-700 border-emerald-600 bg-emerald-50">Notificado</Badge>
+                                } else {
+                                    countdownContent = <span className="text-muted-foreground text-xs italic">S/ Data Factos</span>
+                                }
+
                                 return (
                                     <TableRow key={row.id} className={rowClass} onClick={() => setSelectedProcess(row)}>
                                         <TableCell className="font-medium font-mono">
@@ -125,6 +156,9 @@ function ImagensContent() {
                                                     FALTA NOTIFICAR
                                                 </Badge>
                                             )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {countdownContent}
                                         </TableCell>
                                         <TableCell>{row.tipo_crime || '-'}</TableCell>
                                         <TableCell>

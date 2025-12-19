@@ -26,6 +26,9 @@ export async function fetchDeprecadas(searchTerm: string = '') {
 export async function createDeprecada(formData: FormData) {
     const supabase = await createClient()
 
+    // Get current user to stamp ownership
+    const { data: { user } } = await supabase.auth.getUser()
+
     const rawData = {
         srv: formData.get('srv') as string,
         numero_oficio: formData.get('numero_oficio') as string,
@@ -35,7 +38,8 @@ export async function createDeprecada(formData: FormData) {
         destino: formData.get('destino') as string,
         data_entrada: formData.get('data_entrada') as string,
         // FORCE 'DEPRECADA' tag
-        observacoes: `DEPRECADA ${formData.get('observacoes') || ''}`
+        observacoes: `DEPRECADA ${formData.get('observacoes') || ''}`,
+        user_id: user?.id || null // NEW: Stamp user_id
     }
 
     if (!rawData.nuipc) return { error: "NUIPC é obrigatório." }

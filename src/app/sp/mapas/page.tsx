@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Loader2, Download, Calendar as CalendarIcon } from 'lucide-react'
@@ -14,6 +14,7 @@ import { pt } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { DateRange } from 'react-day-picker'
 import { ExcelExportCard } from '@/components/sp/maps/excel-export-card'
+import { createClient } from '@/lib/supabase/client'
 
 export default function MapasPage() {
     const [loadingAll, setLoadingAll] = useState(false)
@@ -22,6 +23,16 @@ export default function MapasPage() {
         from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
     })
+    const [userName, setUserName] = useState<string>('Utilizador')
+
+    useEffect(() => {
+        const supabase = createClient()
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                setUserName(user.user_metadata.full_name || user.email?.split('@')[0] || 'Utilizador')
+            }
+        })
+    }, [])
 
     async function handleExportPDF() {
         setLoadingAll(true)
@@ -34,7 +45,7 @@ export default function MapasPage() {
                 return
             }
 
-            generateDetailedListPDF(data, 'Mapa Geral de Processos')
+            await generateDetailedListPDF(data, 'Mapa Geral de Processos', userName)
 
         } catch (error) {
             console.error(error)
@@ -62,11 +73,10 @@ export default function MapasPage() {
             ])
 
             if (!data || data.length === 0) {
-                // Warning only? Maybe there are no new entries but stats exist?
-                // For now, let's proceed even if empty list, stats might be relevant.
+                // Warning only?
             }
 
-            generateMonthlyReportPDF(data || [], date.from, date.to, stats)
+            await generateMonthlyReportPDF(data || [], date.from, date.to, stats, userName)
 
         } catch (error) {
             console.error(error)
@@ -78,14 +88,53 @@ export default function MapasPage() {
 
     // --- PDF Generators ---
 
-    function generateDetailedListPDF(data: any[], title: string) {
+    async function generateDetailedListPDF(data: any[], title: string, userName: string) {
         const doc = new jsPDF('l')
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
 
-        // Header
-        doc.setFontSize(16)
-        doc.text(title, 14, 15)
+        // --- HEADER ---
+        try {
+            const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
+            const logoWidth = 25
+            const logoHeight = logoWidth / aspectRatio
+            const logoX = 14
+            const logoY = 10
+
+            doc.addImage(dataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
+
+            const textX = logoX + logoWidth + 5
+            const textCenterY = logoY + (logoHeight / 2)
+
+            doc.setFontSize(12)
+            doc.setFont('helvetica', 'bold')
+            const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+            doc.text(orgText, textX, textCenterY - 2)
+
+            doc.setFontSize(9)
+            doc.setFont('helvetica', 'normal')
+            const userText = `Exportado por: ${userName}`
+            doc.text(userText, textX, textCenterY + 4)
+
+        } catch (error) {
+            console.error('Failed to load logo:', error)
+        }
+
+        const startY = 35
+
+        doc.setDrawColor(41, 128, 185)
+        doc.setLineWidth(0.5)
+        doc.line(14, startY, pageWidth - 14, startY)
+
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(41, 128, 185)
+        doc.text(title, (pageWidth - doc.getTextWidth(title)) / 2, startY + 8)
+
         doc.setFontSize(10)
-        doc.text(`Data de Emissão: ${new Date().toLocaleDateString()}`, 14, 22)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0)
+        doc.text(`Data de Emissão: ${new Date().toLocaleDateString()}`, (pageWidth - doc.getTextWidth(`Data de Emissão: ${new Date().toLocaleDateString()}`)) / 2, startY + 14)
 
         const rows = data.map(p => {
             // Detainees Formatting
@@ -131,114 +180,90 @@ export default function MapasPage() {
                 detidosStr || '-',
                 apreensoesStr || '-',
                 p.entidade_destino || '-',
-                p.envio_em ? new Date(p.envio_em).toLocaleDateString() : '-'
+                p.envio_em ? new Date(p.envio_em).toLocaleDateString() : '-',
+                p.numero_oficio_envio || '-' // NEW COLUMN: Ofício de Saída
             ]
         })
 
+        const tableWidth = 10 + 25 + 20 + 35 + 30 + 45 + 35 + 20 + 20
+        const horizontalMargin = (pageWidth - tableWidth) / 2
+
         autoTable(doc, {
-            head: [['Seq', 'NUIPC', 'Data Reg.', 'Crime', 'Detidos', 'Apreensões', 'Destino', 'Dt. Envio']],
+            head: [['Seq', 'NUIPC', 'Data Reg.', 'Crime', 'Detidos', 'Apreensões', 'Destino', 'Dt. Envio', 'Of. Saída']],
             body: rows,
-            startY: 30,
-            styles: { fontSize: 8, cellPadding: 1, overflow: 'linebreak' },
+            startY: startY + 25,
+            styles: { fontSize: 8, cellPadding: 1, overflow: 'linebreak', halign: 'center', valign: 'middle' },
             columnStyles: {
                 0: { cellWidth: 10 },
                 1: { cellWidth: 25 },
                 2: { cellWidth: 20 },
                 3: { cellWidth: 35 },
-                4: { cellWidth: 35 },
-                5: { cellWidth: 50 },
+                4: { cellWidth: 30 },
+                5: { cellWidth: 45 },
                 6: { cellWidth: 35 },
                 7: { cellWidth: 20 },
+                8: { cellWidth: 20 },
             },
-            headStyles: { fillColor: [22, 163, 74] },
-            theme: 'grid'
+            headStyles: { fillColor: [22, 163, 74], halign: 'center', valign: 'middle' },
+            theme: 'grid',
+            margin: { top: 20, bottom: 20, left: horizontalMargin, right: horizontalMargin }
         })
 
+        addFooter(doc, pageHeight, pageWidth)
         doc.save(`mapa_processos_geral.pdf`)
     }
 
-    function generateMonthlyReportPDF(data: any[], from: Date, to: Date, stats: any) {
+    async function generateMonthlyReportPDF(data: any[], from: Date, to: Date, stats: any, userName: string) {
         const doc = new jsPDF()
-        const primaryColor: [number, number, number] = [22, 163, 74] // Explicit Type for TS
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+        const primaryColor: [number, number, number] = [22, 163, 74]
 
-        // Stats Aggregation (for Lists)
-        let totalRegistados = data.length
-        let enviadosDIAP = 0
-        let enviadosSII = 0
+        // --- HEADER ---
+        try {
+            const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
+            const logoWidth = 25
+            const logoHeight = logoWidth / aspectRatio
+            const logoX = 14
+            const logoY = 10
 
-        let totalDetidos = 0
-        let detidosM = 0
-        let detidosF = 0
-        const detidosNacionalidade: Record<string, number> = {}
+            doc.addImage(dataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
 
-        const apreensoesStats: Record<string, number> = {}
-        const drogasStats: Record<string, number> = {
-            'Heroína (g)': 0,
-            'Cocaína (g)': 0,
-            'Liamba (g)': 0,
-            'Hashish (g)': 0,
-            'Sintéticas (g)': 0,
-            'Plantas (un)': 0
+            const textX = logoX + logoWidth + 5
+            const textCenterY = logoY + (logoHeight / 2)
+
+            doc.setFontSize(12)
+            doc.setFont('helvetica', 'bold')
+            const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+            doc.text(orgText, textX, textCenterY - 2)
+
+            doc.setFontSize(9)
+            doc.setFont('helvetica', 'normal')
+            const userText = `Exportado por: ${userName}`
+            doc.text(userText, textX, textCenterY + 4)
+
+        } catch (error) {
+            console.error('Failed to load logo:', error)
         }
 
-        data.forEach(p => {
-            // Process Stats (for the internal breakdown table)
-            if (p.entidade_destino?.toUpperCase().includes('DIAP')) enviadosDIAP++
-            if (p.entidade_destino?.toUpperCase().includes('SII')) enviadosSII++
+        const startY = 35
 
-            // Detirees Stats
-            if (p.sp_detidos_info) {
-                p.sp_detidos_info.forEach((d: any) => {
-                    const qtd = d.quantidade || 0
-                    totalDetidos += qtd
-                    if (d.sexo === 'M') detidosM += qtd
-                    else if (d.sexo === 'F') detidosF += qtd
-
-                    const nac = d.nacionalidade || 'Desconhecida'
-                    detidosNacionalidade[nac] = (detidosNacionalidade[nac] || 0) + qtd
-                })
-            }
-
-            // Seizures Stats (Generic)
-            if (p.sp_apreensoes_info) {
-                p.sp_apreensoes_info.forEach((a: any) => {
-                    const desc = a.descricao || ''
-                    const match = desc.match(/^\d+/)
-                    const qtd = match ? parseInt(match[0]) : 1
-                    const key = a.tipo || 'Outros'
-                    apreensoesStats[key] = (apreensoesStats[key] || 0) + qtd
-                })
-            }
-
-            // Drugs Stats
-            const rawDrugs = p.sp_apreensoes_drogas
-            let d: any = null
-            if (Array.isArray(rawDrugs) && rawDrugs.length > 0) d = rawDrugs[0]
-            else if (rawDrugs && typeof rawDrugs === 'object' && !Array.isArray(rawDrugs)) d = rawDrugs
-
-            if (d) {
-                drogasStats['Heroína (g)'] += (d.heroina_g || 0)
-                drogasStats['Cocaína (g)'] += (d.cocaina_g || 0)
-                drogasStats['Liamba (g)'] += (d.cannabis_folhas_g || 0)
-                drogasStats['Hashish (g)'] += (d.cannabis_resina_g || 0)
-                drogasStats['Sintéticas (g)'] += (d.sinteticas_g || 0)
-                drogasStats['Plantas (un)'] += (d.cannabis_plantas_un || 0)
-            }
-        })
-
-        // --- PDF DRAWING ---
-        let y = 20
+        doc.setDrawColor(41, 128, 185)
+        doc.setLineWidth(0.5)
+        doc.line(14, startY, pageWidth - 14, startY)
 
         // Title
-        doc.setFontSize(18)
+        doc.setFontSize(16)
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
-        doc.text('Relatório Mensal de Atividade - SP', 105, y, { align: 'center' })
-        y += 10
+        const title = 'Relatório Mensal de Atividade - SP'
+        doc.text(title, (pageWidth - doc.getTextWidth(title)) / 2, startY + 8)
 
         doc.setFontSize(12)
         doc.setTextColor(0)
-        doc.text(`Período: ${format(from, 'dd/MM/yyyy')} a ${format(to, 'dd/MM/yyyy')}`, 105, y, { align: 'center' })
-        y += 15
+        const dateRange = `Período: ${format(from, 'dd/MM/yyyy')} a ${format(to, 'dd/MM/yyyy')}`
+        doc.text(dateRange, (pageWidth - doc.getTextWidth(dateRange)) / 2, startY + 15)
+
+        let y = startY + 25
 
         // NEW SUMMARY TABLE (Header)
         doc.setFontSize(14)
@@ -282,7 +307,73 @@ export default function MapasPage() {
         })
         y = (doc as any).lastAutoTable.finalY + 15
 
+        // Stats Aggregation (for Lists)
+        let totalRegistados = data.length
+        let enviadosDIAP = 0
+        let enviadosSII = 0
+
+        let totalDetidos = 0
+        let detidosM = 0
+        let detidosF = 0
+        const detidosNacionalidade: Record<string, number> = {}
+
+        const apreensoesStats: Record<string, number> = {}
+        const drogasStats: Record<string, number> = {
+            'Heroína (g)': 0,
+            'Cocaína (g)': 0,
+            'Liamba (g)': 0,
+            'Hashish (g)': 0,
+            'Sintéticas (g)': 0,
+            'Plantas (un)': 0
+        }
+
+        data.forEach(p => {
+            // Process Stats
+            if (p.entidade_destino?.toUpperCase().includes('DIAP')) enviadosDIAP++
+            if (p.entidade_destino?.toUpperCase().includes('SII')) enviadosSII++
+
+            // Detirees Stats
+            if (p.sp_detidos_info) {
+                p.sp_detidos_info.forEach((d: any) => {
+                    const qtd = d.quantidade || 0
+                    totalDetidos += qtd
+                    if (d.sexo === 'M') detidosM += qtd
+                    else if (d.sexo === 'F') detidosF += qtd
+
+                    const nac = d.nacionalidade || 'Desconhecida'
+                    detidosNacionalidade[nac] = (detidosNacionalidade[nac] || 0) + qtd
+                })
+            }
+
+            // Seizures Stats (Generic)
+            if (p.sp_apreensoes_info) {
+                p.sp_apreensoes_info.forEach((a: any) => {
+                    const desc = a.descricao || ''
+                    const match = desc.match(/^\d+/)
+                    const qtd = match ? parseInt(match[0]) : 1
+                    const key = a.tipo || 'Outros'
+                    apreensoesStats[key] = (apreensoesStats[key] || 0) + qtd
+                })
+            }
+
+            // Drugs Stats
+            const rawDrugs = p.sp_apreensoes_drogas
+            let d: any = null
+            if (Array.isArray(rawDrugs) && rawDrugs.length > 0) d = rawDrugs[0]
+            else if (rawDrugs && typeof rawDrugs === 'object' && !Array.isArray(rawDrugs)) d = rawDrugs
+
+            if (d) {
+                drogasStats['Heroína (g)'] += (d.heroina_g || 0)
+                drogasStats['Cocaína (g)'] += (d.cocaina_g || 0)
+                drogasStats['Liamba (g)'] += (d.cannabis_folhas_g || 0)
+                drogasStats['Hashish (g)'] += (d.cannabis_resina_g || 0)
+                drogasStats['Sintéticas (g)'] += (d.sinteticas_g || 0)
+                drogasStats['Plantas (un)'] += (d.cannabis_plantas_un || 0)
+            }
+        })
+
         // 1. Process Stats Breakdown
+        if (y + 40 > pageHeight) { doc.addPage(); y = 20; }
         doc.setFontSize(14)
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
         doc.text('Detalhe de Processos (Registo Mensal)', 14, y)
@@ -303,6 +394,7 @@ export default function MapasPage() {
         y = (doc as any).lastAutoTable.finalY + 15
 
         // 2. Detainees Stats
+        if (y + 40 > pageHeight) { doc.addPage(); y = 20; }
         doc.setFontSize(14)
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
         doc.text('Detidos', 14, y)
@@ -333,6 +425,7 @@ export default function MapasPage() {
         y = (doc as any).lastAutoTable.finalY + 15
 
         // 3. Seizures Stats
+        if (y + 40 > pageHeight) { doc.addPage(); y = 20; }
         doc.setFontSize(14)
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
         doc.text('Apreensões e Estupefacientes', 14, y)
@@ -354,7 +447,8 @@ export default function MapasPage() {
                 head: [['Tipo / Categoria', 'Quantidade Total']],
                 body: finalSeizureBody,
                 theme: 'striped',
-                headStyles: { fillColor: primaryColor }
+                headStyles: { fillColor: primaryColor },
+                margin: { bottom: 20 }
             })
         } else {
             doc.setFontSize(10)
@@ -362,8 +456,54 @@ export default function MapasPage() {
             doc.text('Sem registo de apreensões neste período.', 14, y + 5)
         }
 
+        addFooter(doc, pageHeight, pageWidth)
         const fileName = `relatorio_mensal_${format(from, 'yyyy_MM')}.pdf`
         doc.save(fileName)
+    }
+
+    function addFooter(doc: jsPDF, pageHeight: number, pageWidth: number) {
+        const pageCount = (doc as any).internal.getNumberOfPages()
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i)
+            doc.setFontSize(7)
+            doc.setTextColor(100, 100, 100)
+            const footerText = 'Subdestacamento Territorial da GNR em Albufeira - Estrada de Vale Pedras - 8201-861 Albufeira - 289 590 790'
+            const footerWidth = doc.getTextWidth(footerText)
+            doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 5)
+
+            doc.setFontSize(8)
+            doc.setTextColor(150, 150, 150)
+            doc.text(
+                `Página ${i} de ${pageCount}`,
+                pageWidth / 2,
+                pageHeight - 10,
+                { align: 'center' }
+            )
+        }
+    }
+
+    // Helper function to load image as base64 with aspect ratio
+    async function loadImageAsBase64(imagePath: string): Promise<{ dataURL: string; aspectRatio: number }> {
+        return new Promise((resolve, reject) => {
+            const img = new Image()
+            img.crossOrigin = 'Anonymous'
+            img.onload = () => {
+                const canvas = document.createElement('canvas')
+                canvas.width = img.width
+                canvas.height = img.height
+                const ctx = canvas.getContext('2d')
+                if (!ctx) {
+                    reject(new Error('Failed to get canvas context'))
+                    return
+                }
+                ctx.drawImage(img, 0, 0)
+                const dataURL = canvas.toDataURL('image/png')
+                const aspectRatio = img.width / img.height
+                resolve({ dataURL, aspectRatio })
+            }
+            img.onerror = () => reject(new Error('Failed to load image'))
+            img.src = imagePath
+        })
     }
 
     return (
@@ -385,7 +525,7 @@ export default function MapasPage() {
                     <CardContent>
                         <div className="text-2xl font-bold">Listagem Geral</div>
                         <p className="text-xs text-muted-foreground mb-4">
-                            Listagem completa de todos os processos registados (exclui vazios). Inclui detalhes de detidos e apreensões por linha.
+                            Listagem completa de todos os processos registados.
                         </p>
                         <Button
                             className="w-full"
@@ -411,7 +551,7 @@ export default function MapasPage() {
                         <div className="flex flex-col space-y-2">
                             <span className="text-2xl font-bold">Relatório Mensal</span>
                             <p className="text-xs text-muted-foreground">
-                                Selecione o intervalo. Inclui contagens totais, estatísticas de detidos e soma de apreensões.
+                                Selecione o intervalo. Mostra estatísticas detalhadas.
                             </p>
                         </div>
 

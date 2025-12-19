@@ -20,37 +20,45 @@ export async function generateBrandedReport(
     const pageHeight = doc.internal.pageSize.getHeight()
 
     // Load and embed logo
+    // Load and embed logo
     try {
         const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
 
-        // Add logo centered with proper aspect ratio (50% larger than original)
-        const maxLogoWidth = 52.5  // 50% larger than original 35mm
-        const logoWidth = maxLogoWidth
-        const logoHeight = maxLogoWidth / aspectRatio
-        const logoX = (pageWidth - logoWidth) / 2
-        doc.addImage(dataURL, 'PNG', logoX, 15, logoWidth, logoHeight)
+        // Resize logo to be smaller for the header side-by-side layout
+        const logoWidth = 25
+        const logoHeight = logoWidth / aspectRatio
+        const logoX = 14 // Left margin
+        const logoY = 10 // Top margin
+
+        doc.addImage(dataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
+
+        // Header Text block next to Logo
+        const textX = logoX + logoWidth + 5
+        const textCenterY = logoY + (logoHeight / 2)
+
+        // Organization name
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+        doc.text(orgText, textX, textCenterY - 2)
+
+        // User name
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        const userText = `Exportado por: ${userName}`
+        doc.text(userText, textX, textCenterY + 4)
+
     } catch (error) {
         console.error('Failed to load logo:', error)
     }
 
-    // Organization name
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
-    const orgTextWidth = doc.getTextWidth(orgText)
-    doc.text(orgText, (pageWidth - orgTextWidth) / 2, 62)
-
-    // User name
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    const userText = `Exportado por: ${userName}`
-    const userTextWidth = doc.getTextWidth(userText)
-    doc.text(userText, (pageWidth - userTextWidth) / 2, 68)
+    // Adjust content start Y
+    const startY = 35
 
     // Separator line
     doc.setDrawColor(41, 128, 185)
     doc.setLineWidth(0.5)
-    doc.line(20, 73, pageWidth - 20, 73)
+    doc.line(14, startY, pageWidth - 14, startY)
 
     // Title
     doc.setFontSize(14)
@@ -58,7 +66,7 @@ export async function generateBrandedReport(
     doc.setTextColor(41, 128, 185)
     const title = 'Relatório de Inquéritos Concluídos'
     const titleWidth = doc.getTextWidth(title)
-    doc.text(title, (pageWidth - titleWidth) / 2, 82)
+    doc.text(title, (pageWidth - titleWidth) / 2, startY + 8)
 
     // Date range
     doc.setFontSize(10)
@@ -66,7 +74,7 @@ export async function generateBrandedReport(
     doc.setTextColor(0, 0, 0)
     const dateRange = `Período: ${startDate.toLocaleDateString('pt-PT')} a ${endDate.toLocaleDateString('pt-PT')}`
     const dateRangeWidth = doc.getTextWidth(dateRange)
-    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, 90)
+    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, startY + 14)
 
     // Table data
     const tableData = inquiries.map((inq) => [
@@ -83,7 +91,7 @@ export async function generateBrandedReport(
 
     // Generate modern table
     autoTable(doc, {
-        startY: 98,
+        startY: startY + 20,
         head: [['NUIPC', 'Crime', 'Data Conclusão', 'Nº Ofício', 'Destino']],
         body: tableData,
         styles: {
@@ -109,7 +117,7 @@ export async function generateBrandedReport(
             3: { cellWidth: 30, halign: 'center' },
             4: { cellWidth: 30, halign: 'center' },
         },
-        margin: { left: horizontalMargin, right: horizontalMargin, top: 20 },
+        margin: { left: horizontalMargin, right: horizontalMargin, top: 20, bottom: 20 },
         didDrawPage: (data) => {
             // Header only on first page - already drawn above
         }
@@ -204,46 +212,56 @@ export async function generateWeeklyProductivityReport(
     // --- HEADER (Reused) ---
     try {
         const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
-        const maxLogoWidth = 52.5
-        const logoWidth = maxLogoWidth
-        const logoHeight = maxLogoWidth / aspectRatio
-        const logoX = (pageWidth - logoWidth) / 2
-        doc.addImage(dataURL, 'PNG', logoX, 15, logoWidth, logoHeight)
+
+        // Resize logo to be smaller for the header side-by-side layout
+        const logoWidth = 25
+        const logoHeight = logoWidth / aspectRatio
+        const logoX = 14 // Left margin
+        const logoY = 10 // Top margin
+
+        doc.addImage(dataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
+
+        // Header Text block next to Logo
+        const textX = logoX + logoWidth + 5
+        const textCenterY = logoY + (logoHeight / 2)
+
+        // Organization name
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+        doc.text(orgText, textX, textCenterY - 2)
+
+        // User name
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        const userText = `Exportado por: ${userName}`
+        doc.text(userText, textX, textCenterY + 4)
+
     } catch (error) {
         console.error('Failed to load logo:', error)
     }
 
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
-    const orgTextWidth = doc.getTextWidth(orgText)
-    doc.text(orgText, (pageWidth - orgTextWidth) / 2, 62)
-
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    const userText = `Exportado por: ${userName}`
-    const userTextWidth = doc.getTextWidth(userText)
-    doc.text(userText, (pageWidth - userTextWidth) / 2, 68)
+    const startY = 35
 
     doc.setDrawColor(41, 128, 185)
     doc.setLineWidth(0.5)
-    doc.line(20, 73, pageWidth - 20, 73)
+    doc.line(14, startY, pageWidth - 14, startY)
 
     doc.setFontSize(14)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(41, 128, 185)
     const title = 'Relatório Semanal de Produtividade'
     const titleWidth = doc.getTextWidth(title)
-    doc.text(title, (pageWidth - titleWidth) / 2, 82)
+    doc.text(title, (pageWidth - titleWidth) / 2, startY + 8)
 
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(0, 0, 0)
     const dateRange = `Período: ${startDate.toLocaleString('pt-PT')} a ${endDate.toLocaleString('pt-PT')}`
     const dateRangeWidth = doc.getTextWidth(dateRange)
-    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, 90)
+    doc.text(dateRange, (pageWidth - dateRangeWidth) / 2, startY + 14)
 
-    let currentY = 100
+    let currentY = startY + 25
 
     // --- CURRENT WORKLOAD SNAPSHOT ---
     doc.setFontSize(11)
