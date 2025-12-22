@@ -44,7 +44,7 @@ export default function AdminOficiosPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {categories.map((category) => (
                     <div key={category.id} className="relative group">
-                        <Link href={`/admin/oficios/${category.id}`} className="block h-full">
+                        <Link href={`/admin/oficios/detalhe?id=${category.id}`} className="block h-full">
                             <Card className="h-full transition-all hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pr-10">
                                     <CardTitle className="text-lg font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400">

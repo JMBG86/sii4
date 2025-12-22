@@ -128,7 +128,7 @@ export default function CorrespondenciaPage() {
                                             </TableCell>
                                             <TableCell>
                                                 {inquiryId && (
-                                                    <Link href={`/inqueritos/${inquiryId}`}>
+                                                    <Link href={`/inqueritos/detalhe?id=${inquiryId}`}>
                                                         <Button size="icon" variant="ghost" title="Ver Inquérito">
                                                             <ExternalLink className="h-4 w-4" />
                                                         </Button>

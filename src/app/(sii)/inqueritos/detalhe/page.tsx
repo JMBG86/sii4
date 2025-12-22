@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import { InquiryStatus } from '@/types/database'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,55 +11,82 @@ import { DiligenceList } from '@/components/inquiry/diligence-list'
 import { RelatedLinks } from '@/components/inquiry/related-links'
 import { HistoryList } from '@/components/inquiry/history-list'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Loader2 } from 'lucide-react'
 import { ExportTemplateButton } from '@/components/inquiry/export-template-button'
 import { DeleteInquiryButton } from '@/components/inquiry/delete-inquiry-button'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
 
-export default async function InquiryDetailsPage({
-    params,
-}: {
-    params: Promise<{ id: string }>
-}) {
-    const { id } = await params
-    const supabase = await createClient()
+function InquiryDetailsContent() {
+    const searchParams = useSearchParams()
+    const id = searchParams.get('id')
+    const supabase = createClient()
 
-    // 1. Parallel Fetch: Inquiry, Diligences, Links
-    const [
-        { data: inquiry, error },
-        { data: diligences },
-        { data: linksA },
-        { data: linksB }
-    ] = await Promise.all([
-        // Inquiry
-        supabase.from('inqueritos')
-            .select(`*, profiles:user_id ( full_name )`)
-            .eq('id', id)
-            .single(),
+    const [inquiry, setInquiry] = useState<any>(null)
+    const [diligences, setDiligences] = useState<any[]>([])
+    const [correspondence, setCorrespondence] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-        // Diligences
-        supabase.from('diligencias')
-            .select('*')
-            .eq('inquerito_id', id)
-            .order('created_at', { ascending: false }),
+    useEffect(() => {
+        if (!id) return
 
-        // Links A
-        supabase.from('ligacoes').select('*, inqueritos:inquerito_b(id, nuipc)').eq('inquerito_a', id),
+        async function loadData() {
+            try {
+                // 1. Parallel Fetch: Inquiry, Diligences
+                const [
+                    { data: inquiryData, error: inqError },
+                    { data: dilData },
+                ] = await Promise.all([
+                    // Inquiry
+                    supabase.from('inqueritos')
+                        .select(`*, profiles:user_id ( full_name )`)
+                        .eq('id', id)
+                        .single(),
+                    // Diligences
+                    supabase.from('diligencias')
+                        .select('*')
+                        .eq('inquerito_id', id)
+                        .order('created_at', { ascending: false }),
+                ])
 
-        // Links B
-        supabase.from('ligacoes').select('*, inqueritos:inquerito_a(id, nuipc)').eq('inquerito_b', id)
-    ])
+                if (inqError || !inquiryData) {
+                    setLoading(false)
+                    return
+                }
+                setInquiry(inquiryData)
+                if (dilData) setDiligences(dilData)
 
-    if (error || !inquiry) {
-        return <div>Inquérito não encontrado.</div>
+                // 2. Fetch Correspondence (Dependent on NUIPC)
+                if (inquiryData.nuipc) {
+                    const { data: corrData } = await supabase
+                        .from('correspondencias')
+                        .select('*')
+                        .eq('nuipc', inquiryData.nuipc)
+                        .order('data_entrada', { ascending: false })
+
+                    if (corrData) setCorrespondence(corrData)
+                }
+
+            } catch (error) {
+                console.error('Error loading inquiry details:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [id, supabase])
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-10">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
     }
 
-    // 2. Fetch Correspondence (Dependent on NUIPC)
-    const { data: correspondence } = await supabase
-        .from('correspondencias')
-        .select('*')
-        .eq('nuipc', inquiry.nuipc)
-        .order('data_entrada', { ascending: false })
-
+    if (!inquiry) {
+        return <div>Inquérito não encontrado.</div>
+    }
 
     const getStatusColor = (status: InquiryStatus) => {
         switch (status) {
@@ -101,15 +130,15 @@ export default async function InquiryDetailsPage({
                         <CardContent className="grid grid-cols-2 gap-4">
                             <div>
                                 <div className="text-sm font-medium text-muted-foreground">Data dos Factos</div>
-                                <div>{inquiry.data_ocorrencia || '-'}</div>
+                                <div className="text-sm">{inquiry.data_ocorrencia || '-'}</div>
                             </div>
                             <div>
                                 <div className="text-sm font-medium text-muted-foreground">Data de Conhecimento dos Factos</div>
-                                <div>{inquiry.data_participacao || '-'}</div>
+                                <div className="text-sm">{inquiry.data_participacao || '-'}</div>
                             </div>
                             <div>
                                 <div className="text-sm font-medium text-muted-foreground">Data de Atribuição</div>
-                                <div>{inquiry.data_atribuicao || '-'}</div>
+                                <div className="text-sm">{inquiry.data_atribuicao || '-'}</div>
                             </div>
                             {inquiry.numero_oficio && (
                                 <div className="col-span-2 md:col-span-1">
@@ -191,5 +220,13 @@ export default async function InquiryDetailsPage({
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function InquiryDetailsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}>
+            <InquiryDetailsContent />
+        </Suspense>
     )
 }

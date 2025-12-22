@@ -70,7 +70,7 @@ export default function SearchPage() {
     const handleInquiryClick = (inq: Inquiry) => {
         // If owned by current user, navigate to edit page
         if (currentUserId && inq.user_id === currentUserId) {
-            router.push(`/inqueritos/${inq.id}`)
+            router.push(`/inqueritos/detalhe?id=${inq.id}`)
         } else {
             // If owned by someone else, show Read-Only Dialog
             setSelectedInquiry(inq)

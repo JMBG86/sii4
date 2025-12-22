@@ -8,14 +8,14 @@ import { ArrowLeft } from 'lucide-react'
 import { CreateTemplateDialog } from './create-template-dialog'
 import { DeleteTemplateButton } from './delete-template-button'
 import { EditTemplateDialog } from './edit-template-dialog'
-import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 
-export default function AdminOficioDetailPage() {
+function AdminOficioDetailContent() {
     const supabase = createClient()
-    const params = useParams()
-    const id = params?.id as string
+    const searchParams = useSearchParams()
+    const id = searchParams.get('id')
 
     const [category, setCategory] = useState<any>(null)
     const [templates, setTemplates] = useState<any[]>([])
@@ -115,5 +115,14 @@ export default function AdminOficioDetailPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+
+export default function AdminOficioDetailPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+            <AdminOficioDetailContent />
+        </Suspense>
     )
 }

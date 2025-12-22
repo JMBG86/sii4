@@ -194,7 +194,7 @@ function InqueritosContent() {
                             return (
                                 <TableRow
                                     key={inq.id}
-                                    onClick={() => router.push(`/inqueritos/${inq.id}`)}
+                                    onClick={() => router.push(`/inqueritos/detalhe?id=${inq.id}`)}
                                     className={`cursor-pointer transition-colors ${isDeprecada
                                         ? 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60'
                                         : 'hover:bg-gray-50'
@@ -251,7 +251,7 @@ function InqueritosContent() {
                                     )}
                                     <TableCell>
                                         <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                            <Link href={`/inqueritos/${inq.id}`}>
+                                            <Link href={`/inqueritos/detalhe?id=${inq.id}`}>
                                                 <Button variant="outline" size="sm" className="gap-2">
                                                     <Eye className="h-4 w-4" />
                                                     Ver Detalhes

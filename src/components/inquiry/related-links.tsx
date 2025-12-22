@@ -120,7 +120,7 @@ export function RelatedLinks({
                                     <span className="font-semibold">{link.other_nuipc}</span>
                                     <span className="text-xs text-muted-foreground">{link.razao}</span>
                                 </div>
-                                <Link href={`/inqueritos/${link.other_id}`}>
+                                <Link href={`/inqueritos/detalhe?id=${link.other_id}`}>
                                     <Button variant="ghost" size="icon">
                                         <ExternalLink className="h-4 w-4" />
                                     </Button>

@@ -64,12 +64,12 @@ export default function LigacoesPage() {
                         {links.map((link: any) => (
                             <TableRow key={link.id}>
                                 <TableCell className="font-medium">
-                                    <Link href={`/inqueritos/${link.inquerito_a_data?.id}`} className="hover:underline">
+                                    <Link href={`/inqueritos/detalhe?id=${link.inquerito_a_data?.id}`} className="hover:underline">
                                         {link.inquerito_a_data?.nuipc}
                                     </Link>
                                 </TableCell>
                                 <TableCell className="font-medium">
-                                    <Link href={`/inqueritos/${link.inquerito_b_data?.id}`} className="hover:underline">
+                                    <Link href={`/inqueritos/detalhe?id=${link.inquerito_b_data?.id}`} className="hover:underline">
                                         {link.inquerito_b_data?.nuipc}
                                     </Link>
                                 </TableCell>

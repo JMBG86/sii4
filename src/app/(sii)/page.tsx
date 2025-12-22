@@ -331,24 +331,24 @@ export default function Dashboard() {
                 {recentInquiries?.map((inq: any) => (
                   <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <TableCell className="font-medium">
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         {inq.nuipc}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         {inq.tipo_crime}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
                           {getStatusLabel(inq.estado as InquiryStatus)}
                         </Badge>
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         {inq.classificacao === 'relevo' && (
                           <Badge variant="destructive" className="text-xs">Relevo</Badge>
                         )}
@@ -374,7 +374,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {toDodiligences?.map((d: any) => (
-                <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
+                <Link href={`/inqueritos/detalhe?id=${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                   <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
                     <span className="font-semibold text-sm">{(d as any).inqueritos?.nuipc || 'N/A'}</span>
                     <span className="text-sm text-muted-foreground">{d.descricao}</span>
@@ -404,7 +404,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {completedDiligences?.map((d: any) => (
-                <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
+                <Link href={`/inqueritos/detalhe?id=${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                   <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-semibold">{(d as any).inqueritos?.nuipc || 'N/A'}</span>
@@ -441,17 +441,17 @@ export default function Dashboard() {
                 {notableInquiries?.map((inq: any) => (
                   <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <TableCell className="font-medium">
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         {inq.nuipc}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         {inq.tipo_crime}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Link href={`/inqueritos/${inq.id}`} className="block">
+                      <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                         <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
                           {getStatusLabel(inq.estado as InquiryStatus)}
                         </Badge>
@@ -495,19 +495,19 @@ export default function Dashboard() {
                       {waitingResponse.map((inq: any) => (
                         <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                           <TableCell className="font-medium">
-                            <Link href={`/inqueritos/${inq.id}`} className="block">
+                            <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                               {inq.nuipc}
                             </Link>
                           </TableCell>
                           <TableCell>
-                            <Link href={`/inqueritos/${inq.id}`} className="block">
+                            <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                               <Badge className={getStatusColor(inq.estado as InquiryStatus)}>
                                 {getStatusLabel(inq.estado as InquiryStatus)}
                               </Badge>
                             </Link>
                           </TableCell>
                           <TableCell>
-                            <Link href={`/inqueritos/${inq.id}`} className="block">
+                            <Link href={`/inqueritos/detalhe?id=${inq.id}`} className="block">
                               {inq.classificacao === 'relevo' && (
                                 <Badge variant="destructive" className="text-xs">Relevo</Badge>
                               )}
@@ -525,7 +525,7 @@ export default function Dashboard() {
                 <h4 className="text-sm font-semibold text-muted-foreground mb-2">Diligências "Enviado e a Aguardar"</h4>
                 <div className="space-y-4">
                   {waitingDiligences?.map((d: any) => (
-                    <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
+                    <Link href={`/inqueritos/detalhe?id=${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                       <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
                         <div className="flex justify-between">
                           <span className="font-semibold text-sm">{(d as any).inqueritos?.nuipc || 'N/A'}</span>

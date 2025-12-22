@@ -105,7 +105,7 @@ export default function DiligenciasPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Link href={`/inqueritos/${(d.inqueritos as any)?.id}`}>
+                                            <Link href={`/inqueritos/detalhe?id=${(d.inqueritos as any)?.id}`}>
                                                 <Button variant="ghost" size="icon">
                                                     <ExternalLink className="h-4 w-4" />
                                                 </Button>
@@ -145,7 +145,7 @@ export default function DiligenciasPage() {
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
                                                 <CreateDiligenceDialog inquiries={inquiries as Inquiry[]} preSelectedInquiryId={inq.id} />
-                                                <Link href={`/inqueritos/${inq.id}`}>
+                                                <Link href={`/inqueritos/detalhe?id=${inq.id}`}>
                                                     <Button variant="ghost" size="sm"><ExternalLink className="h-4 w-4" /></Button>
                                                 </Link>
                                             </div>

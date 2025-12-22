@@ -114,7 +114,7 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
 
     if (historyError) console.error('History error', historyError)
 
-    revalidatePath(`/inqueritos/${inquiryId}`)
+    revalidatePath(`/inqueritos/detalhe`)
     revalidatePath('/')
 }
 
@@ -240,7 +240,7 @@ export async function deleteDiligence(diligenceId: string, inquiryId: string) {
         throw error
     }
 
-    revalidatePath(`/inqueritos/${inquiryId}`)
+    revalidatePath(`/inqueritos/detalhe`)
     revalidatePath('/inqueritos')
     revalidatePath('/')
 }
@@ -294,7 +294,7 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
         return { error: 'Failed to update inquiry' }
     }
 
-    revalidatePath(`/inqueritos/${inquiryId}`)
+    revalidatePath(`/inqueritos/detalhe`)
     revalidatePath('/inqueritos')
     revalidatePath('/')
 }
