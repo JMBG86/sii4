@@ -27,9 +27,11 @@ import { Loader2 } from 'lucide-react'
 export function StateUpdateDialog({
     inquiryId,
     currentState,
+    onUpdate,
 }: {
     inquiryId: string
     currentState: string
+    onUpdate?: () => void
 }) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -60,6 +62,7 @@ export function StateUpdateDialog({
         try {
             await updateInquiryState(inquiryId, newState, comment, numeroOficio, destino)
             setOpen(false)
+            if (onUpdate) onUpdate()
         } catch (e) {
             console.error(e)
         } finally {

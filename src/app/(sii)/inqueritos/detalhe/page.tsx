@@ -27,54 +27,54 @@ function InquiryDetailsContent() {
     const [correspondence, setCorrespondence] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
+    const loadData = async () => {
         if (!id) return
+        try {
+            // 1. Parallel Fetch: Inquiry, Diligences
+            const [
+                { data: inquiryData, error: inqError },
+                { data: dilData },
+            ] = await Promise.all([
+                // Inquiry
+                supabase.from('inqueritos')
+                    .select(`*, profiles:user_id ( full_name )`)
+                    .eq('id', id)
+                    .single(),
+                // Diligences
+                supabase.from('diligencias')
+                    .select('*')
+                    .eq('inquerito_id', id)
+                    .order('created_at', { ascending: false }),
+            ])
 
-        async function loadData() {
-            try {
-                // 1. Parallel Fetch: Inquiry, Diligences
-                const [
-                    { data: inquiryData, error: inqError },
-                    { data: dilData },
-                ] = await Promise.all([
-                    // Inquiry
-                    supabase.from('inqueritos')
-                        .select(`*, profiles:user_id ( full_name )`)
-                        .eq('id', id)
-                        .single(),
-                    // Diligences
-                    supabase.from('diligencias')
-                        .select('*')
-                        .eq('inquerito_id', id)
-                        .order('created_at', { ascending: false }),
-                ])
-
-                if (inqError || !inquiryData) {
-                    setLoading(false)
-                    return
-                }
-                setInquiry(inquiryData)
-                if (dilData) setDiligences(dilData)
-
-                // 2. Fetch Correspondence (Dependent on NUIPC)
-                if (inquiryData.nuipc) {
-                    const { data: corrData } = await supabase
-                        .from('correspondencias')
-                        .select('*')
-                        .eq('nuipc', inquiryData.nuipc)
-                        .order('data_entrada', { ascending: false })
-
-                    if (corrData) setCorrespondence(corrData)
-                }
-
-            } catch (error) {
-                console.error('Error loading inquiry details:', error)
-            } finally {
+            if (inqError || !inquiryData) {
                 setLoading(false)
+                return
             }
+            setInquiry(inquiryData)
+            if (dilData) setDiligences(dilData)
+
+            // 2. Fetch Correspondence (Dependent on NUIPC)
+            if (inquiryData.nuipc) {
+                const { data: corrData } = await supabase
+                    .from('correspondencias')
+                    .select('*')
+                    .eq('nuipc', inquiryData.nuipc)
+                    .order('data_entrada', { ascending: false })
+
+                if (corrData) setCorrespondence(corrData)
+            }
+
+        } catch (error) {
+            console.error('Error loading inquiry details:', error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    useEffect(() => {
         loadData()
-    }, [id, supabase])
+    }, [id])
 
     if (loading) {
         return (
@@ -117,9 +117,9 @@ function InquiryDetailsContent() {
                         {inquiry.classificacao === 'relevo' && <Badge variant="destructive">Relevo</Badge>}
                     </div>
                 </div>
-                <EditInquiryDialog inquiry={inquiry} />
+                <EditInquiryDialog inquiry={inquiry} onUpdate={loadData} />
                 <ExportTemplateButton inquiry={inquiry} />
-                <StateUpdateDialog inquiryId={inquiry.id} currentState={inquiry.estado} />
+                <StateUpdateDialog inquiryId={inquiry.id} currentState={inquiry.estado} onUpdate={loadData} />
                 <DeleteInquiryButton inquiryId={inquiry.id} nuipc={inquiry.nuipc} redirectTo="/inqueritos" />
             </div>
 
@@ -191,6 +191,7 @@ function InquiryDetailsContent() {
 
                 <div className="space-y-6">
                     {/* <RelatedLinks inquiryId={inquiry.id} links={normalizedLinks} /> */}
+                    {/* Correspondence Card */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Correspondência ({correspondence?.length || 0})</CardTitle>

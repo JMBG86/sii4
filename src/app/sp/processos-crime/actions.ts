@@ -118,6 +118,7 @@ export async function fetchStatisticsData() {
             id,
             data_registo,
             total_detidos,
+            entidade_destino,
             sp_detidos_info(nacionalidade),
             sp_apreensoes_drogas(*),
             sp_apreensoes_info(tipo)

@@ -23,6 +23,7 @@ import { getISOWeek, getYear } from 'date-fns'
 type ProcessData = {
     id: string
     data_registo: string | null
+    entidade_destino: string | null
     total_detidos: number
     sp_detidos_info: { nacionalidade: string }[]
     sp_apreensoes_drogas: any[]
@@ -136,6 +137,25 @@ export default function StatisticsPage() {
     })
 
     const seizuresChartData = Object.entries(seizureCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+
+    // 5. Destinations (Group by Entity)
+    const destCounts: Record<string, number> = {}
+
+    data.forEach(p => {
+        const rawDest = (p.entidade_destino || 'Outros Órgãos').trim().toUpperCase()
+        let category = 'Outros Órgãos'
+
+        if (rawDest === 'SII ALBUFEIRA') category = 'SII'
+        else if (rawDest === 'DIAP ALBUFEIRA') category = 'DIAP Albufeira'
+        else if (rawDest === 'PJ FARO') category = 'PJ Faro'
+        else if (rawDest.startsWith('DIAP')) category = 'Outros DIAPS'
+
+        destCounts[category] = (destCounts[category] || 0) + 1
+    })
+
+    const destChartData = Object.entries(destCounts)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
 
@@ -257,7 +277,39 @@ export default function StatisticsPage() {
                 </Card>
             </div>
 
-            {/* ROW 2: Drugs Chart (Full Width) */}
+            {/* ROW 2: Destinations Chart */}
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Destino dos Inquéritos</CardTitle>
+                        <CardDescription>Distribuição por entidade de destino</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={destChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    label={({ name, percent }: { name?: string | number; percent?: number }) => `${name ?? ''} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                >
+                                    {destChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* ROW 3: Drugs Chart (Full Width) */}
             <Card>
                 <CardHeader>
                     <CardTitle>Apreensões de Estupefacientes (Gramas)</CardTitle>

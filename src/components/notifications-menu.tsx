@@ -100,6 +100,20 @@ export function NotificationsMenu() {
         }
     }
 
+    const handleClearAll = async () => {
+        // Optimistic update
+        setNotifications([])
+        setUnreadCount(0)
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            await supabase
+                .from('notifications')
+                .delete()
+                .eq('user_id', user.id)
+        }
+    }
+
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
@@ -115,11 +129,18 @@ export function NotificationsMenu() {
             <DropdownMenuContent align="end" className="w-80">
                 <DropdownMenuLabel className="flex items-center justify-between">
                     <span>Notificações</span>
-                    {unreadCount > 0 && (
-                        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-500" onClick={handleMarkAllRead}>
-                            Marcar lidas
-                        </Button>
-                    )}
+                    <div className="flex gap-1">
+                        {unreadCount > 0 && (
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-blue-500" onClick={handleMarkAllRead}>
+                                Lidas
+                            </Button>
+                        )}
+                        {notifications.length > 0 && (
+                            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleClearAll}>
+                                Limpar
+                            </Button>
+                        )}
+                    </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="max-h-[300px] overflow-y-auto">

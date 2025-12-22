@@ -27,9 +27,10 @@ import { updateInquiry } from '@/app/(sii)/inqueritos/actions'
 
 interface EditInquiryDialogProps {
     inquiry: Inquiry
+    onUpdate?: () => void
 }
 
-export function EditInquiryDialog({ inquiry }: EditInquiryDialogProps) {
+export function EditInquiryDialog({ inquiry, onUpdate }: EditInquiryDialogProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
@@ -61,6 +62,7 @@ export function EditInquiryDialog({ inquiry }: EditInquiryDialogProps) {
 
         setLoading(false)
         setOpen(false)
+        if (onUpdate) onUpdate()
     }
 
     const addField = (setter: React.Dispatch<React.SetStateAction<{ id: number; nome: string }[]>>) => {

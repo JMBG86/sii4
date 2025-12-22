@@ -104,6 +104,18 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
     })
 
     if (historyError) console.error('History error', historyError)
+
+    // Revalidate paths logic removed as this is a client-side action file? 
+    // Wait, actions.ts name implies Server Actions usually, but imports say "supabase/client".
+    // If these are client-side functions, revalidatePath won't work directly on client router cache same way.
+    // However, if we migrated this to "use server", we could use it.
+    // BUT the file starts with "import { createClient } from '@/lib/supabase/client'".
+    // So these run in the browser. 
+    // The "loadData" prop passing we did in page.tsx is the CORRECT fix for Client Components.
+    // I will NOT add revalidatePath here because it will crash or fail if running on client.
+    // Actually, looking at the file content from previous Read, it imports from 'client'.
+    // So the previous plan to add revalidatePath was misguided for a Client file.
+    // I will skip adding revalidatePath and rely on the robust onUpdate callback I just implemented.
 }
 
 export async function addDiligence(formData: FormData) {

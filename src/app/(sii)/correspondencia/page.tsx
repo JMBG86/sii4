@@ -11,8 +11,10 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import Link from 'next/link'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Search, FileText, Calendar, Building, Hash, ExternalLink, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, Loader2 } from 'lucide-react'
 import { MarkAsReadButton } from './mark-read-button'
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
@@ -22,6 +24,11 @@ export default function CorrespondenciaPage() {
     const [correspondence, setCorrespondence] = useState<any[]>([])
     const [nuipcToIdMap, setNuipcToIdMap] = useState<Map<string, string>>(new Map())
     const [loading, setLoading] = useState(true)
+
+    // Search & View State
+    const [searchTerm, setSearchTerm] = useState('')
+    const [viewingItem, setViewingItem] = useState<any>(null)
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
 
     useEffect(() => {
         async function loadData() {
@@ -76,6 +83,22 @@ export default function CorrespondenciaPage() {
 
     const hasUnread = correspondence.some(c => !c.lida)
 
+    // Filter Logic
+    const filteredCorrespondence = correspondence.filter(c => {
+        const searchLower = searchTerm.toLowerCase()
+        return (
+            (c.assunto && c.assunto.toLowerCase().includes(searchLower)) ||
+            (c.origem && c.origem.toLowerCase().includes(searchLower)) ||
+            (c.nuipc && c.nuipc.toLowerCase().includes(searchLower)) ||
+            (c.numero_oficio && c.numero_oficio.toLowerCase().includes(searchLower))
+        )
+    })
+
+    const handleRowClick = (item: any) => {
+        setViewingItem(item)
+        setIsViewDialogOpen(true)
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-start">
@@ -89,10 +112,21 @@ export default function CorrespondenciaPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Entradas Recentes</CardTitle>
+                    <div className="relative w-full max-w-sm pt-4">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Pesquisar por assunto, origem, ofício..."
+                            className="pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    {correspondence.length === 0 ? (
-                        <p className="text-muted-foreground py-8 text-center">Não existe correspondência associada aos seus inquéritos.</p>
+                    {filteredCorrespondence.length === 0 ? (
+                        <p className="text-muted-foreground py-8 text-center">
+                            {searchTerm ? 'Nenhum resultado encontrado.' : 'Não existe correspondência associada aos seus inquéritos.'}
+                        </p>
                     ) : (
                         <Table>
                             <TableHeader>
@@ -107,11 +141,15 @@ export default function CorrespondenciaPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {correspondence.map((c) => {
+                                {filteredCorrespondence.map((c) => {
                                     const inquiryId = nuipcToIdMap.get(c.nuipc)
                                     const isUnread = !c.lida
                                     return (
-                                        <TableRow key={c.id} className={isUnread ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}>
+                                        <TableRow
+                                            key={c.id}
+                                            className={`cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-900 ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/20' : ''}`}
+                                            onClick={() => handleRowClick(c)}
+                                        >
                                             <TableCell>
                                                 {isUnread && <span className="inline-block w-2 h-2 rounded-full bg-blue-500" title="Não lida" />}
                                             </TableCell>
@@ -128,7 +166,7 @@ export default function CorrespondenciaPage() {
                                             </TableCell>
                                             <TableCell>
                                                 {inquiryId && (
-                                                    <Link href={`/inqueritos/detalhe?id=${inquiryId}`}>
+                                                    <Link href={`/inqueritos/detalhe?id=${inquiryId}`} onClick={e => e.stopPropagation()}>
                                                         <Button size="icon" variant="ghost" title="Ver Inquérito">
                                                             <ExternalLink className="h-4 w-4" />
                                                         </Button>
@@ -143,6 +181,75 @@ export default function CorrespondenciaPage() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Details Dialog */}
+            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Detalhes da Correspondência</DialogTitle>
+                        <DialogDescription>
+                            Recebido a {viewingItem && viewingItem.data_entrada ? format(new Date(viewingItem.data_entrada), 'dd/MM/yyyy') : '-'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {viewingItem && (
+                        <div className="grid gap-6 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                                        <FileText className="h-4 w-4" /> Assunto
+                                    </h4>
+                                    <p className="font-semibold text-lg">{viewingItem.assunto}</p>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                                        <Building className="h-4 w-4" /> Origem
+                                    </h4>
+                                    <p>{viewingItem.origem}</p>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                                        <Hash className="h-4 w-4" /> N.º Ofício
+                                    </h4>
+                                    <p>{viewingItem.numero_oficio || 'Sem número'}</p>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                                        <Hash className="h-4 w-4" /> NUIPC
+                                    </h4>
+                                    <p className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded inline-block">
+                                        {viewingItem.nuipc}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-2">
+                                        <Calendar className="h-4 w-4" /> Data Entrada
+                                    </h4>
+                                    <p>{viewingItem.data_entrada ? format(new Date(viewingItem.data_entrada), 'dd/MM/yyyy') : '-'}</p>
+                                </div>
+                            </div>
+
+                            {/* Additional info or link to inquiry */}
+                            <div className="flex justify-end pt-4 border-t">
+                                {nuipcToIdMap.get(viewingItem.nuipc) && (
+                                    <Link href={`/inqueritos/detalhe?id=${nuipcToIdMap.get(viewingItem.nuipc)}`}>
+                                        <Button className="gap-2">
+                                            <ExternalLink className="h-4 w-4" />
+                                            Abrir Processo
+                                        </Button>
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>Fechar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

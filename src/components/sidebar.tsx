@@ -33,11 +33,7 @@ const sidebarItems = [
         href: '/inqueritos',
         icon: FileText,
     },
-    {
-        title: 'Adicionar Inquérito',
-        href: '/inqueritos/novo',
-        icon: PlusCircle,
-    },
+
     {
         title: 'Pesquisas',
         href: '/pesquisas',
