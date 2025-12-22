@@ -236,3 +236,16 @@ export async function checkNuipcAssociation(nuipc: string) {
         status: data.estado
     }
 }
+
+export async function fetchAllInqueritosExternosForExport() {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+        .from('sp_inqueritos_externos')
+        .select('*')
+        .not('observacoes', 'ilike', '%DEPRECADA%')
+        .order('data_entrada', { ascending: false })
+
+    if (error) throw new Error(error.message)
+    return data
+}

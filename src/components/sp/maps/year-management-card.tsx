@@ -80,14 +80,14 @@ export function YearManagementCard() {
         <Card className="border-amber-100 dark:border-amber-900 bg-amber-50/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                    Gestão de Anos Civis
+                    Gestão Anual
                 </CardTitle>
                 <Calendar className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col space-y-4">
                     <div className="flex items-baseline justify-between">
-                        <div className="text-2xl font-bold">Anos Fiscais</div>
+                        <div className="text-2xl font-bold">Anos Operacionais</div>
                     </div>
                     <p className="text-xs text-muted-foreground">
                         Configure a abertura de novos anos e valores de transição manual (Stock).

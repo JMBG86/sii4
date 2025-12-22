@@ -151,3 +151,16 @@ export async function deleteDeprecada(id: string) {
 
     return { success: true }
 }
+
+export async function fetchAllDeprecadasForExport() {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+        .from('sp_inqueritos_externos')
+        .select('*')
+        .ilike('observacoes', '%DEPRECADA%')
+        .order('data_entrada', { ascending: false })
+
+    if (error) throw new Error(error.message)
+    return data
+}

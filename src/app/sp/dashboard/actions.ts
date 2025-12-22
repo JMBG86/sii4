@@ -29,33 +29,47 @@ async function getStatsForYear(supabase: any, year: number): Promise<YearStats> 
         { count: countProcessos },
         { count: countInqueritosExternos },
         { count: countCorrespondencia },
-        { data: processosData } // We need IDs for joins or deep filtering
+        { data: detaineesData },
+        { data: seizuresData },
+        { data: drugsData }
     ] = await Promise.all([
-        supabase.from('sp_processos_crime').select('*', { count: 'exact', head: true }).not('nuipc_completo', 'is', null).eq('ano', year),
-        supabase.from('sp_inqueritos_externos').select('*', { count: 'exact', head: true }).not('observacoes', 'ilike', '%DEPRECADA%').gte('data_entrada', startDate).lte('data_entrada', endDate),
-        supabase.from('sp_correspondencia').select('*', { count: 'exact', head: true }).gte('data_entrada', startDate).lte('data_entrada', endDate),
-        supabase.from('sp_processos_crime').select('id, total_detidos').eq('ano', year)
+        // 1. Processos Logic: Count non-null NUIPCs for the year
+        supabase.from('sp_processos_crime')
+            .select('*', { count: 'exact', head: true })
+            .not('nuipc_completo', 'is', null)
+            .eq('ano', year),
+
+        // 2. Inqueritos Externos
+        supabase.from('sp_inqueritos_externos')
+            .select('*', { count: 'exact', head: true })
+            .not('observacoes', 'ilike', '%DEPRECADA%')
+            .gte('data_entrada', startDate)
+            .lte('data_entrada', endDate),
+
+        // 3. Correspondencia
+        supabase.from('correspondencias')
+            .select('*', { count: 'exact', head: true })
+            .gte('data_entrada', startDate)
+            .lte('data_entrada', endDate),
+
+        // 4. Detainees (Real Count via Join)
+        supabase.from('sp_detidos_info')
+            .select('quantidade, sp_processos_crime!inner(ano)')
+            .eq('sp_processos_crime.ano', year),
+
+        // 5. Seizures Info (Real Count via Join)
+        supabase.from('sp_apreensoes_info')
+            .select('tipo, descricao, sp_processos_crime!inner(ano)')
+            .eq('sp_processos_crime.ano', year),
+
+        // 6. Drugs (Real Count via Join)
+        supabase.from('sp_apreensoes_drogas')
+            .select('*, sp_processos_crime!inner(ano)')
+            .eq('sp_processos_crime.ano', year)
     ])
 
-    // If no processes, skip deep stats
-    if (!processosData || processosData.length === 0) {
-        return {
-            processos: 0,
-            inqueritosExternos: countInqueritosExternos || 0,
-            correspondencia: countCorrespondencia || 0,
-            totalDetidos: 0,
-            seizuresTree: {},
-            drugsTotals: {}
-        }
-    }
-
-    const processIds = processosData.map((p: any) => p.id)
-    const totalDetidos = processosData.reduce((acc: number, curr: any) => acc + (curr.total_detidos || 0), 0)
-
-    // Fetch Linked Data (Seizures & Drugs)
-    // We have to filter by process_id in the list
-    const { data: seizuresData } = await supabase.from('sp_apreensoes_info').select('tipo, descricao').in('processo_id', processIds)
-    const { data: drugsData } = await supabase.from('sp_apreensoes_drogas').select('*').in('processo_id', processIds)
+    // Calculate Total Detainees from real rows
+    const totalDetidos = detaineesData?.reduce((acc: number, curr: any) => acc + (curr.quantidade || 0), 0) || 0
 
     // --- Seizures Aggregation ---
     const seizuresTree: Record<string, SeizureCategoryStats> = {}

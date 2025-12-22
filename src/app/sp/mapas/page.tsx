@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Loader2, Download, Calendar as CalendarIcon } from 'lucide-react'
 import { fetchAllProcessosForExport, fetchProcessosByDateRange, fetchMonthlyReportStats } from '../processos-crime/actions'
+import { fetchAllInqueritosExternosForExport } from '../inqueritos-externos/actions'
+import { fetchAllDeprecadasForExport } from '../deprecadas/actions'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Calendar } from '@/components/ui/calendar'
@@ -19,6 +21,8 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function MapasPage() {
     const [loadingAll, setLoadingAll] = useState(false)
+    const [loadingInqueritos, setLoadingInqueritos] = useState(false)
+    const [loadingDeprecadas, setLoadingDeprecadas] = useState(false)
     const [loadingMonthly, setLoadingMonthly] = useState(false)
     const [date, setDate] = useState<DateRange | undefined>({
         from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -53,6 +57,42 @@ export default function MapasPage() {
             alert('Erro ao exportar PDF. Verifique a consola.')
         } finally {
             setLoadingAll(false)
+        }
+    }
+
+
+
+    async function handleExportInqueritosPDF() {
+        setLoadingInqueritos(true)
+        try {
+            const data = await fetchAllInqueritosExternosForExport()
+            if (!data || data.length === 0) {
+                alert('Não existem dados para exportar.')
+                return
+            }
+            await generateInqueritosExternosPDF(data, 'Mapa Geral de Inquéritos Externos', userName)
+        } catch (error) {
+            console.error(error)
+            alert('Erro ao exportar.')
+        } finally {
+            setLoadingInqueritos(false)
+        }
+    }
+
+    async function handleExportDeprecadasPDF() {
+        setLoadingDeprecadas(true)
+        try {
+            const data = await fetchAllDeprecadasForExport()
+            if (!data || data.length === 0) {
+                alert('Não existem dados para exportar.')
+                return
+            }
+            await generateDeprecadasPDF(data, 'Mapa Geral de Deprecadas', userName)
+        } catch (error) {
+            console.error(error)
+            alert('Erro ao exportar.')
+        } finally {
+            setLoadingDeprecadas(false)
         }
     }
 
@@ -212,6 +252,113 @@ export default function MapasPage() {
 
         addFooter(doc, pageHeight, pageWidth)
         doc.save(`mapa_processos_geral.pdf`)
+    }
+
+
+
+    async function generateInqueritosExternosPDF(data: any[], title: string, userName: string) {
+        const doc = new jsPDF('l')
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+
+        await addHeader(doc, title, userName)
+
+        const rows = data.map(i => [
+            i.nuipc,
+            i.numero_oficio || '-',
+            i.origem || '-',
+            i.assunto || '-',
+            i.data_entrada ? new Date(i.data_entrada).toLocaleDateString() : '-',
+            i.destino || '-',
+            // Clean up DEPRECADA tag if present
+            i.observacoes?.replace('DEPRECADA', '').trim() || '-'
+        ])
+
+        autoTable(doc, {
+            head: [['NUIPC', 'Nº Ofício', 'Origem', 'Assunto', 'Entrada', 'Destino', 'Observações']],
+            body: rows,
+            startY: 60,
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', halign: 'center', valign: 'middle' },
+            headStyles: { fillColor: [59, 130, 246] }, // Blue
+            theme: 'grid',
+        })
+
+        addFooter(doc, pageHeight, pageWidth)
+        doc.save(`mapa_inqueritos_externos.pdf`)
+    }
+
+    async function generateDeprecadasPDF(data: any[], title: string, userName: string) {
+        const doc = new jsPDF('l')
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+
+        await addHeader(doc, title, userName)
+
+        const rows = data.map(d => [
+            d.nuipc,
+            d.numero_oficio || '-',
+            d.origem || '-',
+            d.assunto || '-',
+            d.data_entrada ? new Date(d.data_entrada).toLocaleDateString() : '-',
+            d.observacoes || '-'
+        ])
+
+        autoTable(doc, {
+            head: [['NUIPC', 'Nº Ofício', 'Origem', 'Assunto', 'Entrada', 'Observações']],
+            body: rows,
+            startY: 60,
+            styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', halign: 'center', valign: 'middle' },
+            headStyles: { fillColor: [220, 38, 38] }, // Red
+            theme: 'grid',
+        })
+
+        addFooter(doc, pageHeight, pageWidth)
+        doc.save(`mapa_deprecadas.pdf`)
+    }
+
+    async function addHeader(doc: jsPDF, title: string, userName: string) {
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const startY = 35
+
+        try {
+            const { dataURL, aspectRatio } = await loadImageAsBase64('/LOGO.png')
+            const logoWidth = 25
+            const logoHeight = logoWidth / aspectRatio
+            const logoX = 14
+            const logoY = 10
+
+            doc.addImage(dataURL, 'PNG', logoX, logoY, logoWidth, logoHeight)
+
+            const textX = logoX + logoWidth + 5
+            const textCenterY = logoY + (logoHeight / 2)
+
+            doc.setFontSize(12)
+            doc.setFont('helvetica', 'bold')
+            const orgText = 'SECÇÃO DE INVESTIGAÇÃO E INQUÉRITOS'
+            doc.text(orgText, textX, textCenterY - 2)
+
+            doc.setFontSize(9)
+            doc.setFont('helvetica', 'normal')
+            const userText = `Exportado por: ${userName}`
+            doc.text(userText, textX, textCenterY + 4)
+
+        } catch (error) {
+            console.error('Failed to load logo:', error)
+        }
+
+        doc.setDrawColor(41, 128, 185)
+        doc.setLineWidth(0.5)
+        doc.line(14, startY, pageWidth - 14, startY)
+
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(41, 128, 185)
+        doc.text(title, (pageWidth - doc.getTextWidth(title)) / 2, startY + 8)
+
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0)
+        doc.text(`Data de Emissão: ${new Date().toLocaleDateString()}`, (pageWidth - doc.getTextWidth(`Data de Emissão: ${new Date().toLocaleDateString()}`)) / 2, startY + 14)
     }
 
     async function generateMonthlyReportPDF(data: any[], from: Date, to: Date, stats: any, userName: string) {
@@ -535,8 +682,30 @@ export default function MapasPage() {
                             disabled={loadingAll}
                         >
                             {loadingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Exportar Mapa Geral (A4)
+                            Exportar Processos Crime
                         </Button>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                className="w-full"
+                                variant="outline"
+                                onClick={handleExportInqueritosPDF}
+                                disabled={loadingInqueritos}
+                            >
+                                {loadingInqueritos ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                Exportar Inquéritos
+                            </Button>
+
+                            <Button
+                                className="w-full"
+                                variant="outline"
+                                onClick={handleExportDeprecadasPDF}
+                                disabled={loadingDeprecadas}
+                            >
+                                {loadingDeprecadas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                Exportar Deprecadas
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
