@@ -14,6 +14,7 @@ import { pt } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { DateRange } from 'react-day-picker'
 import { ExcelExportCard } from '@/components/sp/maps/excel-export-card'
+import { YearManagementCard } from '@/components/sp/maps/year-management-card'
 import { createClient } from '@/lib/supabase/client'
 
 export default function MapasPage() {
@@ -606,6 +607,7 @@ export default function MapasPage() {
                 </Card>
 
                 <ExcelExportCard />
+                <YearManagementCard />
             </div>
         </div>
     )

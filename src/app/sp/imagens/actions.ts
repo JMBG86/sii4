@@ -4,7 +4,8 @@ import { SPProcessoCrime } from '@/types/database'
 export async function fetchImagensRows(
     page: number = 1,
     limit: number = 50,
-    searchTerm: string = ''
+    searchTerm: string = '',
+    year: number = 2025
 ) {
     const supabase = createClient()
 
@@ -12,6 +13,8 @@ export async function fetchImagensRows(
         .from('sp_processos_crime')
         .select('*', { count: 'exact' })
         .eq('imagens_associadas', true)
+        // Logic: (ano = year) OR (ano < year AND notificacao_imagens = false)
+        .or(`ano.eq.${year},and(ano.lt.${year},notificacao_imagens.eq.false)`)
         .order('data_registo', { ascending: false })
 
     if (searchTerm) {

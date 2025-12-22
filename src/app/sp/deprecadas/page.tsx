@@ -33,6 +33,8 @@ import { Loader2, Plus, Search, Trash2, Edit } from 'lucide-react'
 import { fetchDeprecadas, createDeprecada, updateDeprecada, deleteDeprecada } from './actions'
 import { getEntidades } from '../processos-crime/actions'
 import { SPInqueritoExterno, SPEntidade } from '@/types/database'
+import { getFiscalYears } from '@/app/sp/config/actions'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 export default function DeprecadasPage() {
     const [data, setData] = useState<SPInqueritoExterno[]>([])
@@ -41,6 +43,10 @@ export default function DeprecadasPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [open, setOpen] = useState(false)
     const [editingItem, setEditingItem] = useState<SPInqueritoExterno | null>(null)
+
+    // Year Tabs
+    const [years, setYears] = useState<number[]>([2025])
+    const [activeYear, setActiveYear] = useState<number>(2025)
 
     // Form State
     const [formData, setFormData] = useState({
@@ -54,15 +60,27 @@ export default function DeprecadasPage() {
         observacoes: 'DEPRECADA '
     })
 
+    // Load Years
+    useEffect(() => {
+        getFiscalYears().then(data => {
+            const fetchedYears = data?.map(d => d.year) || []
+            const uniqueYears = Array.from(new Set([...fetchedYears, 2025]))
+            const sortedYears = uniqueYears.sort((a, b) => b - a)
+
+            setYears(sortedYears)
+            setActiveYear(sortedYears[0])
+        })
+    }, [])
+
     useEffect(() => {
         loadData()
         loadEntidades()
-    }, [searchTerm])
+    }, [searchTerm, activeYear])
 
     async function loadData() {
         setLoading(true)
         try {
-            const res = await fetchDeprecadas(searchTerm)
+            const res = await fetchDeprecadas(searchTerm, activeYear)
             setData(res || [])
         } catch (error) {
             console.error(error)
@@ -153,7 +171,7 @@ export default function DeprecadasPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Deprecadas</h1>
-                    <p className="text-muted-foreground">Gestão de deprecadas (Inquéritos Externos marcados).</p>
+                    <p className="text-muted-foreground">Gestão de deprecadas (Inquéritos Externos marcados) ({activeYear}).</p>
                 </div>
                 <Button onClick={() => handleOpen()} className="bg-orange-600 hover:bg-orange-700 text-white">
                     <Plus className="mr-2 h-4 w-4" />
@@ -161,70 +179,84 @@ export default function DeprecadasPage() {
                 </Button>
             </div>
 
-            <div className="flex items-center gap-2 max-w-sm">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Pesquisar..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+            <Tabs value={activeYear.toString()} onValueChange={v => setActiveYear(parseInt(v))}>
+                <TabsList>
+                    {years.map(y => (
+                        <TabsTrigger key={y} value={y.toString()}>
+                            {y}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
 
-            <div className="rounded-md border bg-white dark:bg-zinc-900">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Data Entrada</TableHead>
-                            <TableHead>NUIPC</TableHead>
-                            <TableHead>Nº Ofício</TableHead>
-                            <TableHead>Origem</TableHead>
-                            <TableHead>Assunto</TableHead>
-                            <TableHead>Destino</TableHead>
-                            <TableHead>Observações</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={8} className="h-24 text-center">
-                                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                                </TableCell>
-                            </TableRow>
-                        ) : data.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                                    Sem registos de Deprecadas
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            data.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell>{item.data_entrada}</TableCell>
-                                    <TableCell className="font-mono font-medium">{item.nuipc}</TableCell>
-                                    <TableCell>{item.numero_oficio}</TableCell>
-                                    <TableCell>{item.origem}</TableCell>
-                                    <TableCell>{item.assunto}</TableCell>
-                                    <TableCell>{item.destino}</TableCell>
-                                    <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={item.observacoes || ''}>
-                                        {item.observacoes}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpen(item)}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                <TabsContent value={activeYear.toString()}>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 max-w-sm">
+                            <Search className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Pesquisar..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="rounded-md border bg-white dark:bg-zinc-900">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Data Entrada</TableHead>
+                                        <TableHead>NUIPC</TableHead>
+                                        <TableHead>Nº Ofício</TableHead>
+                                        <TableHead>Origem</TableHead>
+                                        <TableHead>Assunto</TableHead>
+                                        <TableHead>Destino</TableHead>
+                                        <TableHead>Observações</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} className="h-24 text-center">
+                                                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : data.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                                Sem registos de Deprecadas em {activeYear}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        data.map((item) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell>{item.data_entrada}</TableCell>
+                                                <TableCell className="font-mono font-medium">{item.nuipc}</TableCell>
+                                                <TableCell>{item.numero_oficio}</TableCell>
+                                                <TableCell>{item.origem}</TableCell>
+                                                <TableCell>{item.assunto}</TableCell>
+                                                <TableCell>{item.destino}</TableCell>
+                                                <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={item.observacoes || ''}>
+                                                    {item.observacoes}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleOpen(item)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-2xl">
@@ -293,3 +325,5 @@ export default function DeprecadasPage() {
         </div>
     )
 }
+
+

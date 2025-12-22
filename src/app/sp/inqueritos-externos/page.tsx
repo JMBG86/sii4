@@ -18,7 +18,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -33,6 +32,8 @@ import { Loader2, Plus, Search, Trash2, Edit } from 'lucide-react'
 import { fetchInqueritosExternos, createInqueritoExterno, updateInqueritoExterno, deleteInqueritoExterno, checkNuipcAssociation } from './actions'
 import { getEntidades } from '../processos-crime/actions'
 import { SPInqueritoExterno, SPEntidade } from '@/types/database'
+import { getFiscalYears } from '@/app/sp/config/actions'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 export default function InqueritosExternosPage() {
     const [data, setData] = useState<SPInqueritoExterno[]>([])
@@ -42,6 +43,10 @@ export default function InqueritosExternosPage() {
     const [open, setOpen] = useState(false)
     const [editingItem, setEditingItem] = useState<SPInqueritoExterno | null>(null)
     const [associatedUser, setAssociatedUser] = useState<string | null>(null)
+
+    // Year Tabs
+    const [years, setYears] = useState<number[]>([2025])
+    const [activeYear, setActiveYear] = useState<number>(2025)
 
     // Form State
     const [formData, setFormData] = useState({
@@ -55,15 +60,27 @@ export default function InqueritosExternosPage() {
         observacoes: ''
     })
 
+    // Load Years
+    useEffect(() => {
+        getFiscalYears().then(data => {
+            const fetchedYears = data?.map(d => d.year) || []
+            const uniqueYears = Array.from(new Set([...fetchedYears, 2025]))
+            const sortedYears = uniqueYears.sort((a, b) => b - a)
+
+            setYears(sortedYears)
+            setActiveYear(sortedYears[0])
+        })
+    }, [])
+
     useEffect(() => {
         loadData()
         loadEntidades()
-    }, [searchTerm])
+    }, [searchTerm, activeYear])
 
     async function loadData() {
         setLoading(true)
         try {
-            const res = await fetchInqueritosExternos(searchTerm)
+            const res = await fetchInqueritosExternos(searchTerm, activeYear)
             setData(res || [])
         } catch (error) {
             console.error(error)
@@ -176,7 +193,7 @@ export default function InqueritosExternosPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Inquéritos Externos</h1>
-                    <p className="text-muted-foreground">Registo e controlo de inquéritos externos.</p>
+                    <p className="text-muted-foreground">Registo e controlo de inquéritos externos ({activeYear}).</p>
                 </div>
                 <Button onClick={() => handleOpen()}>
                     <Plus className="mr-2 h-4 w-4" />
@@ -184,66 +201,80 @@ export default function InqueritosExternosPage() {
                 </Button>
             </div>
 
-            <div className="flex items-center gap-2 max-w-sm">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Pesquisar..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+            <Tabs value={activeYear.toString()} onValueChange={v => setActiveYear(parseInt(v))}>
+                <TabsList>
+                    {years.map(y => (
+                        <TabsTrigger key={y} value={y.toString()}>
+                            {y}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
 
-            <div className="rounded-md border bg-white dark:bg-zinc-900">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Data Entrada</TableHead>
-                            <TableHead>NUIPC</TableHead>
-                            <TableHead>Nº Ofício</TableHead>
-                            <TableHead>Origem</TableHead>
-                            <TableHead>Assunto</TableHead>
-                            <TableHead>Destino</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
-                                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                                </TableCell>
-                            </TableRow>
-                        ) : data.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                                    Sem registos
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            data.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell>{item.data_entrada}</TableCell>
-                                    <TableCell className="font-mono font-medium">{item.nuipc}</TableCell>
-                                    <TableCell>{item.numero_oficio}</TableCell>
-                                    <TableCell>{item.origem}</TableCell>
-                                    <TableCell>{item.assunto}</TableCell>
-                                    <TableCell>{item.destino}</TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpen(item)}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                <TabsContent value={activeYear.toString()}>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 max-w-sm">
+                            <Search className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Pesquisar..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="rounded-md border bg-white dark:bg-zinc-900">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Data Entrada</TableHead>
+                                        <TableHead>NUIPC</TableHead>
+                                        <TableHead>Nº Ofício</TableHead>
+                                        <TableHead>Origem</TableHead>
+                                        <TableHead>Assunto</TableHead>
+                                        <TableHead>Destino</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="h-24 text-center">
+                                                <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : data.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                                Sem registos em {activeYear}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        data.map((item) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell>{item.data_entrada}</TableCell>
+                                                <TableCell className="font-mono font-medium">{item.nuipc}</TableCell>
+                                                <TableCell>{item.numero_oficio}</TableCell>
+                                                <TableCell>{item.origem}</TableCell>
+                                                <TableCell>{item.assunto}</TableCell>
+                                                <TableCell>{item.destino}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleOpen(item)}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-2xl">
@@ -323,3 +354,4 @@ export default function InqueritosExternosPage() {
         </div>
     )
 }
+

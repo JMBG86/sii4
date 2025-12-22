@@ -1,12 +1,16 @@
 import { createClient } from '@/lib/supabase/client'
 
-export async function fetchDeprecadas(searchTerm: string = '') {
+export async function fetchDeprecadas(searchTerm: string = '', year: number = 2025) {
     const supabase = createClient()
+    const start = `${year}-01-01`
+    const end = `${year}-12-31`
 
     let query = supabase
         .from('sp_inqueritos_externos')
         .select('*')
         .ilike('observacoes', '%DEPRECADA%')
+        .gte('data_entrada', start)
+        .lte('data_entrada', end)
         .order('created_at', { ascending: false })
 
     if (searchTerm) {

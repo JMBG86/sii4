@@ -18,7 +18,7 @@ import { Loader2, Search, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
 import { ProcessoDetailDialog } from './detail-dialog'
 import { cn } from '@/lib/utils'
 
-export function ProcessosTable() {
+export function ProcessosTable({ year }: { year: number }) {
     const [data, setData] = useState<SPProcessoCrime[]>([])
     const [loading, setLoading] = useState(true)
     const [page, setPage] = useState(1)
@@ -29,7 +29,7 @@ export function ProcessosTable() {
     const loadData = useCallback(async () => {
         setLoading(true)
         try {
-            const { data: rows, count } = await fetchProcessos(page, 100, searchTerm)
+            const { data: rows, count } = await fetchProcessos(page, 100, searchTerm, year)
             setData(rows as SPProcessoCrime[] || [])
             if (count) setTotalPages(Math.ceil(count / 100))
         } catch (error) {
@@ -37,7 +37,12 @@ export function ProcessosTable() {
         } finally {
             setLoading(false)
         }
-    }, [page, searchTerm])
+    }, [page, searchTerm, year])
+
+    // Reset pagination when year changes
+    useEffect(() => {
+        setPage(1)
+    }, [year])
 
     useEffect(() => {
         // Debounce search

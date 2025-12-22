@@ -7,7 +7,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 // So everything must be Client.
 // Removing revalidatePath and server imports.
 
-export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '') {
+export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '', year: number = 2025) {
     const supabase = createClient()
 
     let query = supabase
@@ -17,6 +17,7 @@ export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '') {
             sp_apreensoes_info(tipo),
             sp_apreensoes_drogas(id)
         `, { count: 'exact' })
+        .eq('ano', year)
 
     if (searchTerm) {
         query = query.or(`nuipc_completo.ilike.%${searchTerm}%,arguido.ilike.%${searchTerm}%,denunciante.ilike.%${searchTerm}%`)
@@ -141,12 +142,13 @@ export async function getNextFreeProcesso() {
     return data
 }
 
-export async function getProcessoBySequence(seq: number) {
+export async function getProcessoBySequence(seq: number, year: number = 2025) {
     const supabase = createClient()
     const { data, error } = await supabase
         .from('sp_processos_crime')
         .select('*')
         .eq('numero_sequencial', seq)
+        .eq('ano', year)
         .single()
 
     if (error) return null
@@ -414,143 +416,115 @@ export async function deleteProcesso(id: string) {
 
 export async function fetchMonthlyReportStats(startDate: string, endDate: string) {
     const supabase = createClient()
+    const startObj = new Date(startDate)
+    const year = startObj.getFullYear()
+    const jan1 = `${year}-01-01`
 
-    // 1. ENTRIES IN MONTH (Entrados) for SP Report
-    // Sum of Processos Crime -> 'SII ALBUFEIRA' AND External Inquiries -> 'SII ALBUFEIRA'
-    // DEDUPLICATED by NUIPC.
+    // 0. Get Fiscal Year Config for Stock
+    const { data: fiscalYear } = await supabase
+        .from('sp_config_years')
+        .select('*')
+        .eq('year', year)
+        .single()
 
-    // a) SP Processos Crime -> 'SII ALBUFEIRA'
-    let procQuery = supabase
-        .from('sp_processos_crime')
-        .select('nuipc_completo')
-        .not('nuipc_completo', 'is', null)
-        .gte('data_registo', startDate)
-        .lte('data_registo', endDate)
-        .eq('entidade_destino', 'SII ALBUFEIRA')
+    // Default stocks if not configured (e.g. 2025 legacy)
+    const stockProcStart = fiscalYear?.stock_processos_start || 0
+    const stockPrecStart = fiscalYear?.stock_precatorias_start || 0
 
-    const { data: procSIIData } = await procQuery
+    // --- 1. ENTRIES IN MONTH (Entrados) ---
+    // Same login as before: Unique NUIPCs from Processos + Externos in Range
+    const getEntradosSet = async (from: string, to: string) => {
+        const { data: p } = await supabase.from('sp_processos_crime').select('nuipc_completo').not('nuipc_completo', 'is', null).gte('data_registo', from).lte('data_registo', to).eq('entidade_destino', 'SII ALBUFEIRA')
+        const { data: e } = await supabase.from('sp_inqueritos_externos').select('nuipc').gte('data_entrada', from).lte('data_entrada', to).eq('destino', 'SII ALBUFEIRA')
 
-    // b) External Inquiries -> 'SII ALBUFEIRA'
-    let extQuery = supabase
-        .from('sp_inqueritos_externos')
-        .select('nuipc, id')
-        .gte('data_entrada', startDate)
-        .lte('data_entrada', endDate)
-        .eq('destino', 'SII ALBUFEIRA')
+        // Blacklist Deprecated
+        const { data: d } = await supabase.from('inqueritos').select('nuipc').ilike('observacoes', '%DEPRECADA%').not('nuipc', 'is', null)
+        const block = new Set(d?.map(x => x.nuipc?.trim().toUpperCase()) || [])
 
-    const { data: extSIIData } = await extQuery
+        const result = new Set<string>()
+        p?.forEach(x => { if (x.nuipc_completo && !block.has(x.nuipc_completo.trim().toUpperCase())) result.add(x.nuipc_completo.trim().toUpperCase()) })
+        e?.forEach(x => { if (x.nuipc && !block.has(x.nuipc.trim().toUpperCase())) result.add(x.nuipc.trim().toUpperCase()) })
+        return result
+    }
 
-    // Combine and Count Unique NUIPCs to avoid double counting
-    const nuipcs = new Set<string>()
+    const entradosSet = await getEntradosSet(startDate, endDate)
+    const entrados = entradosSet.size
 
-    // Fetch Deprecated NUIPCs to exclude them (Global Check)
-    const { data: deprecatedData } = await supabase
-        .from('inqueritos')
-        .select('nuipc')
-        .ilike('observacoes', '%DEPRECADA%')
-        .not('nuipc', 'is', null)
+    // --- 2. CONCLUDED IN MONTH ---
+    const getConcluidos = async (from: string, to: string) => {
+        const { count } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'concluido').gte('data_conclusao', from).lte('data_conclusao', to).not('user_id', 'is', null).not('observacoes', 'ilike', '%DEPRECADA%')
+        return count || 0
+    }
+    const concluidos = await getConcluidos(startDate, endDate)
 
-    const deprecatedSet = new Set(deprecatedData?.map(d => d.nuipc?.trim().toUpperCase()) || [])
 
-    procSIIData?.forEach(p => {
-        if (p.nuipc_completo) {
-            const n = p.nuipc_completo.trim().toUpperCase()
-            if (!deprecatedSet.has(n)) nuipcs.add(n)
-        }
-    })
+    // --- 3. PENDING PREVIOUS MONTH (Stock Inicial do Mês) ---
+    // Logic: InitialYearStock + Entrados(Jan1 -> StartDate-1) - Concluidos(Jan1 -> StartDate-1)
 
-    extSIIData?.forEach(e => {
-        if (e.nuipc) {
-            const n = e.nuipc.trim().toUpperCase()
-            if (!deprecatedSet.has(n)) nuipcs.add(n)
-        }
-    })
+    // Safety: If startDate is Jan 1, YTD is 0, so result is Just StockStart.
+    let pendentesAnterior = stockProcStart
 
-    const entrados = nuipcs.size
+    if (startDate > jan1) {
+        // Calculate YTD Period (Jan 1 to StartDate - 1 day)
+        // Actually we can just say < startDate.
+        const entriesYTDSet = await getEntradosSet(jan1, new Date(startObj.getTime() - 86400000).toISOString().split('T')[0]) // Logic slightly loose on date calc but "lt startDate" is better
+        // Let's reuse filters: >= Jan 1 AND < StartDate
 
-    // 2. CONCLUDED IN MONTH (Concluídos)
-    // Completed in SII during this period (Distributed + Concluded)
-    let conclQuery = supabase
-        .from('inqueritos')
-        .select('*', { count: 'exact', head: true })
-        .eq('estado', 'concluido')
-        .gte('data_conclusao', startDate)
-        .lte('data_conclusao', endDate)
-        .not('user_id', 'is', null) // Distributed
-        .not('observacoes', 'ilike', '%DEPRECADA%')
+        // RE-IMPLEMENT YTD EFFICIENTLY
+        // Entries YTD
+        const { data: pYTD } = await supabase.from('sp_processos_crime').select('nuipc_completo').not('nuipc_completo', 'is', null).gte('data_registo', jan1).lt('data_registo', startDate).eq('entidade_destino', 'SII ALBUFEIRA')
+        const { data: eYTD } = await supabase.from('sp_inqueritos_externos').select('nuipc').gte('data_entrada', jan1).lt('data_entrada', startDate).eq('destino', 'SII ALBUFEIRA')
+        // Blacklist YTD
+        const { data: d } = await supabase.from('inqueritos').select('nuipc').ilike('observacoes', '%DEPRECADA%').not('nuipc', 'is', null)
+        const block = new Set(d?.map(x => x.nuipc?.trim().toUpperCase()) || [])
 
-    const { count: countConcluded } = await conclQuery
+        const ytdEntriesSet = new Set<string>()
+        pYTD?.forEach(x => { if (x.nuipc_completo && !block.has(x.nuipc_completo.trim().toUpperCase())) ytdEntriesSet.add(x.nuipc_completo.trim().toUpperCase()) })
+        eYTD?.forEach(x => { if (x.nuipc && !block.has(x.nuipc.trim().toUpperCase())) ytdEntriesSet.add(x.nuipc.trim().toUpperCase()) })
+        const entriesYTD = ytdEntriesSet.size
 
-    const concluidos = countConcluded || 0
+        // Exits YTD
+        const { count: exitsYTD } = await supabase.from('inqueritos').select('*', { count: 'exact', head: true }).eq('estado', 'concluido').gte('data_conclusao', jan1).lt('data_conclusao', startDate).not('user_id', 'is', null).not('observacoes', 'ilike', '%DEPRECADA%')
 
-    // 3. PENDING PREVIOUS MONTH (Stock Inicial)
-    let stockQuery = supabase
-        .from('inqueritos')
-        .select('*', { count: 'exact', head: true })
-        .lt('created_at', startDate)
-        .or(`estado.neq.concluido,data_conclusao.gte.${startDate}`)
-        .not('observacoes', 'ilike', '%DEPRECADA%')
-
-    const { count: countStock } = await stockQuery
-
-    const pendentesAnterior = countStock || 0
+        pendentesAnterior = stockProcStart + entriesYTD - (exitsYTD || 0)
+    }
 
     // 4. TRANSIT (Stock Final)
     const transitam = pendentesAnterior + entrados - concluidos
 
-    // --- DEPRECADA STATS ---
 
-    // D1. Deprecadas Pendentes Anterior
-    let depPendQuery = supabase
-        .from('inqueritos')
-        .select('nuipc')
-        .lt('created_at', startDate)
-        .or(`estado.neq.concluido,data_conclusao.gte.${startDate}`)
-        .ilike('observacoes', '%DEPRECADA%')
+    // --- DEPRECADA STATS (Assuming Precatorias Stock applies here) ---
+    // Similar Logic using stockPrecStart
 
-    const { data: depPendData } = await depPendQuery
+    // D1. Entradas Deprecadas (Month)
+    const getDepEntradas = async (from: string, to: string) => {
+        const { data } = await supabase.from('inqueritos').select('nuipc').gte('created_at', from).lte('created_at', to).ilike('observacoes', '%DEPRECADA%')
+        return new Set(data?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
+    }
+    const depEntradas = await getDepEntradas(startDate, endDate)
 
-    // Filter valid NUIPCs and deduplicate
-    const depPendentes = new Set(
-        depPendData
-            ?.map(d => d.nuipc?.trim().toUpperCase())
-            .filter(n => n) || []
-    ).size
+    // D2. Concluidas Deprecadas (Month)
+    const getDepConcluidas = async (from: string, to: string) => {
+        const { data } = await supabase.from('inqueritos').select('nuipc').eq('estado', 'concluido').gte('data_conclusao', from).lte('data_conclusao', to).ilike('observacoes', '%DEPRECADA%')
+        return new Set(data?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
+    }
+    const depConcluidas = await getDepConcluidas(startDate, endDate)
 
-    // D2. Deprecadas Entradas (Registadas no mês)
-    let depEntQuery = supabase
-        .from('inqueritos')
-        .select('nuipc')
-        .gte('created_at', startDate)
-        .lte('created_at', endDate)
-        .ilike('observacoes', '%DEPRECADA%')
+    // D3. Pendentes Anterior (Stock Logic)
+    let depPendentes = stockPrecStart
 
-    const { data: depEntradasData } = await depEntQuery
+    if (startDate > jan1) {
+        // Entries YTD
+        const { data: entYTD } = await supabase.from('inqueritos').select('nuipc').gte('created_at', jan1).lt('created_at', startDate).ilike('observacoes', '%DEPRECADA%')
+        const entYTDCount = new Set(entYTD?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
 
-    const depEntradas = new Set(
-        depEntradasData
-            ?.map(d => d.nuipc?.trim().toUpperCase())
-            .filter(n => n) || []
-    ).size
+        // Exits YTD
+        const { data: exitYTD } = await supabase.from('inqueritos').select('nuipc').eq('estado', 'concluido').gte('data_conclusao', jan1).lt('data_conclusao', startDate).ilike('observacoes', '%DEPRECADA%')
+        const exitYTDCount = new Set(exitYTD?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
 
-    // D3. Deprecadas Concluidas (Saídas)
-    let depConclQuery = supabase
-        .from('inqueritos')
-        .select('nuipc')
-        .eq('estado', 'concluido')
-        .gte('data_conclusao', startDate)
-        .lte('data_conclusao', endDate)
-        .ilike('observacoes', '%DEPRECADA%')
+        depPendentes = stockPrecStart + entYTDCount - exitYTDCount
+    }
 
-    const { data: depConcluidasData } = await depConclQuery
-
-    const depConcluidas = new Set(
-        depConcluidasData
-            ?.map(d => d.nuipc?.trim().toUpperCase())
-            .filter(n => n) || []
-    ).size
-
-    // D4. Deprecadas Transitadas
     const depTransitam = depPendentes + depEntradas - depConcluidas
 
     return {
