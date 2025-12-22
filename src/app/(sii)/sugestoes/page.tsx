@@ -1,31 +1,59 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import { NewSuggestionDialog } from '@/components/suggestions/new-suggestion-dialog'
 import { SuggestionCard } from '@/components/suggestions/suggestion-card'
 import { Suggestion } from '@/types/database'
+import { useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
-export default async function SuggestionsPage() {
-    const supabase = await createClient()
+export default function SuggestionsPage() {
+    const supabase = createClient()
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+    const [loading, setLoading] = useState(true)
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [userId, setUserId] = useState<string | null>(null)
 
-    // Fetch user for permissions
-    const { data: { user } } = await supabase.auth.getUser()
-    let isAdmin = false
-    if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        isAdmin = profile?.role === 'admin'
+    useEffect(() => {
+        async function loadData() {
+            try {
+                // Fetch user
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    setUserId(user.id)
+                    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+                    setIsAdmin(profile?.role === 'admin')
+                }
+
+                // Fetch suggestions
+                const { data } = await supabase
+                    .from('sugestoes')
+                    .select(`
+                        *,
+                        profiles:user_id ( full_name )
+                    `)
+                    .order('created_at', { ascending: false })
+
+                if (data) setSuggestions(data as Suggestion[])
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [supabase])
+
+    if (loading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
     }
 
-    // Fetch suggestions
-    const { data: suggestions } = await supabase
-        .from('sugestoes')
-        .select(`
-            *,
-            profiles:user_id ( full_name )
-        `)
-        .order('created_at', { ascending: false })
-
-    const list = (suggestions || []) as Suggestion[]
-
     // Group by status
+    const list = suggestions
     const columns = {
         enviada: list.filter(s => s.status === 'enviada'),
         aberta: list.filter(s => s.status === 'aberta'),
@@ -40,7 +68,7 @@ export default async function SuggestionsPage() {
         implementado: 'Implementado'
     }
 
-    const columnColors = {
+    const columnColors: Record<string, string> = {
         enviada: 'bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700',
         aberta: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
         em_tratamento: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800',
@@ -76,7 +104,7 @@ export default async function SuggestionsPage() {
                                         key={suggestion.id}
                                         suggestion={suggestion}
                                         isAdmin={isAdmin}
-                                        currentUserId={user?.id || null}
+                                        currentUserId={userId}
                                     />
                                 ))}
                                 {columns[status].length === 0 && (

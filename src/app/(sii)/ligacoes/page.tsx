@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import {
     Table,
     TableBody,
@@ -9,21 +11,40 @@ import {
 } from '@/components/ui/table'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-export default async function LigacoesPage() {
-    const supabase = await createClient()
+export default function LigacoesPage() {
+    const supabase = createClient()
+    const [links, setLinks] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const { data: links } = await supabase
-        .from('ligacoes')
-        .select(`
-        id, 
-        razao, 
-        created_at,
-        inquerito_a_data:inquerito_a (id, nuipc),
-        inquerito_b_data:inquerito_b (id, nuipc)
-    `)
-        .order('created_at', { ascending: false })
+    useEffect(() => {
+        async function loadData() {
+            const { data } = await supabase
+                .from('ligacoes')
+                .select(`
+                    id, 
+                    razao, 
+                    created_at,
+                    inquerito_a_data:inquerito_a (id, nuipc),
+                    inquerito_b_data:inquerito_b (id, nuipc)
+                `)
+                .order('created_at', { ascending: false })
+
+            if (data) setLinks(data)
+            setLoading(false)
+        }
+        loadData()
+    }, [supabase])
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-10">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -40,16 +61,16 @@ export default async function LigacoesPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {links?.map((link: any) => (
+                        {links.map((link: any) => (
                             <TableRow key={link.id}>
                                 <TableCell className="font-medium">
-                                    <Link href={`/inqueritos/${link.inquerito_a_data.id}`} className="hover:underline">
-                                        {link.inquerito_a_data.nuipc}
+                                    <Link href={`/inqueritos/${link.inquerito_a_data?.id}`} className="hover:underline">
+                                        {link.inquerito_a_data?.nuipc}
                                     </Link>
                                 </TableCell>
                                 <TableCell className="font-medium">
-                                    <Link href={`/inqueritos/${link.inquerito_b_data.id}`} className="hover:underline">
-                                        {link.inquerito_b_data.nuipc}
+                                    <Link href={`/inqueritos/${link.inquerito_b_data?.id}`} className="hover:underline">
+                                        {link.inquerito_b_data?.nuipc}
                                     </Link>
                                 </TableCell>
                                 <TableCell>{link.razao}</TableCell>
@@ -58,7 +79,7 @@ export default async function LigacoesPage() {
                                 </TableCell>
                             </TableRow>
                         ))}
-                        {links?.length === 0 && (
+                        {links.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={4} className="h-24 text-center">
                                     Nenhuma apensação encontrada.

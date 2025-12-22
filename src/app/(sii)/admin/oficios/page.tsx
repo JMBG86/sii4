@@ -1,18 +1,38 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { FolderIcon, Plus } from 'lucide-react'
 import { CreateCategoryDialog } from './create-category-dialog'
 import { EditCategoryDialog } from './edit-category-dialog'
+import { useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
-export default async function AdminOficiosPage() {
-    const supabase = await createClient()
+export default function AdminOficiosPage() {
+    const supabase = createClient()
+    const [categories, setCategories] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const { data: categories, error } = await supabase
-        .from('oficio_categories')
-        .select('*')
-        .order('created_at', { ascending: false })
+    useEffect(() => {
+        async function loadCategories() {
+            const { data, error } = await supabase
+                .from('oficio_categories')
+                .select('*')
+                .order('created_at', { ascending: false })
+
+            if (data) setCategories(data)
+            setLoading(false)
+        }
+        loadCategories()
+    }, [supabase])
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -22,7 +42,7 @@ export default async function AdminOficiosPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {categories?.map((category) => (
+                {categories.map((category) => (
                     <div key={category.id} className="relative group">
                         <Link href={`/admin/oficios/${category.id}`} className="block h-full">
                             <Card className="h-full transition-all hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800">

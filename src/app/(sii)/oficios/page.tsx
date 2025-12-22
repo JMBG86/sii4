@@ -1,19 +1,44 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
-import { FolderIcon, FileTextIcon } from 'lucide-react'
+import { FolderIcon, Loader2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-export default async function OficiosPage() {
-    const supabase = await createClient()
+export default function OficiosPage() {
+    const supabase = createClient()
+    const [categories, setCategories] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(false)
 
-    // Fetch Categories
-    const { data: categories, error } = await supabase
-        .from('oficio_categories')
-        .select('*')
-        .order('name', { ascending: true })
+    useEffect(() => {
+        async function loadData() {
+            const { data, error } = await supabase
+                .from('oficio_categories')
+                .select('*')
+                .order('name', { ascending: true })
+
+            if (error) {
+                console.error('Error fetching categories:', error)
+                setError(true)
+            } else if (data) {
+                setCategories(data)
+            }
+            setLoading(false)
+        }
+        loadData()
+    }, [supabase])
+
+    if (loading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     if (error) {
-        console.error('Error fetching categories:', error)
         return <div className="p-4 text-red-500">Erro ao carregar ofícios.</div>
     }
 
@@ -24,7 +49,7 @@ export default async function OficiosPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {categories?.map((category) => (
+                {categories.map((category) => (
                     <Link href={`/oficios/${category.id}`} key={category.id} className="block group">
                         <Card className="h-full transition-all hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -42,7 +67,7 @@ export default async function OficiosPage() {
                     </Link>
                 ))}
 
-                {categories?.length === 0 && (
+                {categories.length === 0 && (
                     <div className="col-span-full text-center py-10 text-muted-foreground">
                         <FolderIcon className="mx-auto h-10 w-10 mb-2 opacity-50" />
                         <p>Nenhuma categoria encontrada.</p>

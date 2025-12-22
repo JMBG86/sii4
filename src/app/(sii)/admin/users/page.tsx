@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import {
     Table,
     TableBody,
@@ -9,27 +11,83 @@ import {
 } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { CreateUserDialog } from './create-user-dialog'
 import { EditUserDialog } from './edit-user-dialog'
 import { DeleteUserButton } from './delete-user-button'
+import { useEffect, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 
-export default async function AdminUsersPage() {
-    const supabase = await createClient()
+// Define Profile type locally or import if available
+type Profile = {
+    id: string
+    email: string
+    full_name: string | null
+    role: 'user' | 'admin' | string | null
+    access_sp: boolean | null
+    created_at: string | null
+}
 
-    // 1. Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-        redirect('/login')
+export default function AdminUsersPage() {
+    const supabase = createClient()
+    const router = useRouter()
+    const [loading, setLoading] = useState(true)
+    const [profiles, setProfiles] = useState<Profile[]>([])
+    const [isAdmin, setIsAdmin] = useState(false)
+
+    useEffect(() => {
+        async function loadData() {
+            try {
+                // 1. Check Auth & Admin Role
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    router.replace('/login')
+                    return
+                }
+
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+
+                if (profile?.role !== 'admin') {
+                    setLoading(false)
+                    return // Render access denied
+                }
+
+                setIsAdmin(true)
+
+                // 2. Fetch Profiles
+                const { data: allProfiles, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+
+                if (error) {
+                    console.error('Error fetching profiles:', error)
+                } else {
+                    setProfiles(allProfiles || [])
+                }
+            } catch (err) {
+                console.error('Unexpected error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        loadData()
+    }, [router, supabase])
+
+    if (loading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
     }
 
-    const { data: currentUserProfile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-    if (currentUserProfile?.role !== 'admin') {
+    if (!isAdmin) {
         return (
             <div className="p-8 text-center">
                 <h1 className="text-2xl font-bold text-red-600">Acesso Negado</h1>
@@ -37,12 +95,6 @@ export default async function AdminUsersPage() {
             </div>
         )
     }
-
-    // 2. Fetch all profiles
-    const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
 
     return (
         <div className="space-y-6">
@@ -68,7 +120,7 @@ export default async function AdminUsersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {profiles?.map((profile) => (
+                            {profiles.map((profile) => (
                                 <TableRow key={profile.id}>
                                     <TableCell>{profile.email}</TableCell>
                                     <TableCell>{profile.full_name || '-'}</TableCell>
@@ -89,15 +141,15 @@ export default async function AdminUsersPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-1">
-                                            <EditUserDialog user={profile} />
-                                            <DeleteUserButton userId={profile.id} userName={profile.full_name || profile.email} />
+                                            <EditUserDialog user={profile as any} />
+                                            <DeleteUserButton userId={profile.id} userName={profile.full_name || profile.email || ''} />
                                         </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {profiles?.length === 0 && (
+                            {profiles.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center">
+                                    <TableCell colSpan={6} className="text-center">
                                         Nenhum utilizador encontrado.
                                     </TableCell>
                                 </TableRow>

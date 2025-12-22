@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
     Table,
@@ -10,39 +12,66 @@ import {
 } from '@/components/ui/table'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Loader2 } from 'lucide-react'
 import { MarkAsReadButton } from './mark-read-button'
 import { format } from 'date-fns'
+import { useEffect, useState } from 'react'
 
-export default async function CorrespondenciaPage() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+export default function CorrespondenciaPage() {
+    const supabase = createClient()
+    const [correspondence, setCorrespondence] = useState<any[]>([])
+    const [nuipcToIdMap, setNuipcToIdMap] = useState<Map<string, string>>(new Map())
+    const [loading, setLoading] = useState(true)
 
-    if (!user) return <div>Não autenticado.</div>
+    useEffect(() => {
+        async function loadData() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) {
+                    setLoading(false)
+                    return
+                }
 
-    // 1. Get User's Inquiries NUIPCs
-    const { data: myInquiries } = await supabase
-        .from('inqueritos')
-        .select('nuipc, id')
-        .eq('user_id', user.id)
+                // 1. Get User's Inquiries NUIPCs
+                const { data: myInquiries } = await supabase
+                    .from('inqueritos')
+                    .select('nuipc, id')
+                    .eq('user_id', user.id)
 
-    const myNuipcs = myInquiries?.map(i => i.nuipc).filter(Boolean) || []
+                const myNuipcs = myInquiries?.map(i => i.nuipc).filter(Boolean) as string[] || []
 
-    // Map for linking back to inquiry details
-    const nuipcToIdMap = new Map()
-    myInquiries?.forEach(i => nuipcToIdMap.set(i.nuipc, i.id))
+                // Map for linking back to inquiry details
+                const map = new Map<string, string>()
+                myInquiries?.forEach(i => {
+                    if (i.nuipc) map.set(i.nuipc, i.id)
+                })
+                setNuipcToIdMap(map)
 
-    let correspondence: any[] = []
+                if (myNuipcs.length > 0) {
+                    // 2. Fetch Correspondence matching these NUIPCs
+                    const { data } = await supabase
+                        .from('correspondencias')
+                        .select('*')
+                        .in('nuipc', myNuipcs)
+                        .order('data_entrada', { ascending: false })
 
-    if (myNuipcs.length > 0) {
-        // 2. Fetch Correspondence matching these NUIPCs
-        const { data } = await supabase
-            .from('correspondencias')
-            .select('*')
-            .in('nuipc', myNuipcs)
-            .order('data_entrada', { ascending: false })
+                    if (data) setCorrespondence(data)
+                }
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [supabase])
 
-        correspondence = data || []
+    if (loading) {
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
     }
 
     const hasUnread = correspondence.some(c => !c.lida)
@@ -86,7 +115,9 @@ export default async function CorrespondenciaPage() {
                                             <TableCell>
                                                 {isUnread && <span className="inline-block w-2 h-2 rounded-full bg-blue-500" title="Não lida" />}
                                             </TableCell>
-                                            <TableCell className={isUnread ? 'font-semibold' : ''}>{format(new Date(c.data_entrada), 'dd/MM/yyyy')}</TableCell>
+                                            <TableCell className={isUnread ? 'font-semibold' : ''}>
+                                                {c.data_entrada ? format(new Date(c.data_entrada), 'dd/MM/yyyy') : '-'}
+                                            </TableCell>
                                             <TableCell className="font-medium">{c.assunto}</TableCell>
                                             <TableCell>{c.origem}</TableCell>
                                             <TableCell>{c.numero_oficio || '-'}</TableCell>

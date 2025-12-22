@@ -1,4 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import {
     Table,
     TableBody,
@@ -10,25 +12,51 @@ import {
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, Loader2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreateDiligenceDialog } from '@/components/diligence/create-diligence-dialog'
 import { Inquiry } from '@/types/database'
+import { useEffect, useState } from 'react'
 
-export default async function DiligenciasPage() {
-    const supabase = await createClient()
+export default function DiligenciasPage() {
+    const supabase = createClient()
+    const [diligences, setDiligences] = useState<any[]>([])
+    const [inquiries, setInquiries] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    // Fetch diligences
-    const { data: diligences } = await supabase
-        .from('diligencias')
-        .select('*, inqueritos(id, nuipc)')
-        .order('data_prevista', { ascending: true })
+    useEffect(() => {
+        async function loadData() {
+            try {
+                const [dilRes, inqRes] = await Promise.all([
+                    supabase
+                        .from('diligencias')
+                        .select('*, inqueritos(id, nuipc)')
+                        .order('data_prevista', { ascending: true }),
+                    supabase
+                        .from('inqueritos')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                ])
 
-    // Fetch active inquiries for the selection list
-    const { data: inquiries } = await supabase
-        .from('inqueritos')
-        .select('*')
-        .order('created_at', { ascending: false })
+                if (dilRes.data) setDiligences(dilRes.data)
+                if (inqRes.data) setInquiries(inqRes.data)
+
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [supabase])
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-10">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -58,7 +86,7 @@ export default async function DiligenciasPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {diligences?.map((d) => (
+                                {diligences.map((d) => (
                                     <TableRow key={d.id}>
                                         <TableCell className="font-medium">{(d.inqueritos as any)?.nuipc}</TableCell>
                                         <TableCell>
@@ -85,7 +113,7 @@ export default async function DiligenciasPage() {
                                         </TableCell>
                                     </TableRow>
                                 ))}
-                                {diligences?.length === 0 && (
+                                {diligences.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={7} className="h-24 text-center">
                                             Nenhuma diligência encontrada.
@@ -109,7 +137,7 @@ export default async function DiligenciasPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {inquiries?.map((inq) => (
+                                {inquiries.map((inq) => (
                                     <TableRow key={inq.id}>
                                         <TableCell className="font-medium">{inq.nuipc}</TableCell>
                                         <TableCell>{inq.tipo_crime}</TableCell>

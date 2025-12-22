@@ -1,31 +1,66 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { ArrowLeft, Copy, FileText, CheckCheck } from 'lucide-react'
-// import { CopyButton } from '@/components/ui/copy-button' // If exists, otherwise implemented inline or client component
+import { ArrowLeft, Loader2 } from 'lucide-react'
+import { TemplateViewDialog } from './template-view-dialog'
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
-export default async function OficioDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const supabase = await createClient()
-    const { id } = await params
+export default function OficioDetailPage() {
+    const supabase = createClient()
+    const params = useParams()
+    const id = params?.id as string
 
-    // Fetch Category
-    const { data: category, error: catError } = await supabase
-        .from('oficio_categories')
-        .select('*')
-        .eq('id', id)
-        .single()
+    const [category, setCategory] = useState<any>(null)
+    const [templates, setTemplates] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(false)
 
-    if (catError || !category) {
-        return <div className="p-4 text-red-500">Categoria não encontrada.</div>
+    useEffect(() => {
+        if (!id) return
+
+        async function loadData() {
+            // Fetch Category
+            const { data: catData, error: catError } = await supabase
+                .from('oficio_categories')
+                .select('*')
+                .eq('id', id)
+                .single()
+
+            if (catError || !catData) {
+                setError(true)
+                setLoading(false)
+                return
+            }
+            setCategory(catData)
+
+            // Fetch Templates
+            const { data: templData } = await supabase
+                .from('oficio_templates')
+                .select('*')
+                .eq('category_id', id)
+                .order('title', { ascending: true })
+
+            if (templData) setTemplates(templData)
+            setLoading(false)
+        }
+        loadData()
+    }, [id, supabase])
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        )
     }
 
-    // Fetch Templates
-    const { data: templates, error: templError } = await supabase
-        .from('oficio_templates')
-        .select('*')
-        .eq('category_id', id)
-        .order('title', { ascending: true })
+    if (error || !category) {
+        return <div className="p-4 text-red-500">Categoria não encontrada.</div>
+    }
 
     return (
         <div className="space-y-6">
@@ -39,11 +74,11 @@ export default async function OficioDetailPage({ params }: { params: Promise<{ i
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {templates?.map((template) => (
+                {templates.map((template) => (
                     <TemplateViewDialog key={template.id} template={template} />
                 ))}
 
-                {templates?.length === 0 && (
+                {templates.length === 0 && (
                     <div className="col-span-full text-center py-10 text-muted-foreground">
                         <p>Nenhum modelo disponível nesta categoria.</p>
                     </div>
@@ -53,6 +88,4 @@ export default async function OficioDetailPage({ params }: { params: Promise<{ i
     )
 }
 
-// Simple client component for copy functionality
-// Simple client component for dialog functionality
-import { TemplateViewDialog } from './template-view-dialog'
+
