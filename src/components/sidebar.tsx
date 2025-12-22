@@ -17,6 +17,7 @@ import {
     BarChart3,
     Lightbulb,
     Mail,
+    Phone,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -57,6 +58,11 @@ const sidebarItems = [
         title: 'Ofícios',
         href: '/oficios',
         icon: FileText,
+    },
+    {
+        title: 'Lista Telefónica',
+        href: '/lista-telefonica',
+        icon: Phone,
     },
 ]
 
