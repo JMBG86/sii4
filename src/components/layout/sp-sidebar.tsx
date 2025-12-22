@@ -104,9 +104,9 @@ export function SPSidebar() {
     }
 
     return (
-        <div className="flex h-screen w-64 flex-col border-r bg-stone-50 dark:bg-zinc-950">
-            <Link href="/sp/dashboard" className="flex flex-col items-center justify-center p-6 border-b hover:bg-stone-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer">
-                <div className="relative h-24 w-24 mb-3 opacity-90">
+        <div className="flex h-screen w-64 flex-col border-r bg-white dark:bg-gray-950">
+            <Link href="/sp/dashboard" className="flex flex-col items-center justify-center p-6 border-b hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors cursor-pointer">
+                <div className="relative h-36 w-36 mb-4">
                     <Image
                         src="/LOGO.png"
                         alt="Logo SII"
@@ -115,7 +115,7 @@ export function SPSidebar() {
                         priority
                     />
                 </div>
-                <span className="text-sm font-bold text-center leading-tight text-emerald-800 dark:text-emerald-400">
+                <span className="text-sm font-bold text-center leading-tight">
                     SECÇÃO DE<br />PROCESSOS
                 </span>
             </Link>
@@ -126,10 +126,10 @@ export function SPSidebar() {
                             key={index}
                             href={item.href}
                             className={cn(
-                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all group',
+                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
                                 pathname === item.href
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400'
-                                    : 'text-gray-500 hover:bg-stone-100 dark:text-gray-400 dark:hover:bg-zinc-900 hover:text-emerald-700'
+                                    ? 'bg-gray-100 text-primary dark:bg-gray-800'
+                                    : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
                             )}
                         >
                             <item.icon className="h-4 w-4" />

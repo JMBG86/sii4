@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from 'lucide-react'
 import { NotificationsMenu } from '@/components/notifications-menu'
+import { AppSwitcher } from '@/components/app-switcher'
 
 export function Header() {
     const [userName, setUserName] = useState('')
@@ -25,6 +26,7 @@ export function Header() {
                 <h1 className="text-lg font-semibold">Gestão de Inquéritos</h1>
             </div>
             <div className="flex items-center gap-4">
+                <AppSwitcher />
                 <NotificationsMenu />
                 <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <User className="h-4 w-4" />

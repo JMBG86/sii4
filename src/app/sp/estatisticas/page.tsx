@@ -17,6 +17,7 @@ import {
     Cell
 } from 'recharts'
 import { Loader2 } from 'lucide-react'
+import { getISOWeek, getYear } from 'date-fns'
 
 // --- Types ---
 type ProcessData = {
@@ -25,6 +26,7 @@ type ProcessData = {
     total_detidos: number
     sp_detidos_info: { nacionalidade: string }[]
     sp_apreensoes_drogas: any[]
+    sp_apreensoes_info: { tipo: string, descricao?: string }[]
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658']
@@ -93,7 +95,7 @@ export default function StatisticsPage() {
 
             drugsByMonth[monthKey]['Heroína'] = (drugsByMonth[monthKey]['Heroína'] || 0) + (drugs.heroina_g || 0)
             drugsByMonth[monthKey]['Cocaína'] = (drugsByMonth[monthKey]['Cocaína'] || 0) + (drugs.cocaina_g || 0)
-            drugsByMonth[monthKey]['Hashish'] = (drugsByMonth[monthKey]['Hashish'] || 0) + (drugs.cannabis_resina_g || 0)
+            drugsByMonth[monthKey]['Haxixe'] = (drugsByMonth[monthKey]['Haxixe'] || 0) + (drugs.cannabis_resina_g || 0)
             drugsByMonth[monthKey]['Liamba'] = (drugsByMonth[monthKey]['Liamba'] || 0) + (drugs.cannabis_folhas_g || 0)
         }
     })
@@ -110,6 +112,63 @@ export default function StatisticsPage() {
     const drugsChartData = Object.values(drugsByMonth)
         .sort((a: any, b: any) => a.name.localeCompare(b.name))
 
+    // 4. Seizure Types
+    const seizureCounts: Record<string, number> = {}
+
+    data.forEach(p => {
+        // Drugs Check
+        let hasDrugs = false
+        const rawDrugs = p.sp_apreensoes_drogas
+        if (Array.isArray(rawDrugs) && rawDrugs.length > 0) hasDrugs = true
+        else if (rawDrugs && typeof rawDrugs === 'object' && Object.keys(rawDrugs).length > 0) hasDrugs = true
+
+        if (hasDrugs) {
+            seizureCounts['Estupefacientes'] = (seizureCounts['Estupefacientes'] || 0) + 1
+        }
+
+        // Other Seizures
+        if (p.sp_apreensoes_info) {
+            p.sp_apreensoes_info.forEach(s => {
+                const type = s.tipo || 'Outros'
+                seizureCounts[type] = (seizureCounts[type] || 0) + 1
+            })
+        }
+    })
+
+    const seizuresChartData = Object.entries(seizureCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+
+    // 5. Drugs by Week
+    const drugsByWeek: Record<string, any> = {}
+
+    data.forEach(p => {
+        if (!p.data_registo) return
+        const date = new Date(p.data_registo)
+        // Week Key: YYYY-Www
+        const week = getISOWeek(date)
+        const year = getYear(date)
+        const weekKey = `${year}-W${String(week).padStart(2, '0')}`
+
+        // Drugs
+        const rawDrugs = p.sp_apreensoes_drogas
+        let drugs: any = null
+        if (Array.isArray(rawDrugs) && rawDrugs.length > 0) drugs = rawDrugs[0]
+        else if (rawDrugs && typeof rawDrugs === 'object' && !Array.isArray(rawDrugs)) drugs = rawDrugs
+
+        if (drugs) {
+            if (!drugsByWeek[weekKey]) drugsByWeek[weekKey] = { name: weekKey }
+
+            drugsByWeek[weekKey]['Heroína'] = (drugsByWeek[weekKey]['Heroína'] || 0) + (drugs.heroina_g || 0)
+            drugsByWeek[weekKey]['Cocaína'] = (drugsByWeek[weekKey]['Cocaína'] || 0) + (drugs.cocaina_g || 0)
+            drugsByWeek[weekKey]['Haxixe'] = (drugsByWeek[weekKey]['Haxixe'] || 0) + (drugs.cannabis_resina_g || 0)
+            drugsByWeek[weekKey]['Liamba'] = (drugsByWeek[weekKey]['Liamba'] || 0) + (drugs.cannabis_folhas_g || 0)
+        }
+    })
+
+    const drugsWeeklyChartData = Object.values(drugsByWeek)
+        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+
 
     return (
         <div className="space-y-6">
@@ -118,8 +177,10 @@ export default function StatisticsPage() {
                 <p className="text-muted-foreground">Análise visual da atividade registada.</p>
             </div>
 
-            {/* ROW 1: Evolution Charts */}
-            <div className="grid gap-6 md:grid-cols-2">
+
+
+            {/* ROW 1: General Stats Charts */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader>
                         <CardTitle>Evolução de Detidos</CardTitle>
@@ -166,6 +227,34 @@ export default function StatisticsPage() {
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Tipos de Apreensão</CardTitle>
+                        <CardDescription>Distribuição por categoria</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={seizuresChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    label={({ name, percent }: { name?: string | number; percent?: number }) => `${name ?? ''} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
+                                    outerRadius={80}
+                                    fill="#82ca9d"
+                                    dataKey="value"
+                                >
+                                    {seizuresChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* ROW 2: Drugs Chart (Full Width) */}
@@ -184,12 +273,35 @@ export default function StatisticsPage() {
                             <Legend />
                             <Line type="monotone" dataKey="Heroína" stroke="#8884d8" />
                             <Line type="monotone" dataKey="Cocaína" stroke="#82ca9d" />
-                            <Line type="monotone" dataKey="Hashish" stroke="#ffc658" />
+                            <Line type="monotone" dataKey="Haxixe" stroke="#ffc658" />
                             <Line type="monotone" dataKey="Liamba" stroke="#ff7300" />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
-        </div>
+
+            {/* ROW 3: Weekly Drugs Chart */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Evolução Semanal de Estupefacientes</CardTitle>
+                    <CardDescription>Quantidade apreendida por semana (ISO)</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={drugsWeeklyChartData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Line type="monotone" dataKey="Heroína" stroke="#8884d8" />
+                            <Line type="monotone" dataKey="Cocaína" stroke="#82ca9d" />
+                            <Line type="monotone" dataKey="Haxixe" stroke="#ffc658" />
+                            <Line type="monotone" dataKey="Liamba" stroke="#ff7300" />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+        </div >
     )
 }

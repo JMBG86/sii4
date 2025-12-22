@@ -201,7 +201,7 @@ export default function MapasPage() {
                 if (drugs.heroina_g > 0) drugLines.push(`Heroína: ${drugs.heroina_g}g`)
                 if (drugs.cocaina_g > 0) drugLines.push(`Cocaína: ${drugs.cocaina_g}g`)
                 if (drugs.cannabis_folhas_g > 0) drugLines.push(`Liamba: ${drugs.cannabis_folhas_g}g`)
-                if (drugs.cannabis_resina_g > 0) drugLines.push(`Hashish: ${drugs.cannabis_resina_g}g`)
+                if (drugs.cannabis_resina_g > 0) drugLines.push(`Haxixe: ${drugs.cannabis_resina_g}g`)
                 if (drugs.cannabis_oleo_g > 0) drugLines.push(`Óleo Can.: ${drugs.cannabis_oleo_g}g`)
                 if (drugs.sinteticas_g > 0) drugLines.push(`Sintéticas: ${drugs.sinteticas_g}g`)
                 if (drugs.cannabis_plantas_un > 0) drugLines.push(`Plantas: ${drugs.cannabis_plantas_un} un`)
@@ -470,7 +470,7 @@ export default function MapasPage() {
             'Heroína (g)': 0,
             'Cocaína (g)': 0,
             'Liamba (g)': 0,
-            'Hashish (g)': 0,
+            'Haxixe (g)': 0,
             'Sintéticas (g)': 0,
             'Plantas (un)': 0
         }
@@ -514,7 +514,7 @@ export default function MapasPage() {
                 drogasStats['Heroína (g)'] += (d.heroina_g || 0)
                 drogasStats['Cocaína (g)'] += (d.cocaina_g || 0)
                 drogasStats['Liamba (g)'] += (d.cannabis_folhas_g || 0)
-                drogasStats['Hashish (g)'] += (d.cannabis_resina_g || 0)
+                drogasStats['Haxixe (g)'] += (d.cannabis_resina_g || 0)
                 drogasStats['Sintéticas (g)'] += (d.sinteticas_g || 0)
                 drogasStats['Plantas (un)'] += (d.cannabis_plantas_un || 0)
             }

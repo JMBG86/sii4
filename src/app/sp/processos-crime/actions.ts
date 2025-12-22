@@ -119,7 +119,8 @@ export async function fetchStatisticsData() {
             data_registo,
             total_detidos,
             sp_detidos_info(nacionalidade),
-            sp_apreensoes_drogas(*)
+            sp_apreensoes_drogas(*),
+            sp_apreensoes_info(tipo)
         `)
         .not('nuipc_completo', 'is', null)
         .order('data_registo', { ascending: true })

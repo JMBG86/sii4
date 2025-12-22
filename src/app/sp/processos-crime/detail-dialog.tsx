@@ -483,7 +483,7 @@ export function ProcessoDetailDialog({
                                                             <Input type="number" step="0.01" value={drugs?.heroina_g || ''} onChange={e => updateDrugField('heroina_g', parseFloat(e.target.value))} className="h-8" />
                                                         </div>
                                                         <div className="space-y-1">
-                                                            <Label className="text-xs">Hashish/Resina (g)</Label>
+                                                            <Label className="text-xs">Haxixe/Resina (g)</Label>
                                                             <Input type="number" step="0.01" value={drugs?.cannabis_resina_g || ''} onChange={e => updateDrugField('cannabis_resina_g', parseFloat(e.target.value))} className="h-8" />
                                                         </div>
                                                         <div className="space-y-1">
