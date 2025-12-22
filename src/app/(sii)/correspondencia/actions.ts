@@ -1,10 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
 
 export async function markAllCorrespondenceAsRead() {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) return { error: 'Not authenticated' }
@@ -31,7 +28,5 @@ export async function markAllCorrespondenceAsRead() {
         return { error: 'Failed to mark as read' }
     }
 
-    revalidatePath('/correspondencia')
-    revalidatePath('/') // To update sidebar count
     return { success: true }
 }

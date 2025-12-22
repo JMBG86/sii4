@@ -1,11 +1,9 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 
 export async function searchSPGlobal(query: string) {
     if (!query || query.length < 2) return { results: null }
 
-    const supabase = await createClient()
+    const supabase = createClient()
     const term = `%${query}%`
 
     const [

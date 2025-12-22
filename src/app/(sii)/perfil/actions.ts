@@ -1,11 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export async function updateProfile(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const fullName = formData.get('fullName') as string
 
@@ -17,12 +13,11 @@ export async function updateProfile(formData: FormData) {
         return { error: 'Failed to update profile' }
     }
 
-    revalidatePath('/', 'layout')
     return { success: 'Profile updated successfully' }
 }
 
 export async function updatePassword(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const password = formData.get('password') as string
     const confirmPassword = formData.get('confirmPassword') as string

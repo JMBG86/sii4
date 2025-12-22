@@ -1,10 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
 
 export async function createCorrespondence(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const srv = formData.get('srv') as string
     const numero_oficio = formData.get('numero_oficio') as string
@@ -58,20 +55,13 @@ export async function createCorrespondence(formData: FormData) {
         }
     }
 
-    revalidatePath('/sp/correspondencia')
     return { success: true }
 }
 
 export async function checkNuipcOwner(nuipc: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Fuzzy Logic: Generate variations to ignore leading zeros mismatch
-    // 1. Identify the numeric part at the start
-    // e.g. "00500/25.3..." -> match "00500" -> normalized "500"
-
-    // Simple regex to catch leading digits before a slash or dot or anything non-digit
-    // Actually, NUIPCs often look like "123/24.0ABCD".
-
     let variations: string[] = [nuipc];
 
     const match = nuipc.match(/^0*(\d+)(.*)$/);
@@ -116,7 +106,7 @@ export async function checkNuipcOwner(nuipc: string) {
 }
 
 export async function updateCorrespondence(id: string, formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const srv = formData.get('srv') as string
     const numero_oficio = formData.get('numero_oficio') as string
@@ -141,12 +131,11 @@ export async function updateCorrespondence(id: string, formData: FormData) {
 
     if (error) return { error: error.message }
 
-    revalidatePath('/sp/correspondencia')
     return { success: true }
 }
 
 export async function deleteCorrespondence(id: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const { error } = await supabase
         .from('correspondencias')
@@ -155,6 +144,5 @@ export async function deleteCorrespondence(id: string) {
 
     if (error) return { error: error.message }
 
-    revalidatePath('/sp/correspondencia')
     return { success: true }
 }

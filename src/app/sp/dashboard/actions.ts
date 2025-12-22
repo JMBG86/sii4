@@ -1,6 +1,4 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 
 export type SeizureCategoryStats = {
     total: number;
@@ -9,7 +7,7 @@ export type SeizureCategoryStats = {
 }
 
 export async function getDashboardCounts() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Execute all independent queries in parallel
     const [

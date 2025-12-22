@@ -1,10 +1,14 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+// WARNING: This file is mixed. 
+// fetchProcessos and others are CLIENT SERVICE functions now.
+// HOWEVER, "fetchAllProcessosForExport" might be used by a Server Route???
+// Wait, if output: 'export', there are no Server Routes. 
+// So everything must be Client.
+// Removing revalidatePath and server imports.
 
 export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '') {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('sp_processos_crime')
@@ -31,7 +35,7 @@ export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '') {
 }
 
 export async function fetchAllProcessosForExport() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('sp_processos_crime')
@@ -51,7 +55,7 @@ export async function fetchAllProcessosForExport() {
 }
 
 export async function fetchInqueritosForExcel() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('inqueritos')
@@ -61,22 +65,6 @@ export async function fetchInqueritosForExcel() {
         `)
         .order('created_at', { ascending: true })
 
-    // Note: 'inqueritos' table has 'user_id' for distribution (investigator), not necessarily creator.
-    // However, for this SP Export context, if we want to filter by "My Inquiries/Deprecadas", we should filter by user_id.
-    // For Deprecadas (which live in inqueritos + sp_inqueritos_externos), we might need to be careful.
-    // If the requirement is "My work", filtering by user_id (distribution) makes sense for Inquiries.
-    // For Deprecadas which are "External", if they have a user_id column added (via migration) to sp_inqueritos_externos,
-    // we should filter THERE. But this function fetches 'inqueritos'. 
-    // If the user meant "SP Mapas" -> "My SP work", then we filter sp_processos_crime by user_id.
-    // For 'inqueritos' (External), usually they are distributed. 
-    // Let's assume passed userIdParam applies to 'user_id' here too if meaningful.
-    /* 
-       Actually, `fetchInqueritosForExcel` usually fetches External Inquiries (based on usage in Excel service).
-       These are filtered later in Excel service into Externos and Precatorias.
-       Since we don't have a clear "creator" on inqueritos for external stuff (except the new user_id column on sp_inqueritos_externos),
-       we might need to join or fetch from sp_inqueritos_externos instead if we want strictly "SP Creator".
-       However, to stick to the request "Filter reports by Logged-in User", we'll filter by user_id here.
-    */
     const { data, error } = await query
 
     if (error) throw new Error(error.message)
@@ -84,7 +72,7 @@ export async function fetchInqueritosForExcel() {
 }
 
 export async function fetchCorrespondenciaForExcel() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('correspondencias')
@@ -98,7 +86,7 @@ export async function fetchCorrespondenciaForExcel() {
 }
 
 export async function fetchProcessosByDateRange(startDate: string, endDate: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('sp_processos_crime')
@@ -120,7 +108,7 @@ export async function fetchProcessosByDateRange(startDate: string, endDate: stri
 }
 
 export async function fetchStatisticsData() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Fetch all processes with related data for Charts
     const { data, error } = await supabase
@@ -140,8 +128,7 @@ export async function fetchStatisticsData() {
 }
 
 export async function getNextFreeProcesso() {
-    // Finds the first record where NUIPC is null (meaning it's a "free slot")
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('sp_processos_crime')
         .select('*')
@@ -155,7 +142,7 @@ export async function getNextFreeProcesso() {
 }
 
 export async function getProcessoBySequence(seq: number) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('sp_processos_crime')
         .select('*')
@@ -169,7 +156,7 @@ export async function getProcessoBySequence(seq: number) {
 // --- Detidos ---
 
 export async function getDetidos(processoId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data, error } = await supabase
         .from('sp_detidos_info')
         .select('*')
@@ -180,27 +167,27 @@ export async function getDetidos(processoId: string) {
 }
 
 export async function getCriancas(processoId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data } = await supabase.from('sp_criancas_info').select('*').eq('processo_id', processoId)
     return data || []
 }
 
 export async function getApreensoes(processoId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data } = await supabase.from('sp_apreensoes_info').select('*').eq('processo_id', processoId)
     return data || []
 }
 
 export async function getDrogas(processoId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data } = await supabase.from('sp_apreensoes_drogas').select('*').eq('processo_id', processoId).single()
     return data || null
 }
 
 export async function updateProcesso(id: string, formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
-    // Get current user to stamp ownership if new/updating
+    // Get current user
     const { data: { user } } = await supabase.auth.getUser()
 
     const updates: any = {
@@ -360,7 +347,7 @@ export async function updateProcesso(id: string, formData: FormData) {
                         tipo_crime: updates.tipo_crime,
                         estado: 'por_iniciar',
                         classificacao: 'normal',
-                        user_id: user?.id || null, // Assign to current user if available? Or null/distribution? Usually null until Distributed.
+                        user_id: user?.id || null,
                         denunciados: denunciadosList,
                         denunciantes: denunciantesList,
                         data_ocorrencia: updates.data_factos || null,
@@ -383,12 +370,11 @@ export async function updateProcesso(id: string, formData: FormData) {
     // AWAIT ALL PARALLEL
     await Promise.all(promises)
 
-    revalidatePath('/sp/processos-crime')
     return { success: true }
 }
 
 export async function deleteProcesso(id: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // 1. Delete Detainees
     await Promise.all([
@@ -418,19 +404,16 @@ export async function deleteProcesso(id: string) {
             entidade_destino: null,
             observacoes: null,
             updated_at: new Date().toISOString()
-            // Should we clear user_id? Probably keep it or clear it. Let's clear it to be safe 'unclaim' slot.
-            // user_id: null 
         })
         .eq('id', id)
 
-    revalidatePath('/sp/processos-crime')
     return { success: true, error: null }
 }
 
 // --- Stats for PDF Report ---
 
 export async function fetchMonthlyReportStats(startDate: string, endDate: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // 1. ENTRIES IN MONTH (Entrados) for SP Report
     // Sum of Processos Crime -> 'SII ALBUFEIRA' AND External Inquiries -> 'SII ALBUFEIRA'
@@ -448,10 +431,6 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     const { data: procSIIData } = await procQuery
 
     // b) External Inquiries -> 'SII ALBUFEIRA'
-    // This is trickier if we want to filter by user. 
-    // Usually 'inqueritos' table doesn't have the SP User ID unless we check sp_inqueritos_externos.
-    // If strict filtering is required, we should look at sp_inqueritos_externos.
-
     let extQuery = supabase
         .from('sp_inqueritos_externos')
         .select('nuipc, id')
@@ -465,7 +444,6 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     const nuipcs = new Set<string>()
 
     // Fetch Deprecated NUIPCs to exclude them (Global Check)
-    // We check ANY query with 'DEPRECADA' in observations to act as a blacklist.
     const { data: deprecatedData } = await supabase
         .from('inqueritos')
         .select('nuipc')
@@ -492,8 +470,6 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
 
     // 2. CONCLUDED IN MONTH (Concluídos)
     // Completed in SII during this period (Distributed + Concluded)
-    // If filtering by SP User, this metric is less relevant unless the SP User IS the SII User.
-    // Assuming SP User == SII User for personal stats.
     let conclQuery = supabase
         .from('inqueritos')
         .select('*', { count: 'exact', head: true })
@@ -508,7 +484,6 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     const concluidos = countConcluded || 0
 
     // 3. PENDING PREVIOUS MONTH (Stock Inicial)
-    // Active Inquiries created < startDate.
     let stockQuery = supabase
         .from('inqueritos')
         .select('*', { count: 'exact', head: true })
@@ -521,16 +496,11 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     const pendentesAnterior = countStock || 0
 
     // 4. TRANSIT (Stock Final)
-    // Previous + Entries - Concluded
     const transitam = pendentesAnterior + entrados - concluidos
 
     // --- DEPRECADA STATS ---
 
-    // --- DEPRECADA STATS (Deduplicated by NUIPC) ---
-    // We use Sets to count unique NUIPCs to prevent double-counting if duplicate records exist.
-
     // D1. Deprecadas Pendentes Anterior
-    // Using 'inqueritos' table for stats. If we filter by user, we need to know if the user is the 'distributor' (user_id).
     let depPendQuery = supabase
         .from('inqueritos')
         .select('nuipc')
@@ -599,15 +569,14 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
 
 // --- Entidades (Destinations) ---
 export async function getEntidades() {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data } = await supabase.from('sp_entidades').select('*').order('nome', { ascending: true })
     return data || []
 }
 
 export async function createEntidade(nome: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data, error } = await supabase.from('sp_entidades').insert({ nome }).select().single()
     if (error) return { error: error.message }
-    revalidatePath('/sp/processos-crime')
     return { data }
 }

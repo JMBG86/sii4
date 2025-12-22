@@ -1,10 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
 
 export async function getUnassignedInquiries() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const { data, error } = await supabase
         .from('inqueritos')
@@ -21,7 +18,7 @@ export async function getUnassignedInquiries() {
 }
 
 export async function getUsers() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Get profiles with roles or just all users? Usually admin assigns to investigators.
     // For now, get all profiles
@@ -38,7 +35,7 @@ export async function getUsers() {
 }
 
 export async function assignInquiry(inquiryId: string, userId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const { data, error } = await supabase
         .from('inqueritos')
@@ -57,13 +54,11 @@ export async function assignInquiry(inquiryId: string, userId: string) {
         return { error: 'Inquérito não encontrado ou sem permissão (RLS).' }
     }
 
-    revalidatePath('/admin/distribuicao')
-    revalidatePath('/inqueritos')
     return { success: true }
 }
 
 export async function getSuggestedAssignments(inquiryIds: string[]) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     if (!inquiryIds || inquiryIds.length === 0) return {}
 

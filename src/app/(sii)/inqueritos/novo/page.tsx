@@ -17,12 +17,14 @@ import {
 import { useState, useEffect } from 'react'
 import { Loader2, Plus, X } from 'lucide-react'
 import { Profile } from '@/types/database'
+import { useRouter } from 'next/navigation'
 
 export default function AddInquiryPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [isAdmin, setIsAdmin] = useState(false)
     const [profiles, setProfiles] = useState<Profile[]>([])
+    const router = useRouter()
 
     // Dynamic Lists State
     const [denunciantes, setDenunciantes] = useState<{ id: number; nome: string }[]>([{ id: 1, nome: '' }])
@@ -57,7 +59,6 @@ export default function AddInquiryPage() {
         const validDenunciantes = denunciantes.filter(d => d.nome.trim() !== '').map(d => ({ nome: d.nome }))
         const validDenunciados = denunciados.filter(d => d.nome.trim() !== '').map(d => ({ nome: d.nome }))
 
-        formData.append('denunciantes', JSON.stringify(validDenunciantes))
         formData.append('denunciados', JSON.stringify(validDenunciados))
 
         const result = await createInquiry(formData)
@@ -65,8 +66,9 @@ export default function AddInquiryPage() {
         if (result?.error) {
             setError(result.error)
             setLoading(false)
+        } else {
+            router.push('/inqueritos')
         }
-        // If successful, the server action redirects, so we don't need to do anything.
     }
 
     const addField = (setter: React.Dispatch<React.SetStateAction<{ id: number; nome: string }[]>>) => {

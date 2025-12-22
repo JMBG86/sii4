@@ -1,6 +1,4 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 import { SPProcessoCrime } from '@/types/database'
 
 export async function fetchImagensRows(
@@ -8,7 +6,7 @@ export async function fetchImagensRows(
     limit: number = 50,
     searchTerm: string = ''
 ) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('sp_processos_crime')
@@ -40,7 +38,7 @@ export async function fetchImagensRows(
 }
 
 export async function updateImagensFlags(id: string, imagens: boolean, notificacao: boolean) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const { error } = await supabase
         .from('sp_processos_crime')
@@ -56,7 +54,7 @@ export async function updateImagensFlags(id: string, imagens: boolean, notificac
 }
 
 export async function getPendingImagesCount() {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const { count, error } = await supabase
         .from('sp_processos_crime')

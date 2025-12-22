@@ -1,18 +1,14 @@
-'use server'
-
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 
 export async function login(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const context = formData.get('context') as string // 'sii' | 'sp'
 
     if (!email || !password) {
-        redirect('/login?error=Missing credentials')
+        return { error: 'Missing credentials' }
     }
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -21,13 +17,13 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-        redirect('/login?error=Could not authenticate user')
+        return { error: 'Could not authenticate user' }
     }
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-        redirect('/login?error=Could not authenticate user')
+        return { error: 'Could not authenticate user' }
     }
 
     if (context === 'sp') {
@@ -39,13 +35,11 @@ export async function login(formData: FormData) {
 
         if (!profile?.access_sp) {
             await supabase.auth.signOut()
-            redirect('/login?error=Unauthorized: Sem acesso à Secção de Processos')
+            return { error: 'Unauthorized: Sem acesso à Secção de Processos' }
         }
 
-        revalidatePath('/', 'layout')
-        redirect('/sp/dashboard')
+        return { success: true, redirect: '/sp/dashboard' }
     }
 
-    revalidatePath('/', 'layout')
-    redirect('/')
+    return { success: true, redirect: '/' }
 }

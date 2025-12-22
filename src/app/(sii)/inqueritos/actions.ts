@@ -1,11 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 
 export async function createInquiry(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const nuipc = formData.get('nuipc') as string
     const tipo_crime = formData.get('tipo_crime') as string
@@ -65,19 +61,14 @@ export async function createInquiry(formData: FormData) {
 
     if (error) {
         console.error(error)
-        console.error(error)
         return { error: 'Erro ao criar inquérito: ' + error.message || error.details || 'Erro desconhecido.' }
     }
 
-
-
-
-    revalidatePath('/inqueritos')
-    redirect('/inqueritos')
+    return { success: true }
 }
 
 export async function updateInquiryState(inquiryId: string, newState: string, comment: string, numeroOficio?: string, destino?: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     // 1. Get old state
@@ -113,13 +104,10 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
     })
 
     if (historyError) console.error('History error', historyError)
-
-    revalidatePath(`/inqueritos/detalhe`)
-    revalidatePath('/')
 }
 
 export async function addDiligence(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const inquerito_id = formData.get('inquerito_id') as string
     const descricao = formData.get('descricao') as string
@@ -142,18 +130,10 @@ export async function addDiligence(formData: FormData) {
         console.error('Error adding diligence:', error)
         return { error: error.message || 'Erro ao criar diligência.' }
     }
-
-    revalidatePath(`/inqueritos/${inquerito_id}`)
-    revalidatePath('/')
-    // redirect is usually not needed if we just revalidate, especially if we want to stay on the same page context or if client handles it.
-    // The previous code had redirect, which forces a navigation.
-    // Let's remove redirect to handle the response client-side more gracefully, or keep it if success.
-    // Actually, redirecting inside a form action for a sub-item (diligence) on the same page is slightly jarring.
-    // Better to just revalidate.
 }
 
 export async function deleteInquiry(inquiryId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // 1. Fetch to check origin and assignment status
     const { data: inquiry } = await supabase
@@ -175,7 +155,6 @@ export async function deleteInquiry(inquiryId: string) {
                 user_id: null,
                 estado: 'por_iniciar',
                 data_atribuicao: null,
-                // data_inicio_investigacao: null // Optional: clear start date too? Probably yes.
             })
             .eq('id', inquiryId)
 
@@ -195,13 +174,11 @@ export async function deleteInquiry(inquiryId: string) {
             return { error: 'Failed to delete inquiry' }
         }
     }
-
-    revalidatePath('/inqueritos')
-    revalidatePath('/')
+    return { success: true }
 }
 
 export async function updateDiligence(diligenceId: string, formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const descricao = formData.get('descricao') as string
     const entidade = formData.get('entidade') as string
@@ -222,13 +199,10 @@ export async function updateDiligence(diligenceId: string, formData: FormData) {
         console.error('Error updating diligence:', error)
         throw error
     }
-
-    revalidatePath('/inqueritos')
-    revalidatePath('/')
 }
 
 export async function deleteDiligence(diligenceId: string, inquiryId: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const { error } = await supabase
         .from('diligencias')
@@ -239,14 +213,10 @@ export async function deleteDiligence(diligenceId: string, inquiryId: string) {
         console.error('Error deleting diligence:', error)
         throw error
     }
-
-    revalidatePath(`/inqueritos/detalhe`)
-    revalidatePath('/inqueritos')
-    revalidatePath('/')
 }
 
 export async function updateInquiry(inquiryId: string, formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const nuipc = formData.get('nuipc') as string
     const tipo_crime = formData.get('tipo_crime') as string
@@ -255,7 +225,6 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
     const data_atribuicao = formData.get('data_atribuicao') as string
     const classificacao = formData.get('classificacao') as string
     const observacoes = formData.get('observacoes') as string
-    const localizacao = formData.get('localizacao') as string // Keeping for legacy handling if needed, but we rely on new fields mostly
 
     // Parse JSON fields
     const denunciantesRaw = formData.get('denunciantes') as string
@@ -293,10 +262,5 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
         console.error('Error updating inquiry:', error)
         return { error: 'Failed to update inquiry' }
     }
-
-    revalidatePath(`/inqueritos/detalhe`)
-    revalidatePath('/inqueritos')
-    revalidatePath('/')
+    return { success: true }
 }
-
-

@@ -1,10 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
 
 export async function fetchInqueritosExternos(searchTerm: string = '') {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('sp_inqueritos_externos')
@@ -25,7 +22,7 @@ export async function fetchInqueritosExternos(searchTerm: string = '') {
 }
 
 export async function createInqueritoExterno(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const rawData = {
         srv: formData.get('srv') as string,
@@ -109,13 +106,11 @@ export async function createInqueritoExterno(formData: FormData) {
         }
     }
 
-    revalidatePath('/sp/inqueritos-externos')
-    revalidatePath('/sp/mapas')
     return { success: true }
 }
 
 export async function updateInqueritoExterno(id: string, formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const rawData = {
         srv: formData.get('srv') as string,
@@ -191,13 +186,11 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
         }
     }
 
-    revalidatePath('/sp/inqueritos-externos')
-    revalidatePath('/sp/mapas')
     return { success: true }
 }
 
 export async function deleteInqueritoExterno(id: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { error } = await supabase
         .from('sp_inqueritos_externos')
         .delete()
@@ -205,13 +198,11 @@ export async function deleteInqueritoExterno(id: string) {
 
     if (error) return { error: error.message }
 
-    revalidatePath('/sp/inqueritos-externos')
-    revalidatePath('/sp/mapas') // Ensure stats are updated
     return { success: true }
 }
 
 export async function checkNuipcAssociation(nuipc: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Check in 'inqueritos' for any record with this NUIPC (even if user is null? User said "se tiver user").
     // Actually user said: "verificar se esse NUIPC ja está associado a alguem"

@@ -1,10 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
 
 export async function fetchDeprecadas(searchTerm: string = '') {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     let query = supabase
         .from('sp_inqueritos_externos')
@@ -24,7 +21,7 @@ export async function fetchDeprecadas(searchTerm: string = '') {
 }
 
 export async function createDeprecada(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Get current user to stamp ownership
     const { data: { user } } = await supabase.auth.getUser()
@@ -79,12 +76,11 @@ export async function createDeprecada(formData: FormData) {
         }
     }
 
-    revalidatePath('/sp/deprecadas')
     return { success: true }
 }
 
 export async function updateDeprecada(id: string, formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // Ensure we keep 'DEPRECADA' if user edited it out, or just prepend it if missing
     let obs = formData.get('observacoes') as string || ''
@@ -112,12 +108,11 @@ export async function updateDeprecada(id: string, formData: FormData) {
 
     if (error) return { error: error.message }
 
-    revalidatePath('/sp/deprecadas')
     return { success: true }
 }
 
 export async function deleteDeprecada(id: string) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     // 1. Get NUIPC before deleting to sync with SII
     const { data: deprecada } = await supabase
@@ -150,6 +145,5 @@ export async function deleteDeprecada(id: string) {
         }
     }
 
-    revalidatePath('/sp/deprecadas')
     return { success: true }
 }

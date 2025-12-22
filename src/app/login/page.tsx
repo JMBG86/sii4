@@ -1,7 +1,7 @@
 'use client'
 
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { login } from './actions'
 import { LoginButton } from './login-button'
 import {
@@ -17,6 +17,26 @@ import { Label } from '@/components/ui/label'
 function LoginForm() {
     const searchParams = useSearchParams()
     const error = searchParams.get('error')
+    const [errorMsg, setErrorMsg] = useState<string | null>(error)
+    const [loading, setLoading] = useState(false)
+    const router = useRouter()
+
+    async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault()
+        setLoading(true)
+        setErrorMsg(null)
+
+        const formData = new FormData(event.currentTarget)
+        const result = await login(formData)
+
+        setLoading(false)
+
+        if (result?.error) {
+            setErrorMsg(result.error)
+        } else if (result?.redirect) {
+            router.push(result.redirect)
+        }
+    }
 
     return (
         <Card className="w-full max-w-sm border-0 shadow-lg sm:border sm:border-gray-200">
@@ -29,7 +49,7 @@ function LoginForm() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={login} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     {/* App Context Selector */}
                     <div className="grid grid-cols-2 gap-2 mb-4">
                         <label className="cursor-pointer">
@@ -67,12 +87,12 @@ function LoginForm() {
                             className="bg-white"
                         />
                     </div>
-                    {error && (
+                    {errorMsg && (
                         <div className="text-sm font-medium text-red-500 text-center animate-pulse">
-                            {error}
+                            {errorMsg}
                         </div>
                     )}
-                    <LoginButton />
+                    <LoginButton loading={loading} />
                 </form>
             </CardContent>
         </Card>

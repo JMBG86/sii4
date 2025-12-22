@@ -1,11 +1,8 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/client'
 import { SuggestionStatus } from '@/types/database'
 
 export async function createSuggestion(formData: FormData) {
-    const supabase = await createClient()
+    const supabase = createClient()
 
     const titulo = formData.get('titulo') as string
     const descricao = formData.get('descricao') as string
@@ -30,11 +27,11 @@ export async function createSuggestion(formData: FormData) {
         return { error: 'Erro ao criar sugestão.' }
     }
 
-    revalidatePath('/sugestoes')
+    // Success - caller handles refresh
 }
 
 export async function updateSuggestionStatus(id: string, newStatus: SuggestionStatus) {
-    const supabase = await createClient()
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) return { error: 'Não autenticado.' }
@@ -59,20 +56,10 @@ export async function updateSuggestionStatus(id: string, newStatus: SuggestionSt
         console.error('Error updating suggestion status:', error)
         return { error: 'Erro ao atualizar estado.' }
     }
-
-    revalidatePath('/sugestoes')
 }
 
 export async function deleteSuggestion(id: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // We rely on RLS for "Owner" check, but RLS might be tricky if we want Admin to delete too.
-    // Let's do a double check here or trust RLS.
-    // Migration said: "Enable delete for owners".
-    // If we want Admins to delete too, we need RLS update OR Service Key (avoid).
-    // Let's stick to RLS. If Admin needs to delete, they might need policy update.
-    // For now, simple delete.
+    const supabase = createClient()
 
     const { error } = await supabase
         .from('sugestoes')
@@ -83,6 +70,4 @@ export async function deleteSuggestion(id: string) {
         console.error('Delete error', error)
         return { error: 'Erro ao apagar (apenas o criador pode apagar).' }
     }
-
-    revalidatePath('/sugestoes')
 }
