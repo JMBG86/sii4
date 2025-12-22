@@ -1,4 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -11,146 +14,186 @@ import {
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { InquiryStatus } from '@/types/database'
+import { Loader2 } from 'lucide-react'
 
-export default async function Dashboard() {
-  const supabase = await createClient()
-
-  // 0. Get User
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return <div>Access Denied</div>
-
-  // 1. Fetch ALL Data in Parallel for Performance
-  const [
-    { count: totalInqueries },
-    { count: pendingInqueries },
-    { count: diligenceInqueries },
-    { count: courtInqueries },
-    { count: completedInqueries },
-    { count: relevoInqueries },
-    { data: recentInquiries },
-    { data: allInquiries },
-    { data: toDodiligences },
-    { data: completedDiligences },
-    { data: waitingResponse },
-    { data: waitingDiligences },
-    { data: notableInquiries }
-  ] = await Promise.all([
-    // [0] Total
-    supabase.from('inqueritos')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [1] Pending
-    supabase.from('inqueritos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'por_iniciar')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [2] In Diligences
-    supabase.from('inqueritos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'em_diligencias')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [3] Court
-    supabase.from('inqueritos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'tribunal')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [4] Completed
-    supabase.from('inqueritos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'concluido')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [5] Relevo
-    supabase.from('inqueritos')
-      .select('*', { count: 'exact', head: true })
-      .eq('classificacao', 'relevo')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [6] Recent List
-    supabase.from('inqueritos')
-      .select('*')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%')
-      .order('created_at', { ascending: false })
-      .limit(10),
-
-    // [7] All Inquiries (for Year Stats)
-    supabase.from('inqueritos')
-      .select('created_at, data_atribuicao')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%'),
-
-    // [8] To Do Diligences
-    supabase.from('diligencias')
-      .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
-      .eq('status', 'a_realizar')
-      .eq('inqueritos.user_id', user.id)
-      .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
-      .order('data_enviado', { ascending: true })
-      .limit(10),
-
-    // [9] Completed Diligences
-    supabase.from('diligencias')
-      .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
-      .eq('status', 'realizado')
-      .eq('inqueritos.user_id', user.id)
-      .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
-      .order('data_enviado', { ascending: false })
-      .limit(10),
-
-    // [10] Waiting Response Inquiries
-    supabase.from('inqueritos')
-      .select('*')
-      .eq('estado', 'aguardando_resposta')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%')
-      .order('created_at', { ascending: false })
-      .limit(10),
-
-    // [11] Waiting Response Diligences
-    supabase.from('diligencias')
-      .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
-      .eq('status', 'enviado_aguardar')
-      .eq('inqueritos.user_id', user.id)
-      .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
-      .order('data_enviado', { ascending: false })
-      .limit(10),
-
-    // [12] Notable Inquiries List
-    supabase.from('inqueritos')
-      .select('*')
-      .eq('classificacao', 'relevo')
-      .eq('user_id', user.id)
-      .not('observacoes', 'ilike', '%DEPRECADA%')
-      .limit(10)
-  ])
-
-  // Calculate breakdown
-  const yearStats: Record<string, number> = {}
-  allInquiries?.forEach((item: any) => {
-    // Use data_atribuicao if available, otherwise created_at
-    const rawDate = item.data_atribuicao || item.created_at
-    const date = new Date(rawDate)
-
-    if (!isNaN(date.getTime())) {
-      const year = date.getFullYear().toString()
-      yearStats[year] = (yearStats[year] || 0) + 1
-    }
+export default function Dashboard() {
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<any>({
+    totalInqueries: 0,
+    pendingInqueries: 0,
+    diligenceInqueries: 0,
+    courtInqueries: 0,
+    completedInqueries: 0,
+    relevoInqueries: 0,
+    recentInquiries: [],
+    yearStats: {},
+    sortedYears: [],
+    toDodiligences: [],
+    completedDiligences: [],
+    waitingResponse: [],
+    waitingDiligences: [],
+    notableInquiries: []
   })
 
-  const sortedYears = Object.keys(yearStats).sort()
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
 
+      if (!user) return
 
+      // 1. Fetch ALL Data in Parallel for Performance
+      const [
+        { count: totalInqueries },
+        { count: pendingInqueries },
+        { count: diligenceInqueries },
+        { count: courtInqueries },
+        { count: completedInqueries },
+        { count: relevoInqueries },
+        { data: recentInquiries },
+        { data: allInquiries },
+        { data: toDodiligences },
+        { data: completedDiligences },
+        { data: waitingResponse },
+        { data: waitingDiligences },
+        { data: notableInquiries }
+      ] = await Promise.all([
+        // [0] Total
+        supabase.from('inqueritos')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [1] Pending
+        supabase.from('inqueritos')
+          .select('*', { count: 'exact', head: true })
+          .eq('estado', 'por_iniciar')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [2] In Diligences
+        supabase.from('inqueritos')
+          .select('*', { count: 'exact', head: true })
+          .eq('estado', 'em_diligencias')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [3] Court
+        supabase.from('inqueritos')
+          .select('*', { count: 'exact', head: true })
+          .eq('estado', 'tribunal')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [4] Completed
+        supabase.from('inqueritos')
+          .select('*', { count: 'exact', head: true })
+          .eq('estado', 'concluido')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [5] Relevo
+        supabase.from('inqueritos')
+          .select('*', { count: 'exact', head: true })
+          .eq('classificacao', 'relevo')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [6] Recent List
+        supabase.from('inqueritos')
+          .select('*')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%')
+          .order('created_at', { ascending: false })
+          .limit(10),
+
+        // [7] All Inquiries (for Year Stats)
+        supabase.from('inqueritos')
+          .select('created_at, data_atribuicao')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%'),
+
+        // [8] To Do Diligences
+        supabase.from('diligencias')
+          .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
+          .eq('status', 'a_realizar')
+          .eq('inqueritos.user_id', user.id)
+          .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
+          .order('data_enviado', { ascending: true })
+          .limit(10),
+
+        // [9] Completed Diligences
+        supabase.from('diligencias')
+          .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
+          .eq('status', 'realizado')
+          .eq('inqueritos.user_id', user.id)
+          .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
+          .order('data_enviado', { ascending: false })
+          .limit(10),
+
+        // [10] Waiting Response Inquiries
+        supabase.from('inqueritos')
+          .select('*')
+          .eq('estado', 'aguardando_resposta')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%')
+          .order('created_at', { ascending: false })
+          .limit(10),
+
+        // [11] Waiting Response Diligences
+        supabase.from('diligencias')
+          .select('*, inqueritos!inner(nuipc, id, user_id, observacoes)')
+          .eq('status', 'enviado_aguardar')
+          .eq('inqueritos.user_id', user.id)
+          .not('inqueritos.observacoes', 'ilike', '%DEPRECADA%')
+          .order('data_enviado', { ascending: false })
+          .limit(10),
+
+        // [12] Notable Inquiries List
+        supabase.from('inqueritos')
+          .select('*')
+          .eq('classificacao', 'relevo')
+          .eq('user_id', user.id)
+          .not('observacoes', 'ilike', '%DEPRECADA%')
+          .limit(10)
+      ])
+
+      // Calculate breakdown
+      const yearStatsCallback: Record<string, number> = {}
+      allInquiries?.forEach((item: any) => {
+        // Use data_atribuicao if available, otherwise created_at
+        const rawDate = item.data_atribuicao || item.created_at
+        const date = new Date(rawDate)
+
+        if (!isNaN(date.getTime())) {
+          const year = date.getFullYear().toString()
+          yearStatsCallback[year] = (yearStatsCallback[year] || 0) + 1
+        }
+      })
+
+      const sortedYearsCallback = Object.keys(yearStatsCallback).sort()
+
+      setData({
+        totalInqueries: totalInqueries || 0,
+        pendingInqueries: pendingInqueries || 0,
+        diligenceInqueries: diligenceInqueries || 0,
+        courtInqueries: courtInqueries || 0,
+        completedInqueries: completedInqueries || 0,
+        relevoInqueries: relevoInqueries || 0,
+        recentInquiries: recentInquiries || [],
+        yearStats: yearStatsCallback,
+        sortedYears: sortedYearsCallback,
+        toDodiligences: toDodiligences || [],
+        completedDiligences: completedDiligences || [],
+        waitingResponse: waitingResponse,
+        waitingDiligences: waitingDiligences,
+        notableInquiries: notableInquiries
+      })
+      setLoading(false)
+    }
+
+    fetchData()
+  }, [])
 
   const getStatusColor = (status: InquiryStatus) => {
     switch (status) {
@@ -166,6 +209,32 @@ export default async function Dashboard() {
   const getStatusLabel = (status: InquiryStatus) => {
     return status.replace('_', ' ').toUpperCase()
   }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const {
+    totalInqueries,
+    pendingInqueries,
+    diligenceInqueries,
+    courtInqueries,
+    completedInqueries,
+    relevoInqueries,
+    recentInquiries,
+    yearStats,
+    sortedYears,
+    toDodiligences,
+    completedDiligences,
+    waitingResponse,
+    waitingDiligences,
+    notableInquiries
+  } = data
+
   return (
     <div className="space-y-6">
 
@@ -179,7 +248,7 @@ export default async function Dashboard() {
             <CardContent>
               <div className="text-2xl font-bold">{totalInqueries || 0}</div>
               <div className="text-xs text-muted-foreground mt-1 space-x-2">
-                {sortedYears.map((year, idx) => (
+                {sortedYears.map((year: string, idx: number) => (
                   <span key={year} className={idx > 0 ? "border-l pl-2 border-gray-300" : ""}>
                     {year}: <strong>{yearStats[year]}</strong>
                   </span>
@@ -259,7 +328,7 @@ export default async function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentInquiries?.map((inq) => (
+                {recentInquiries?.map((inq: any) => (
                   <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <TableCell className="font-medium">
                       <Link href={`/inqueritos/${inq.id}`} className="block">
@@ -304,7 +373,7 @@ export default async function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {toDodiligences?.map((d) => (
+              {toDodiligences?.map((d: any) => (
                 <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                   <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
                     <span className="font-semibold text-sm">{(d as any).inqueritos?.nuipc || 'N/A'}</span>
@@ -334,7 +403,7 @@ export default async function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {completedDiligences?.map((d) => (
+              {completedDiligences?.map((d: any) => (
                 <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                   <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
                     <div className="flex items-center gap-2 text-sm">
@@ -369,7 +438,7 @@ export default async function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {notableInquiries?.map((inq) => (
+                {notableInquiries?.map((inq: any) => (
                   <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                     <TableCell className="font-medium">
                       <Link href={`/inqueritos/${inq.id}`} className="block">
@@ -423,7 +492,7 @@ export default async function Dashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {waitingResponse.map((inq) => (
+                      {waitingResponse.map((inq: any) => (
                         <TableRow key={inq.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
                           <TableCell className="font-medium">
                             <Link href={`/inqueritos/${inq.id}`} className="block">
@@ -455,7 +524,7 @@ export default async function Dashboard() {
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground mb-2">Diligências "Enviado e a Aguardar"</h4>
                 <div className="space-y-4">
-                  {waitingDiligences?.map((d) => (
+                  {waitingDiligences?.map((d: any) => (
                     <Link href={`/inqueritos/${(d as any).inqueritos?.id}`} key={d.id} className="block group">
                       <div className="flex flex-col border-b pb-2 last:border-0 last:pb-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 rounded p-1">
                         <div className="flex justify-between">

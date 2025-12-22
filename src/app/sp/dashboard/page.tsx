@@ -1,13 +1,43 @@
+'use client'
 
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDashboardCounts } from "./actions"
-import { FileText, Mail, Users, Package, Syringe, Inbox } from "lucide-react"
+import { FileText, Mail, Users, Package, Syringe, Inbox, Loader2 } from "lucide-react"
 
-export default async function SPDashboard() {
-    const counts = await getDashboardCounts()
+export default function SPDashboard() {
+    const [loading, setLoading] = useState(true)
+    const [counts, setCounts] = useState<any>({
+        processos: 0,
+        inqueritosExternos: 0,
+        correspondencia: 0,
+        totalDetidos: 0,
+        seizuresTree: {},
+        drugsTotals: {}
+    })
+
+    useEffect(() => {
+        getDashboardCounts()
+            .then(data => {
+                setCounts(data)
+                setLoading(false)
+            })
+            .catch(err => {
+                console.error("Failed to fetch dashboard counts", err)
+                setLoading(false)
+            })
+    }, [])
 
     // Helper to format currency
     const formatMoney = (val: number) => val.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
+
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+        )
+    }
 
     return (
         <div className="p-8 space-y-8">
@@ -78,7 +108,7 @@ export default async function SPDashboard() {
                     <CardContent className="pt-2">
                         <div className="space-y-3">
                             {Object.keys(counts.seizuresTree).length > 0 ? (
-                                Object.entries(counts.seizuresTree)
+                                Object.entries(counts.seizuresTree as Record<string, any>)
                                     .sort(([, a], [, b]) => b.total - a.total)
                                     .map(([cat, stats]) => (
                                         <div key={cat} className="space-y-1">
@@ -94,7 +124,7 @@ export default async function SPDashboard() {
                                             </div>
 
                                             {/* Subcategories (Indented) */}
-                                            {Object.entries(stats.subs).map(([subKey, subVal]) => (
+                                            {Object.entries(stats.subs as Record<string, number>).map(([subKey, subVal]) => (
                                                 <div key={subKey} className="flex justify-between items-center text-xs pl-4 pr-1 text-gray-600 dark:text-gray-400">
                                                     <span>↳ {subKey}</span>
                                                     <span className="font-mono font-semibold">
@@ -119,7 +149,7 @@ export default async function SPDashboard() {
                     </CardHeader>
                     <CardContent className="pt-2">
                         <div className="space-y-2">
-                            {Object.entries(counts.drugsTotals).map(([type, amount]) => (
+                            {Object.entries(counts.drugsTotals as Record<string, number>).map(([type, amount]) => (
                                 amount > 0 && (
                                     <div key={type} className="flex justify-between items-center text-sm border-b pb-1 last:border-0 last:pb-0">
                                         <span className="font-medium text-gray-700 dark:text-gray-300">{type}</span>
@@ -129,7 +159,7 @@ export default async function SPDashboard() {
                                     </div>
                                 )
                             ))}
-                            {Object.values(counts.drugsTotals).every(v => v === 0) && (
+                            {Object.values(counts.drugsTotals as Record<string, number>).every(v => v === 0) && (
                                 <p className="text-sm text-muted-foreground italic">Sem apreensões de estupefacientes</p>
                             )}
                         </div>
