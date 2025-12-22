@@ -325,9 +325,9 @@ export async function updateProcesso(id: string, formData: FormData) {
     }
     promises.push(updateDrogas())
 
-    // --- Integration: Create Inquiry if SII ALBUFEIRA ---
+    // --- Integration: Create Inquiry if SII or SII ALBUFEIRA ---
     const updateIntegration = async () => {
-        if (updates.entidade_destino === 'SII ALBUFEIRA' && updates.nuipc_completo) {
+        if ((updates.entidade_destino === 'SII ALBUFEIRA' || updates.entidade_destino === 'SII') && updates.nuipc_completo) {
             try {
                 // Check if exists
                 const { data: existing } = await supabase
@@ -351,13 +351,13 @@ export async function updateProcesso(id: string, formData: FormData) {
                         tipo_crime: updates.tipo_crime,
                         estado: 'por_iniciar',
                         classificacao: 'normal',
-                        user_id: user?.id || null,
+                        user_id: null, // Don't assign to user, let it go to "To Distribute"
                         denunciados: denunciadosList,
                         denunciantes: denunciantesList,
                         data_ocorrencia: updates.data_factos || null,
                         data_participacao: updates.data_conhecimento || null,
                         observacoes: `[Importado da SP] ${updates.observacoes || ''}`,
-                        destino: 'SII ALBUFEIRA'
+                        destino: 'SII'
                     })
 
                     if (insertError) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
     Dialog,
     DialogContent,
@@ -39,6 +39,13 @@ export function StateUpdateDialog({
     const [comment, setComment] = useState('')
     const [numeroOficio, setNumeroOficio] = useState('')
     const [destino, setDestino] = useState('')
+
+    // Auto-fill DIAP Albufeira when completing
+    useEffect(() => {
+        if (newState === 'concluido' && !destino) {
+            setDestino('DIAP Albufeira')
+        }
+    }, [newState, destino])
 
     const handleUpdate = async () => {
         if (newState === currentState) {
@@ -118,9 +125,20 @@ export function StateUpdateDialog({
                                     id="destino"
                                     value={destino}
                                     onChange={(e) => setDestino(e.target.value)}
-                                    placeholder="Ex: DIAP, Tribunal, Arquivo..."
+                                    placeholder="Ex: DIAP Albufeira, PJ Faro..."
                                     required
+                                    list="destinations"
                                 />
+                                <datalist id="destinations">
+                                    <option value="DIAP Albufeira" />
+                                    <option value="PJ Faro" />
+                                    <option value="Tribunal Judicial" />
+                                    <option value="SII" />
+                                    <option value="Arquivo" />
+                                </datalist>
+                                <p className="text-[0.8rem] text-muted-foreground">
+                                    Selecione ou escreva um novo destino.
+                                </p>
                             </div>
                         </>
                     )}

@@ -95,7 +95,61 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
 
     if (updateError) throw new Error('Failed to update status')
 
-    // 4. Insert History
+    // 4. Sync Destination to Source if applicable
+    const isConcluding = newState === 'concluido'
+    const isActiveState = !isConcluding
+    const finalDestino = isActiveState ? 'SII' : (destino!)
+
+    if ((isConcluding && destino) || isActiveState) {
+        const { data: inquiry } = await supabase.from('inqueritos').select('nuipc').eq('id', inquiryId).single()
+
+        if (isActiveState) {
+            console.log('[DEBUG] Reopening inquiry', inquiryId)
+            await supabase.from('inqueritos').update({ destino: 'SII', numero_oficio: null, data_conclusao: null }).eq('id', inquiryId)
+        }
+
+        console.log('[DEBUG] Syncing Destino:', {
+            inquiryId,
+            nuipc: inquiry?.nuipc,
+            finalDestino
+        })
+
+        if (inquiry?.nuipc) {
+            // Attempt 1: Parallel Update
+            const [spRes, extRes] = await Promise.all([
+                supabase.from('sp_processos_crime')
+                    .update({ entidade_destino: finalDestino })
+                    .eq('nuipc_completo', inquiry.nuipc)
+                    .select(),
+
+                supabase.from('sp_inqueritos_externos')
+                    .update({ destino: finalDestino })
+                    .eq('nuipc', inquiry.nuipc)
+                    .select()
+            ])
+
+            console.log('[DEBUG] Sync Results (Attempt 1):', {
+                spUpdated: spRes.data?.length || 0,
+                spError: spRes.error,
+                extUpdated: extRes.data?.length || 0
+            })
+
+            // Fallback: If SP update failed to find rows, maybe try matching 'nuipc' column if it exists or trimmed version?
+            // Or maybe the inquiry.nuipc has spaces?
+            if ((spRes.data?.length || 0) === 0) {
+                // Try removing spaces?
+                const cleanNuipc = inquiry.nuipc.replace(/\s/g, '')
+                if (cleanNuipc !== inquiry.nuipc) {
+                    console.log('[DEBUG] Retrying SP update with clean NUIPC:', cleanNuipc)
+                    await supabase.from('sp_processos_crime')
+                        .update({ entidade_destino: finalDestino })
+                        .eq('nuipc_completo', cleanNuipc)
+                }
+            }
+        }
+    }
+
+    // 5. Insert History
     const { error: historyError } = await supabase.from('historico_estados').insert({
         inquerito_id: inquiryId,
         estado_anterior: oldState,
@@ -104,18 +158,6 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
     })
 
     if (historyError) console.error('History error', historyError)
-
-    // Revalidate paths logic removed as this is a client-side action file? 
-    // Wait, actions.ts name implies Server Actions usually, but imports say "supabase/client".
-    // If these are client-side functions, revalidatePath won't work directly on client router cache same way.
-    // However, if we migrated this to "use server", we could use it.
-    // BUT the file starts with "import { createClient } from '@/lib/supabase/client'".
-    // So these run in the browser. 
-    // The "loadData" prop passing we did in page.tsx is the CORRECT fix for Client Components.
-    // I will NOT add revalidatePath here because it will crash or fail if running on client.
-    // Actually, looking at the file content from previous Read, it imports from 'client'.
-    // So the previous plan to add revalidatePath was misguided for a Client file.
-    // I will skip adding revalidatePath and rely on the robust onUpdate callback I just implemented.
 }
 
 export async function addDiligence(formData: FormData) {

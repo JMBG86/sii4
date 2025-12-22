@@ -189,9 +189,9 @@ export function ProcessosTable({ year }: { year: number }) {
                                     <TableCell className="max-w-[150px] truncate" title={row.vitima}>{row.vitima || '-'}</TableCell>
                                     <TableCell className="max-w-[150px] truncate" title={row.arguido}>{row.arguido || '-'}</TableCell>
                                     <TableCell className="max-w-[150px] truncate" title={row.entidade_destino}>
-                                        {row.entidade_destino === 'SII ALBUFEIRA' ? (
+                                        {(row.entidade_destino === 'SII ALBUFEIRA' || row.entidade_destino === 'SII') ? (
                                             <Badge className="bg-blue-600 hover:bg-blue-700 border-0">
-                                                SII (Integrado)
+                                                SII
                                             </Badge>
                                         ) : row.entidade_destino ? (
                                             <Badge variant="secondary">{row.entidade_destino}</Badge>

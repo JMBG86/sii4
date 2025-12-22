@@ -144,13 +144,18 @@ export default function StatisticsPage() {
     const destCounts: Record<string, number> = {}
 
     data.forEach(p => {
-        const rawDest = (p.entidade_destino || 'Outros Órgãos').trim().toUpperCase()
+        const rawDest = (p.entidade_destino || 'Outros Órgãos').trim()
+        // No longer force upper case as we are using normalized Mixed Case values
+
         let category = 'Outros Órgãos'
 
-        if (rawDest === 'SII ALBUFEIRA') category = 'SII'
-        else if (rawDest === 'DIAP ALBUFEIRA') category = 'DIAP Albufeira'
-        else if (rawDest === 'PJ FARO') category = 'PJ Faro'
-        else if (rawDest.startsWith('DIAP')) category = 'Outros DIAPS'
+        if (rawDest === 'SII' || rawDest === 'SII ALBUFEIRA') category = 'SII'
+        else if (rawDest === 'DIAP Albufeira' || rawDest === 'DIAP ALBUFEIRA') category = 'DIAP Albufeira'
+        else if (rawDest === 'PJ Faro' || rawDest === 'PJ FARO') category = 'PJ Faro'
+        else if (rawDest.toUpperCase().startsWith('DIAP')) category = 'Outros DIAPS'
+        else if (rawDest.toUpperCase().includes('TRIBUNAL')) category = 'Tribunal'
+        else if (rawDest.toUpperCase().includes('GNR')) category = 'GNR'
+        else if (rawDest.toUpperCase().includes('PSP')) category = 'PSP'
 
         destCounts[category] = (destCounts[category] || 0) + 1
     })
