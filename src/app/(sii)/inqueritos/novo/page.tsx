@@ -59,6 +59,7 @@ export default function AddInquiryPage() {
         const validDenunciantes = denunciantes.filter(d => d.nome.trim() !== '').map(d => ({ nome: d.nome }))
         const validDenunciados = denunciados.filter(d => d.nome.trim() !== '').map(d => ({ nome: d.nome }))
 
+        formData.append('denunciantes', JSON.stringify(validDenunciantes))
         formData.append('denunciados', JSON.stringify(validDenunciados))
 
         const result = await createInquiry(formData)
