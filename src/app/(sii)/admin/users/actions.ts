@@ -9,9 +9,9 @@ function getAdminClient() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    // If key is missing, return null so we can handle it in the action
-    if (!key) {
-        console.error("ADMIN CLIENT ERROR: SUPABASE_SERVICE_ROLE_KEY is missing/undefined")
+    // If key or url is missing, return null so we can handle it in the action
+    if (!url || !key) {
+        console.error("ADMIN CLIENT ERROR: Missing SUPABASE_URL or SERVICE_ROLE_KEY")
         return null
     }
 
