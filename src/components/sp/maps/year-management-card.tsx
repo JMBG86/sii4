@@ -5,18 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Calendar, Trash2, Plus, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Calendar, Trash2, Plus, RefreshCw, AlertTriangle, Pencil } from 'lucide-react'
 import {
     Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
 } from '@/components/ui/dialog'
-import { getFiscalYears, openNewYear, deleteYear, FiscalYearConfig } from '@/app/sp/config/actions'
+import { getFiscalYears, openNewYear, deleteYear, updateYearConfig, getYearProgress, FiscalYearConfig } from '@/app/sp/config/actions'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 
 export function YearManagementCard() {
     const [years, setYears] = useState<FiscalYearConfig[]>([])
+    const [stats, setStats] = useState<Record<number, { proc: number, prec: number }>>({})
     const [loading, setLoading] = useState(false)
     const [newYearOpen, setNewYearOpen] = useState(false)
+    const [editYearOpen, setEditYearOpen] = useState(false)
     const [refreshKey, setRefreshKey] = useState(0)
 
     // Form State
@@ -33,6 +35,20 @@ export function YearManagementCard() {
         try {
             const data = await getFiscalYears()
             setYears(data || [])
+
+            // Load stats for each year (concluded count)
+            const statsMap: Record<number, { proc: number, prec: number }> = {}
+            if (data) {
+                for (const y of data) {
+                    const res = await getYearProgress(y.year)
+                    statsMap[y.year] = {
+                        proc: res.total_concluded,
+                        prec: res.total_precatorias_concluded || 0
+                    }
+                }
+            }
+            setStats(statsMap)
+
         } catch (err) {
             console.error(err)
         }
@@ -76,11 +92,33 @@ export function YearManagementCard() {
         }
     }
 
+    // Edit Functionality
+    function openEdit(y: FiscalYearConfig) {
+        setTargetYear(y.year.toString())
+        setStockProc(y.stock_processos_start.toString())
+        setStockPrec(y.stock_precatorias_start.toString())
+        setEditYearOpen(true)
+    }
+
+    async function handleEditYear() {
+        setLoading(true)
+        const res = await updateYearConfig(parseInt(targetYear), parseInt(stockProc) || 0, parseInt(stockPrec) || 0)
+        setLoading(false)
+
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            toast.success(`Ano ${targetYear} atualizado.`)
+            setEditYearOpen(false)
+            setRefreshKey(k => k + 1)
+        }
+    }
+
     return (
         <Card className="border-amber-100 dark:border-amber-900 bg-amber-50/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                    Gestão Anual
+                    Gestão Anual (v3 - Live Stock)
                 </CardTitle>
                 <Calendar className="h-4 w-4 text-amber-600" />
             </CardHeader>
@@ -94,27 +132,77 @@ export function YearManagementCard() {
                     </p>
 
                     {/* Active Years List */}
-                    <div className="space-y-2 max-h-[150px] overflow-y-auto pr-2">
-                        {years.map(y => (
-                            <div key={y.year} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-zinc-900 rounded border">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold">{y.year}</span>
-                                    {y.is_active && <Badge variant="default" className="text-[10px] h-5">Ativo</Badge>}
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                        {years.map(y => {
+                            const concludedProc = stats[y.year]?.proc || 0
+                            const concludedPrec = stats[y.year]?.prec || 0
+
+                            const currentStockProc = Math.max(0, y.stock_processos_start - concludedProc)
+                            const currentStockPrec = Math.max(0, y.stock_precatorias_start - concludedPrec)
+
+                            return (
+                                <div key={y.year} className="flex flex-col gap-1 p-2 bg-white dark:bg-zinc-900 rounded border">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-lg">{y.year}</span>
+                                            {y.is_active && <Badge variant="default" className="text-[10px] h-5">Ativo</Badge>}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                className="h-6 text-xs bg-blue-600 hover:bg-blue-700 text-white mr-1"
+                                                onClick={() => openEdit(y)}
+                                            >
+                                                EDITAR STOCK
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => handleDelete(y.year)}
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mt-2 border-t pt-2">
+                                        {/* Processos Block */}
+                                        <div className="flex items-center gap-4 text-xs">
+                                            <div className="flex flex-col">
+                                                <span className="text-muted-foreground uppercase text-[10px]">Proc. Inicial</span>
+                                                <span className="font-mono font-bold text-amber-600">{y.stock_processos_start}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-muted-foreground uppercase text-[10px]">Concl.</span>
+                                                <span className="font-mono font-bold text-green-600">-{concludedProc}</span>
+                                            </div>
+                                            <div className="flex flex-col border-l pl-2">
+                                                <span className="text-muted-foreground uppercase text-[10px]">Atual</span>
+                                                <span className="font-mono font-bold text-base">{currentStockProc}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Precatórias Block */}
+                                        <div className="flex items-center gap-4 text-xs border-l pl-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-muted-foreground uppercase text-[10px]">Prec. Inicial</span>
+                                                <span className="font-mono font-bold text-amber-600">{y.stock_precatorias_start}</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-muted-foreground uppercase text-[10px]">Concl.</span>
+                                                <span className="font-mono font-bold text-green-600">-{concludedPrec}</span>
+                                            </div>
+                                            <div className="flex flex-col border-l pl-2">
+                                                <span className="text-muted-foreground uppercase text-[10px]">Atual</span>
+                                                <span className="font-mono font-bold text-base">{currentStockPrec}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span title="Stock Processos">Proc: {y.stock_processos_start}</span>
-                                    <span title="Stock Precatórias">Prec: {y.stock_precatorias_start}</span>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => handleDelete(y.year)}
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+                            )
+                        })}
                         {years.length === 0 && <span className="text-xs italic text-muted-foreground">Nenhum ano configurado. (Assume 2025 default)</span>}
                     </div>
 
@@ -192,6 +280,47 @@ export function YearManagementCard() {
                                 <Button onClick={handleOpenYear} disabled={loading}>
                                     {loading && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
                                     Confirmar Abertura
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={editYearOpen} onOpenChange={setEditYearOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Editar Ano {targetYear}</DialogTitle>
+                                <DialogDescription>
+                                    Ajuste os valores de stock inicial (transição manual).
+                                    Esta ação não afeta a estrutura de processos já criada, apenas altera o valor de referência 'Stock Inicial'.
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Stock Processos</Label>
+                                    <Input
+                                        type="number"
+                                        value={stockProc}
+                                        onChange={e => setStockProc(e.target.value)}
+                                        className="col-span-3"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label className="text-right">Stock Precatórias</Label>
+                                    <Input
+                                        type="number"
+                                        value={stockPrec}
+                                        onChange={e => setStockPrec(e.target.value)}
+                                        className="col-span-3"
+                                    />
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setEditYearOpen(false)}>Cancelar</Button>
+                                <Button onClick={handleEditYear} disabled={loading}>
+                                    {loading && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                                    Guardar Alterações
                                 </Button>
                             </DialogFooter>
                         </DialogContent>

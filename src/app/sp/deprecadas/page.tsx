@@ -45,8 +45,8 @@ export default function DeprecadasPage() {
     const [editingItem, setEditingItem] = useState<SPInqueritoExterno | null>(null)
 
     // Year Tabs
-    const [years, setYears] = useState<number[]>([2025])
-    const [activeYear, setActiveYear] = useState<number>(2025)
+    const [years, setYears] = useState<number[]>([2026])
+    const [activeYear, setActiveYear] = useState<number>(2026)
 
     // Form State
     const [formData, setFormData] = useState({
@@ -64,7 +64,7 @@ export default function DeprecadasPage() {
     useEffect(() => {
         getFiscalYears().then(data => {
             const fetchedYears = data?.map(d => d.year) || []
-            const uniqueYears = Array.from(new Set([...fetchedYears, 2025]))
+            const uniqueYears = Array.from(new Set([...fetchedYears, 2026]))
             const sortedYears = uniqueYears.sort((a, b) => b - a)
 
             setYears(sortedYears)

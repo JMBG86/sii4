@@ -7,7 +7,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 // So everything must be Client.
 // Removing revalidatePath and server imports.
 
-export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '', year: number = 2025) {
+export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '', year: number = 2026) {
     const supabase = createClient()
 
     let query = supabase

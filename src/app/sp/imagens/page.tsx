@@ -20,6 +20,7 @@ import { format } from 'date-fns'
 
 import { ImagensEditDialog } from './edit-dialog'
 import { ImagensNotificationDialog } from './notification-dialog'
+import { DeleteImageButton } from './delete-button'
 
 import { Suspense } from 'react'
 import { getFiscalYears } from '@/app/sp/config/actions'
@@ -38,8 +39,8 @@ function ImagensContent() {
     const [totalCount, setTotalCount] = useState(0)
 
     // Year Tabs
-    const [years, setYears] = useState<number[]>([2025])
-    const [activeYear, setActiveYear] = useState<number>(2025)
+    const [years, setYears] = useState<number[]>([2026])
+    const [activeYear, setActiveYear] = useState<number>(2026)
 
     // Dialog State
     const [selectedProcess, setSelectedProcess] = useState<any>(null)
@@ -52,7 +53,7 @@ function ImagensContent() {
     useEffect(() => {
         getFiscalYears().then(data => {
             const fetchedYears = data?.map(d => d.year) || []
-            const uniqueYears = Array.from(new Set([...fetchedYears, 2025]))
+            const uniqueYears = Array.from(new Set([...fetchedYears, 2026]))
             const sortedYears = uniqueYears.sort((a, b) => b - a)
 
             setYears(sortedYears)
@@ -209,6 +210,7 @@ function ImagensContent() {
                                                             <ExternalLink className="h-4 w-4 mr-2" />
                                                             Ver Detalhes
                                                         </Button>
+                                                        <DeleteImageButton id={row.id} onSuccess={() => setRefreshTrigger(p => p + 1)} />
                                                     </TableCell>
                                                 </TableRow>
                                             )

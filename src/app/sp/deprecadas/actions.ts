@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 
-export async function fetchDeprecadas(searchTerm: string = '', year: number = 2025) {
+export async function fetchDeprecadas(searchTerm: string = '', year: number = 2026) {
     const supabase = createClient()
     const start = `${year}-01-01`
     const end = `${year}-12-31`

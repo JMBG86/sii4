@@ -8,20 +8,29 @@ import { FileText, Mail, Users, Package, Syringe, Inbox, Loader2, ArrowUpRight, 
 export default function SPDashboard() {
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<DashboardData | null>(null)
-    const [years, setYears] = useState<{ active: number, previous: number }>({ active: 2025, previous: 2024 })
+    // Year State
+    const [years, setYears] = useState<{ active: number, previous: number }>({ active: 2026, previous: 2025 })
 
     useEffect(() => {
         async function load() {
             try {
                 // 1. Get Years
                 const fiscalYears = await getFiscalYears()
-                const available = fiscalYears?.map(d => d.year).sort((a, b) => b - a) || [2025]
-                const active = available[0] || 2025
-                const previous = available.length > 1 ? available[1] : active - 1
+                const available = fiscalYears?.map(d => d.year).sort((a, b) => b - a) || []
+
+                // Active should be the max year found, OR 2026 if nothing higher exists.
+                // This prevents fallback to 2025 if 2026 isn't in DB yet.
+                const maxDbYear = available.length > 0 ? available[0] : 0
+                const active = Math.max(maxDbYear, 2026)
+
+                // Previous is either the next available year in DB, OR active - 1
+                const nextAvailable = available.find(y => y < active)
+                const previous = nextAvailable || (active - 1)
 
                 setYears({ active, previous })
 
                 // 2. Get Stats using those years
+
                 const stats = await getDashboardCounts(active, previous)
                 setData(stats)
             } catch (err) {

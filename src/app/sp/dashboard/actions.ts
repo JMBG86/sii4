@@ -136,7 +136,7 @@ async function getStatsForYear(supabase: any, year: number): Promise<YearStats> 
     }
 }
 
-export async function getDashboardCounts(activeYear: number = 2025, previousYear: number = 2024): Promise<DashboardData> {
+export async function getDashboardCounts(activeYear: number = 2026, previousYear: number = 2024): Promise<DashboardData> {
     const supabase = createClient()
 
     const [active, previous] = await Promise.all([

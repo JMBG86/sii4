@@ -5,7 +5,7 @@ export async function fetchImagensRows(
     page: number = 1,
     limit: number = 50,
     searchTerm: string = '',
-    year: number = 2025
+    year: number = 2026
 ) {
     const supabase = createClient()
 
@@ -71,4 +71,23 @@ export async function getPendingImagesCount() {
     }
 
     return count || 0
+}
+
+export async function removeImageAssociation(id: string) {
+    const supabase = createClient()
+
+    const { error } = await supabase
+        .from('sp_processos_crime')
+        .update({
+            imagens_associadas: false,
+            notificacao_imagens: false,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    return { success: true }
 }

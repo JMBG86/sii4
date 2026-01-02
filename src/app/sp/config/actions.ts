@@ -32,8 +32,8 @@ export async function getActiveYear() {
     if (error && error.code !== 'PGRST116') {
         throw new Error(error.message)
     }
-    // If no active year, return a default for 2025
-    return data || { year: 2025, stock_processos_start: 0, stock_precatorias_start: 0, is_active: true }
+    // If no active year, return a default for 2026
+    return data || { year: 2026, stock_processos_start: 0, stock_precatorias_start: 0, is_active: true }
 }
 
 export async function openNewYear(config: FiscalYearConfig, seedCount: number = 0) {
@@ -118,3 +118,83 @@ export async function deleteYear(year: number) {
 
     return { success: true }
 }
+
+export async function updateYearConfig(year: number, stockProcessos: number, stockPrecatorias: number) {
+    const supabase = createClient()
+
+    const { error } = await supabase
+        .from('sp_config_years')
+        .update({
+            stock_processos_start: stockProcessos,
+            stock_precatorias_start: stockPrecatorias,
+            updated_at: new Date().toISOString()
+        })
+        .eq('year', year)
+
+    if (error) return { error: error.message }
+
+    return { success: true }
+}
+
+export async function getYearProgress(year: number) {
+    const supabase = createClient()
+
+    // 1. Get all NUIPCs for this year's processes
+    const { data: processes } = await supabase
+        .from('sp_processos_crime')
+        .select('nuipc_completo')
+        .eq('ano', year)
+        .not('nuipc_completo', 'is', null)
+
+    if (!processes || processes.length === 0) {
+        return { total_concluded: 0 }
+    }
+
+    const nuipcs = processes.map(p => p.nuipc_completo)
+
+    // 2. Count how many of these are Concluded in Inqueritos
+    let concludedCount = 0
+    const chunkSize = 500
+    for (let i = 0; i < nuipcs.length; i += chunkSize) {
+        const chunk = nuipcs.slice(i, i + chunkSize)
+        const { count } = await supabase
+            .from('inqueritos')
+            .select('*', { count: 'exact', head: true })
+            .in('nuipc', chunk)
+            .eq('estado', 'concluido')
+
+        concludedCount += (count || 0)
+    }
+
+    // 3. Count Deprecadas Progress (Precatórias)
+    // Deprecadas are in sp_inqueritos_externos with tag 'DEPRECADA'
+    // Filter by data_entrada within the year
+    const start = `${year}-01-01`
+    const end = `${year}-12-31`
+
+    const { data: deprecadas } = await supabase
+        .from('sp_inqueritos_externos')
+        .select('nuipc')
+        .ilike('observacoes', '%DEPRECADA%')
+        .gte('data_entrada', start)
+        .lte('data_entrada', end)
+
+    let concludedPrec = 0
+    if (deprecadas && deprecadas.length > 0) {
+        const depNuipcs = deprecadas.map(d => d.nuipc).filter(n => n)
+
+        for (let i = 0; i < depNuipcs.length; i += chunkSize) {
+            const chunk = depNuipcs.slice(i, i + chunkSize)
+            const { count } = await supabase
+                .from('inqueritos')
+                .select('*', { count: 'exact', head: true })
+                .in('nuipc', chunk)
+                .eq('estado', 'concluido')
+
+            concludedPrec += (count || 0)
+        }
+    }
+
+    return { total_concluded: concludedCount, total_precatorias_concluded: concludedPrec }
+}
+

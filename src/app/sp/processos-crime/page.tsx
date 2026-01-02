@@ -10,14 +10,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 export default function ProcessosCrimePage() {
     const [refreshKey, setRefreshKey] = useState(0)
-    const [years, setYears] = useState<number[]>([2025])
-    const [activeYear, setActiveYear] = useState<number>(2025)
+    const [years, setYears] = useState<number[]>([2026])
+    const [activeYear, setActiveYear] = useState<number>(2026)
     const [minYear] = useState(2025)
 
     useEffect(() => {
         getFiscalYears().then(data => {
             const fetchedYears = data?.map(d => d.year) || []
-            const uniqueYears = Array.from(new Set([...fetchedYears, 2025]))
+            const uniqueYears = Array.from(new Set([...fetchedYears, 2026]))
             const sortedYears = uniqueYears.sort((a, b) => b - a)
 
             setYears(sortedYears)
