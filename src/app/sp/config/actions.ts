@@ -212,13 +212,10 @@ export async function getYearProgress(year: number) {
 
             if (year === activeYear) {
                 // Active Year (2026): Manual processes reduce Previous Year stock (2025)
-                // Official processes are neutral (new flow for 2026)
-                if (!isOfficial) {
-                    concludedBacklogProc++
-                }
+                // They should NOT reduce 2026 stock, so we do nothing here.
+                // Only official processes (which entered in 2026) belong to this year's flow.
             } else {
                 // Past Year (2025): Manual processes reduce this year's stock
-                // Official processes belong to the year's flow
                 if (!isOfficial) {
                     concludedBacklogProc++
                 }
