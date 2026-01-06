@@ -240,12 +240,42 @@ export async function checkNuipcAssociation(nuipc: string) {
 export async function fetchAllInqueritosExternosForExport() {
     const supabase = createClient()
 
-    const { data, error } = await supabase
+    // 1. Fetch Official Records (from sp_inqueritos_externos)
+    const { data: official, error: officialError } = await supabase
         .from('sp_inqueritos_externos')
         .select('*')
         .not('observacoes', 'ilike', '%DEPRECADA%')
         .order('data_entrada', { ascending: false })
 
-    if (error) throw new Error(error.message)
-    return data
+    if (officialError) throw new Error(officialError.message)
+
+    // 2. Fetch Manual Records (from inqueritos) that are NOT Deprecadas
+    const { data: manual, error: manualError } = await supabase
+        .from('inqueritos')
+        .select('*')
+        .not('observacoes', 'ilike', '%DEPRECADA%')
+        .order('created_at', { ascending: false })
+
+    if (manualError) throw new Error(manualError.message)
+
+    // 3. Combine both sources
+    // Map manual records to match the sp_inqueritos_externos structure
+    const manualMapped = manual?.map(m => ({
+        id: m.id,
+        nuipc: m.nuipc,
+        data_entrada: m.created_at, // Use created_at as entry date
+        origem: 'Manual (User)',
+        destino: m.destino || 'SII ALBUFEIRA',
+        assunto: m.tipo_crime || 'N/A',
+        observacoes: m.observacoes || '',
+        numero_oficio: m.numero_oficio || '',
+        srv: 'N/A',
+        created_at: m.created_at
+    })) || []
+
+    // Combine and sort by entry date
+    const combined = [...(official || []), ...manualMapped]
+    combined.sort((a, b) => new Date(b.data_entrada || b.created_at).getTime() - new Date(a.data_entrada || a.created_at).getTime())
+
+    return combined
 }

@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, Loader2, Download, Calendar as CalendarIcon } from 'lucide-react'
-import { fetchAllProcessosForExport, fetchProcessosByDateRange, fetchMonthlyReportStats } from '../processos-crime/actions'
+import { fetchAllProcessosForExport, fetchProcessosByDateRange } from '../processos-crime/actions'
 import { fetchAllInqueritosExternosForExport } from '../inqueritos-externos/actions'
 import { fetchAllDeprecadasForExport } from '../deprecadas/actions'
+import { fetchMonthlyReportStats } from './actions'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Calendar } from '@/components/ui/calendar'
@@ -300,11 +301,12 @@ export default function MapasPage() {
             d.origem || '-',
             d.assunto || '-',
             d.data_entrada ? new Date(d.data_entrada).toLocaleDateString() : '-',
+            d.estado || 'Desconhecido',
             d.observacoes || '-'
         ])
 
         autoTable(doc, {
-            head: [['NUIPC', 'Nº Ofício', 'Origem', 'Assunto', 'Entrada', 'Observações']],
+            head: [['NUIPC', 'Nº Ofício', 'Origem', 'Assunto', 'Entrada', 'Estado', 'Observações']],
             body: rows,
             startY: 60,
             styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', halign: 'center', valign: 'middle' },

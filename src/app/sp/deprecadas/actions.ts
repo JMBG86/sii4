@@ -159,12 +159,60 @@ export async function deleteDeprecada(id: string) {
 export async function fetchAllDeprecadasForExport() {
     const supabase = createClient()
 
-    const { data, error } = await supabase
+    // 1. Fetch Official Deprecadas (from sp_inqueritos_externos)
+    const { data: official, error: officialError } = await supabase
         .from('sp_inqueritos_externos')
         .select('*')
         .ilike('observacoes', '%DEPRECADA%')
         .order('data_entrada', { ascending: false })
 
-    if (error) throw new Error(error.message)
-    return data
+    if (officialError) throw new Error(officialError.message)
+
+    // 2. Fetch Manual Deprecadas (from inqueritos)
+    const { data: manual, error: manualError } = await supabase
+        .from('inqueritos')
+        .select('*')
+        .ilike('observacoes', '%DEPRECADA%')
+        .order('created_at', { ascending: false })
+
+    if (manualError) throw new Error(manualError.message)
+
+    // 3. Map manual records to match the sp_inqueritos_externos structure
+    const manualMapped = manual?.map(m => ({
+        id: m.id,
+        nuipc: m.nuipc,
+        data_entrada: m.created_at, // Use created_at as entry date
+        origem: 'Manual (User)',
+        destino: m.destino || 'SII ALBUFEIRA',
+        assunto: m.tipo_crime || 'Deprecada Manual',
+        observacoes: m.observacoes || '',
+        numero_oficio: m.numero_oficio || '',
+        srv: 'N/A',
+        created_at: m.created_at,
+        estado: m.estado // Include estado from manual records
+    })) || []
+
+    // 4. Combine official and manual
+    const combined = [...(official || []), ...manualMapped]
+
+    // 5. Fetch States from Inqueritos for official records
+    const officialNuipcs = official?.map(d => d.nuipc).filter(n => n) || []
+    let statusMap = new Map<string, string>()
+
+    if (officialNuipcs.length > 0) {
+        const { data: states } = await supabase
+            .from('inqueritos')
+            .select('nuipc, estado')
+            .in('nuipc', officialNuipcs)
+
+        states?.forEach(s => {
+            if (s.nuipc) statusMap.set(s.nuipc, s.estado)
+        })
+    }
+
+    // 6. Merge estado for all records
+    return combined.map(d => ({
+        ...d,
+        estado: d.estado || statusMap.get(d.nuipc) || 'Não Registado'
+    })).sort((a, b) => new Date(b.data_entrada || b.created_at).getTime() - new Date(a.data_entrada || a.created_at).getTime())
 }

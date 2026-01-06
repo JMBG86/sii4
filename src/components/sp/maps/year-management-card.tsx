@@ -332,25 +332,6 @@ export function YearManagementCard() {
                         </DialogContent>
                     </Dialog>
 
-                    <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono whitespace-pre-wrap overflow-auto max-h-[200px]">
-                        <strong>DEBUG INFO (Temporário):</strong>
-                        {Object.entries(years).map(([_, y]) => {
-                            // Find stats using y.year if available, or just render what we have
-                            return (
-                                <div key={y.year} className="mb-2 border-b pb-1">
-                                    {/* We need to store debug info in state to show it here. 
-                                        Currently 'stats' only stores {proc, prec}.
-                                        I need to update the state to store debug info. 
-                                    */}
-                                </div>
-                            )
-                        })}
-                        {/* Actually, let's just JSON stringify the 'stats' if I update the type, 
-                           OR create a new state 'debugLogs'. 
-                           Let's go with a new state 'debugLogs'. 
-                        */}
-                        {JSON.stringify(debugLogs, null, 2)}
-                    </div>
                 </div>
             </CardContent>
         </Card>
