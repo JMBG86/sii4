@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 
 export function YearManagementCard() {
     const [years, setYears] = useState<FiscalYearConfig[]>([])
-    const [stats, setStats] = useState<Record<number, { proc: number, prec: number }>>({})
+    const [stats, setStats] = useState<Record<number, { proc: number, prec: number, procBacklog: number }>>({})
     const [loading, setLoading] = useState(false)
     const [newYearOpen, setNewYearOpen] = useState(false)
     const [editYearOpen, setEditYearOpen] = useState(false)
@@ -40,13 +40,14 @@ export function YearManagementCard() {
 
 
             // Load stats for each year (concluded count)
-            const statsMap: Record<number, { proc: number, prec: number }> = {}
+            const statsMap: Record<number, { proc: number, prec: number, procBacklog: number }> = {}
             if (data) {
                 for (const y of data) {
                     const res: any = await getYearProgress(y.year)
                     statsMap[y.year] = {
-                        proc: res.total_concluded,
-                        prec: res.total_precatorias_concluded || 0
+                        proc: res.total_concluded || 0,
+                        prec: res.total_precatorias_concluded || 0,
+                        procBacklog: res.total_concluded_backlog || 0 // NEW: Backlog reduction
                     }
                 }
             }
@@ -140,10 +141,10 @@ export function YearManagementCard() {
                     {/* Active Years List */}
                     <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                         {years.map(y => {
-                            const concludedProc = stats[y.year]?.proc || 0
+                            const concludedBacklog = stats[y.year]?.procBacklog || 0 // Use backlog reduction
                             const concludedPrec = stats[y.year]?.prec || 0
 
-                            const currentStockProc = Math.max(0, y.stock_processos_start - concludedProc)
+                            const currentStockProc = Math.max(0, y.stock_processos_start - concludedBacklog)
                             const currentStockPrec = Math.max(0, y.stock_precatorias_start - concludedPrec)
 
                             return (
@@ -182,7 +183,7 @@ export function YearManagementCard() {
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-muted-foreground uppercase text-[10px]">Concl.</span>
-                                                <span className="font-mono font-bold text-green-600">-{concludedProc}</span>
+                                                <span className="font-mono font-bold text-green-600">-{concludedBacklog}</span>
                                             </div>
                                             <div className="flex flex-col border-l pl-2">
                                                 <span className="text-muted-foreground uppercase text-[10px]">Atual</span>

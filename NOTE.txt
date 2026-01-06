@@ -1,289 +1,840 @@
-Vou-te explicar a situacao e vais me ajudar a criar uma app para publicar online no netify, a app deve correr lá, ter uma base de dados e um dashboard acessivel
-attraves de login seguro.
-
-a app destina-se a controlar o fluxo de inqueritos crime em investigacao numa equipa, ou seja, os inqueritos estao em investigacao, por vezes vao ao Tribunal para serem 
-requeridas diligencias e outras vezes sao realizados pedidos de diligencias a entidades externas a solicitar elementos associados a essas investigacoes.
-preciso de uma app com dashboard para controlar os inqueritos que estão fisicamente com a equipa, ou no tribunal, os inqueritos que tem pedidores realizados e aos quais estamos a 
-aguardar resposta.
-No dashboard devem ser possiveis visualizar as situacoes em graficos, o dashboard deve ter um menu lateral onde mostra varias paginas como "Inqueritos" onde mostra os inqueritos numa tabela e onde tem varias cores mediante a sua situacao 
-(tribunal, em diligencia pedida, a aguardar inicio, etc)
-Deve ter ainda a possibilidade de interligar inqueritos (por exemplo o suspeito ser o mesmo em duas investigacoes separadas)
-Deve ser possivel os inqueritos terem um estado atribuido (por iniciar, em diligencias [quais as diligencias], remetido a tribunal [a solicitar a diligencias X ou com o relatorio Y], inquerito remetido a X por razao Y, etc)
-Deve ter uma facilidade de exportacao de: Todos os inqueritos, inqueritos com diligencias, inqueritos concluidos (sao os que sao enviados a tribunal mas que ja nao devem regressar), inqueritos de relevo.
-Na classificacao devem ainda poder ser classificados como "de relevo" que é quando sao importantes ou estao proximos de dar resultados.
-Esta app serve para controlar todo o fluxo, por isso deve ter uma area de "adicionar inqueritos" onde se adicionam os campos base [NUIPC (numero identificador unico de cada processo crime), data da ocorrencia, data da participacao, data do inicio 
-da investigacao, tipo de crime, e outros campos que no futuro vamos adicionando.
-
-A base de dados deve ser simples e facil de melhorar com alteracoes futuras a este projecto.~
-
-
-
-
-
-Cria uma aplicação web completa, preparada para deployment na Vercel, com dashboard, autenticação segura, base de dados, API, e interface para gestão de inquéritos crime em investigação.
-
-A aplicação deve ser desenvolvida com as seguintes características técnicas:
-
-1. Stack tecnológica
-
-Next.js 14 / App Router
-
-Base de dados: PostgreSQL (usando Prisma ORM)
-
-API: Route Handlers do Next.js
-
-UI: Tailwind CSS + shadcn/ui
-
-Autenticação: NextAuth com login seguro (Email/Password ou OAuth interno)
-
-Deployment: App deve ser compatível com Vercel sem configurações adicionais
-
-Gráficos no dashboard: Recharts ou Chart.js
-
-2. Objectivo da aplicação
-
-Construir um sistema interno para uma equipa de investigação criminal, destinado a controlar o fluxo dos inquéritos crime, o seu estado, diligências, remessas ao tribunal e pedidos externos a entidades diversas.
-A aplicação deve permitir visualizar, gerir e exportar os inquéritos.
-
-3. Funcionalidades principais
-3.1 Dashboard
-
-Mostrar contadores dos inquéritos por estado:
-
-“Por iniciar”
-
-“Em diligências”
-
-“Remetido a Tribunal”
-
-“Aguarda resposta”
-
-“Inquéritos concluídos”
-
-“De relevo”
-
-Gráficos visuais (de barras, circulares, etc.) sobre:
-
-Estado dos inquéritos
-
-Inquéritos no tribunal vs na equipa
-
-Diligências pendentes por entidade
-
-Dashboard acessível apenas após login.
-
-3.2 Menu lateral
-
-Com as seguintes páginas:
-
-Dashboard
-
-Inquéritos
-
-Adicionar Inquérito
-
-Diligências
-
-Relações entre Inquéritos
-
-Exportações
-
-Administração / Configurações
-
-3.3 Página: “Inquéritos”
-
-Tabela com:
-
-NUIPC
-
-Tipo de crime
-
-Datas (ocorrência, participação, início da investigação)
-
-Estado
-
-Classificação (normal / de relevo)
-
-Entidades com pedidos pendentes
-
-Localização física (equipa / tribunal)
-
-Cada linha deve ter cor automática consoante o estado:
-
-Azul → Por iniciar
-
-Amarelo → Em diligências
-
-Vermelho → Urgente ou relevo
-
-Verde → Concluído
-
-Roxo → Remetido a tribunal
-
-Opções por inquérito:
-
-Editar
-
-Alterar estado
-
-Adicionar diligências
-
-Associar/ligar a outro inquérito
-
-Ver histórico do processo
-
-3.4 Página: “Adicionar Inquérito”
-
-Formulário com os campos base:
-
-NUIPC (texto único)
-
-Data da ocorrência
-
-Data da participação
-
-Data do início da investigação
-
-Tipo de crime
-
-Estado inicial
-
-Classificação (normal / de relevo)
-
-Observações
-
-O sistema deve permitir adicionar novos campos no futuro sem quebrar a estrutura (modelo de dados extensível).
-
-3.5 Estados do inquérito
-
-Os inquéritos devem poder assumir estados como:
-
-Por iniciar
-
-Em diligências
-
-Diligências específicas (listadas no inquérito)
-
-Remetido a tribunal
-
-Indicar se é para solicitar diligências X
-
-Ou com relatório Y
-
-Remetido a entidade externa
-
-A aguardar resposta
-
-Concluído (inquéritos enviados ao tribunal sem retorno previsto)
-
-Cada alteração de estado deve gerar histórico.
-
-3.6 Relação entre inquéritos
-
-O sistema deve permitir:
-
-Associar dois ou mais inquéritos entre si
-
-Registrar a razão da ligação (ex.: mesmo suspeito)
-
-Ver mapa de relações (lista simples ou grafo simples)
-
-3.7 Gestão de diligências
-
-Cada diligência deve conter:
-
-Descrição
-
-Entidade responsável
-
-Data da solicitação
-
-Data prevista de resposta
-
-Estado (pendente / respondida / recusada)
-
-Documento associado (opcional)
-
-3.8 Exportações
-
-Criar área onde o utilizador pode exportar:
-
-Todos os inquéritos
-
-Inquéritos com diligências pendentes
-
-Inquéritos concluídos
-
-Inquéritos de relevo
-
-Formato:
-
-CSV
-
-Excel (opcional)
-
-PDF (gerado server-side)
-
-4. Base de dados (modelos Prisma)
-
-Criar modelos para:
-
-User
-
-Inquerito
-
-Diligencia
-
-LigacaoInqueritos (N-N)
-
-HistoricoEstado
-
-EntidadeExterna (opcional)
-
-Logs
-
-A base de dados deve ser simples, escalável e facilmente editável.
-
-5. Requisitos de segurança
-
-Login obrigatório
-
-Sessões seguras
-
-Protecção contra acessos não autorizados
-
-Middleware para proteger rotas internas
-
-6. Layout / UI
-
-Interface moderna, clara e fácil de usar
-
-Cores suaves
-
-Tabelas com filtros e pesquisa por:
-
-NUIPC
-
-Estado
-
-Tipo de crime
-
-Entidade com diligências
-
-7. Resultado esperado
-
-Gerar:
-
-Estrutura completa do projecto Next.js
-
-Modelos da base de dados (Prisma)
-
-Rotas API para cada funcionalidade
-
-Páginas React com componentes funcionais
-
-Autenticação integrada
-
-Scripts de seed para dados de teste
-
-Código pronto para deploy na Vercel
+=============================================================================
+SII4 - SISTEMA INTEGRADO DE INVESTIGAÇÃO (v4)
+Aplicação Web de Gestão de Inquéritos Criminais
+=============================================================================
+
+ÍNDICE
+------
+1. VISÃO GERAL DO PROJETO
+2. STACK TECNOLÓGICA
+3. ARQUITETURA DO SISTEMA
+4. ESTRUTURA DO PROJETO
+5. MÓDULOS PRINCIPAIS
+6. BASE DE DADOS (SUPABASE)
+7. FUNCIONALIDADES DETALHADAS
+8. AUTENTICAÇÃO E SEGURANÇA
+9. FLUXOS DE TRABALHO
+10. CONFIGURAÇÕES E DEPLOYMENT
+
+=============================================================================
+1. VISÃO GERAL DO PROJETO
+=============================================================================
+
+O SII4 é uma aplicação web completa desenvolvida para gerir o fluxo operacional
+de inquéritos criminais numa equipa de investigação. O sistema permite:
+
+- Gestão centralizada de inquéritos (casos criminais)
+- Controlo de diligências (tarefas de investigação)
+- Gestão de correspondência oficial
+- Distribuição automática de processos
+- Geração de relatórios e estatísticas
+- Exportação de dados (PDF, Excel, DOCX)
+- **Módulo SP (Secretaria de Processos)**: Sistema completo para registo e
+  controlo de processos-crime oficiais, incluindo gestão de deprecadas 
+  (processos externos), estatísticas operacionais e relatórios mensais
+
+**Objetivo**: Digitalizar e otimizar o trabalho investigativo, eliminando
+processos manuais e fornecendo visibilidade em tempo real sobre o estado
+de cada investigação.
+
+=============================================================================
+2. STACK TECNOLÓGICA
+=============================================================================
+
+FRONTEND
+--------
+- Next.js 16.0.7 (App Router)
+- React 19.2.0
+- TypeScript 5
+- Tailwind CSS 4
+- shadcn/ui (componentes UI)
+- Lucide React (ícones)
+- Recharts (gráficos e visualizações)
+
+BACKEND & DATABASE
+------------------
+- Supabase (PostgreSQL + Auth + Storage + Realtime)
+- Supabase SSR (@supabase/ssr)
+- Server Actions (Next.js)
+- Edge Functions (Supabase)
+
+BIBLIOTECAS PRINCIPAIS
+-----------------------
+- React Hook Form + Zod (formulários e validação)
+- date-fns (manipulação de datas)
+- jsPDF + jsPDF-autotable (geração de PDFs)
+- docxtemplater + pizzip (geração DOCX a partir de templates)
+- exceljs (exportação Excel)
+- Sonner (notificações toast)
+
+DEPLOYMENT
+----------
+- Vercel (frontend/backend)
+- Supabase Cloud (base de dados, auth, storage)
+- GitHub (controlo de versão)
+
+=============================================================================
+3. ARQUITETURA DO SISTEMA
+=============================================================================
+
+MODELO DE DEPLOYMENT
+---------------------
+┌─────────────────────────────────────────────────────┐
+│                    VERCEL (Edge)                    │
+│  ┌──────────────────────────────────────────────┐   │
+│  │         Next.js App (SSR + CSR)              │   │
+│  │  ┌────────────┐      ┌──────────────┐        │   │
+│  │  │  UI Layer  │──────│ Server       │        │   │
+│  │  │  (React)   │      │ Actions      │        │   │
+│  │  └────────────┘      └──────────────┘        │   │
+│  └──────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+               │                     │
+               ▼                     ▼
+┌──────────────────────┐  ┌───────────────────────────┐
+│   SUPABASE CLOUD     │  │    BROWSER (Client)       │
+│ ┌──────────────────┐ │  │  - Realtime updates       │
+│ │  PostgreSQL DB   │ │  │  - Client-side caching    │
+│ └──────────────────┘ │  │  - Optimistic UI          │
+│ ┌──────────────────┐ │  └───────────────────────────┘
+│ │  Auth (JWT)      │ │
+│ └──────────────────┘ │
+│ ┌──────────────────┐ │
+│ │  Storage (Files) │ │
+│ └──────────────────┘ │
+│ ┌──────────────────┐ │
+│ │  Realtime        │ │
+│ └──────────────────┘ │
+└──────────────────────┘
+
+FLUXO DE DADOS
+--------------
+1. Utilizador autentica-se (Supabase Auth)
+2. UI renderiza com Server Components (Next.js)
+3. Ações do utilizador → Server Actions
+4. Server Actions → Supabase Client (Server-side)
+5. Supabase executa queries + RLS (Row Level Security)
+6. Dados retornam → UI atualiza
+7. Realtime listeners atualizam outros utilizadores conectados
+
+=============================================================================
+4. ESTRUTURA DO PROJETO
+=============================================================================
+
+sii4/
+├── src/
+│   ├── app/                          # App Router (Next.js)
+│   │   ├── (sii)/                    # Grupo de rotas autenticadas (SII)
+│   │   │   ├── correspondencia/      # Gestão de correspondência
+│   │   │   ├── deprecadas/           # Processos deprecados
+│   │   │   ├── diligencias/          # Gestão de diligências
+│   │   │   ├── inqueritos/           # CRUD de inquéritos
+│   │   │   │   ├── novo/             # Criar novo inquérito
+│   │   │   │   ├── detalhe/          # Ver detalhes de inquérito
+│   │   │   │   ├── editar/           # Editar inquérito
+│   │   │   │   ├── actions.ts        # Server actions
+│   │   │   │   └── page.tsx          # Lista de inquéritos
+│   │   │   ├── ligacoes/             # Relações entre inquéritos
+│   │   │   ├── lista-telefonica/     # Contactos
+│   │   │   ├── oficios/              # Gestão de ofícios
+│   │   │   ├── perfil/               # Perfil do utilizador
+│   │   │   ├── pesquisas/            # Motor de busca global
+│   │   │   ├── relatorios/           # Relatórios e estatísticas
+│   │   │   ├── sugestoes/            # Sistema de sugestões
+│   │   │   ├── layout.tsx            # Layout autenticado
+│   │   │   └── page.tsx              # Dashboard principal
+│   │   │
+│   │   ├── sp/                       # Secretaria de Processos (SP)
+│   │   │   ├── config/               # Gestão de anos operacionais
+│   │   │   │   └── actions.ts        # Gestão fiscal/operacional
+│   │   │   ├── correspondencia/      # Correspondência SP
+│   │   │   ├── dashboard/            # Dashboard SP (estatísticas)
+│   │   │   ├── deprecadas/           # Gestão de Deprecadas
+│   │   │   ├── estatisticas/         # Estatísticas operacionais
+│   │   │   ├── imagens/              # Galeria de imagens
+│   │   │   ├── inqueritos-externos/  # Inquéritos de entidades externas
+│   │   │   ├── mapas/                # Exportações e relatórios
+│   │   │   │   ├── actions.ts        # Server action (relatórios mensais)
+│   │   │   │   └── page.tsx          # UI de exportação
+│   │   │   ├── novo-processo-crime/  # Registar novo processo
+│   │   │   ├── pesquisa/             # Pesquisa SP
+│   │   │   ├── processos-crime/      # Lista de processos-crime
+│   │   │   │   ├── actions.ts        # CRUD processos + stats
+│   │   │   │   ├── page.tsx          # UI principal
+│   │   │   │   └── processos-list.tsx # Tabela de processos
+│   │   │   ├── actions.ts            # Actions globais SP
+│   │   │   └── layout.tsx            # Layout SP
+│   │   │
+│   │   ├── login/                    # Autenticação
+│   │   │   ├── actions.ts            # Login/Logout
+│   │   │   └── page.tsx              # Página de login
+│   │   ├── layout.tsx                # Layout root
+│   │   └── globals.css               # Estilos globais
+│   │
+│   ├── components/                   # Componentes reutilizáveis
+│   │   ├── ui/                       # shadcn/ui components
+│   │   ├── inquiry/                  # Componentes de inquéritos
+│   │   │   ├── state-update-dialog.tsx  # Atualizar estado
+│   │   │   └── ...
+│   │   ├── sp/                       # Componentes SP
+│   │   │   ├── maps/                 # Componentes de mapas/relatórios
+│   │   │   │   └── year-management-card.tsx
+│   │   │   └── ...
+│   │   └── ...
+│   │
+│   ├── lib/                          # Bibliotecas e utilitários
+│   │   ├── supabase/
+│   │   │   ├── client.ts             # Cliente Supabase (browser)
+│   │   │   ├── server.ts             # Cliente Supabase (server)
+│   │   │   └── middleware.ts         # Middleware de auth
+│   │   └── utils.ts                  # Funções auxiliares
+│   │
+│   └── middleware.ts                 # Middleware global (auth)
+│
+├── public/                           # Assets estáticos
+│   ├── LOGO.png                      # Logo da organização
+│   └── capa.docx                     # Template DOCX para exportação
+│
+├── .env.local                        # Variáveis de ambiente (não versionado)
+├── package.json                      # Dependências
+├── tsconfig.json                     # Config TypeScript
+├── tailwind.config.ts                # Config Tailwind
+└── next.config.js                    # Config Next.js
+
+=============================================================================
+5. MÓDULOS PRINCIPAIS
+=============================================================================
+
+A. MÓDULO SII (Sistema de Investigação de Inquéritos)
+------------------------------------------------------
+
+**Dashboard Principal** (`/(sii)/page.tsx`)
+- Visão geral dos inquéritos por estado
+- Gráficos de análise temporal
+- Distribuição por tipo de crime
+- Sumário de diligências pendentes
+- Estatísticas da equipa e individuais
+
+**Inquéritos** (`/(sii)/inqueritos/`)
+- CRUD completo de inquéritos criminais
+- Campos principais:
+  * NUIPC (Número Único de Identificação do Processo Criminal)
+  * Datas (ocorrência, queixa, registo, conclusão)
+  * Tipo de crime
+  * Denunciantes e denunciados (arrays dinâmicos)
+  * Estado (por_iniciar, em_curso, concluido, arquivado)
+  * Classificação (normal, urgente, segredo_justica)
+  * Destino (entidade para onde foi remetido)
+  * Observações
+- Sistema de cores por estado
+- Realtime updates (via Supabase)
+- Filtros e pesquisa avançada
+- Histórico de alterações de estado
+
+**Diligências** (`/(sii)/diligencias/`)
+- Gestão de tarefas de investigação
+- Associação a inquéritos
+- Datas de solicitação e conclusão
+- Estados (pendente, concluída, cancelada)
+- Prioridades
+- Realtime collaboration
+
+**Correspondência** (`/(sii)/correspondencia/`)
+- Gestão de ofícios recebidos/enviados
+- Sistema de notificações
+- Marcar como lido/não lido
+- Anexos (via Supabase Storage)
+
+**Relações entre Inquéritos** (`/(sii)/ligacoes/`)
+- Ligar inquéritos relacionados (mesmo suspeito, crime conexo, etc.)
+- Visualização de redes de ligações
+- Histórico de relações
+
+**Motor de Busca** (`/(sii)/pesquisas/`)
+- Pesquisa global em toda a base de dados
+- Busca por NUIPC, nome, crime, datas
+- Resultados em tempo real
+- Destaque de correspondências
+
+**Relatórios e Estatísticas** (`/(sii)/relatorios/`)
+- Análise temporal (semanal, mensal, trimestral, anual)
+- Performance por investigador
+- Taxas de resolução
+- Exportação de relatórios (PDF, Excel)
+
+B. MÓDULO SP (Secretaria de Processos)
+---------------------------------------
+
+**Dashboard SP** (`/sp/dashboard/`)
+- Visão consolidada de processos-crime
+- Estatísticas anuais (por ano fiscal)
+- Métricas de stock (inicial, entrados, concluídos, transitados)
+- Separação entre:
+  * Processos Crime regulares
+  * Deprecadas (processos de outras entidades)
+- Comparação ano anterior vs. ano atual
+
+**Processos-Crime** (`/sp/processos-crime/`)
+- Registo oficial de processos pela Secretaria
+- Integração automática com módulo SII
+- Campos específicos SP:
+  * Número sequencial
+  * Data de registo pela SP
+  * Entidade de origem/destino
+  * Número de ofício de entrada/saída
+  * Data de envio
+  * Detidos (quantidade, sexo, nacionalidade)
+  * Apreensões (genéricas + drogas com quantidades)
+- Exportação para PDF com formatação oficial
+
+**Inquéritos Externos** (`/sp/inqueritos-externos/`)
+- Registo de processos provenientes de outras entidades
+- Distinção entre:
+  * Inquéritos Externos regulares
+  * Deprecadas (marcadas com tag [DEPRECADA])
+- Auto-sync com tabela `inqueritos` quando destino = "SII ALBUFEIRA"
+- Gestão de estado e atribuição
+
+**Deprecadas** (`/sp/deprecadas/`)
+- Gestão específica de Deprecadas
+- Filtro automático (tag [DEPRECADA] em observações)
+- Sincronização bidirecional com `inqueritos`
+- Exportação com estado incluído
+
+**Gestão Operacional** (`/sp/config/`)
+- Gestão de anos fiscais/operacionais
+- Configuração de stocks iniciais:
+  * `stock_processos_start` (Processos Crime)
+  * `stock_precatorias_start` (Deprecadas)
+- Abertura de novo ano operacional
+- Cálculo automático de carryover (saldo transitado)
+- Lógica complexa de contabilização:
+  * Entradas Oficiais vs. Manuais
+  * Saídas (Concluídos)
+  * Backlog Reduction
+
+**Mapas e Exportações** (`/sp/mapas/`)
+- **Listagem Geral**:
+  * Exportação de todos os processos-crime (PDF)
+  * Exportação de Inquéritos Externos (PDF)
+  * Exportação de Deprecadas com estado (PDF)
+- **Relatório Mensal** (Exportação Estatística):
+  * Tabela "Resumo de Movimento" (Processos Crime):
+    - Pendentes Mês Anterior (Stock + YTD Entradas - YTD Saídas)
+    - Entrados (Registados via SP)
+    - Concluídos (Todos, exceto Deprecadas)
+    - Transitam p/ Seguinte (cálculo automático)
+  * Tabela "Movimento de Deprecadas":
+    - Lógica espelhada para Deprecadas
+  * Fallback automático de stock (se 2026 = 0, busca 2025)
+  * Geração de PDF com cabeçalho oficial
+
+**Estatísticas** (`/sp/estatisticas/`)
+- Análise visual de indicadores operacionais
+- Gráficos de tendências
+- Comparações YoY (Year over Year)
+
+**Galeria de Imagens** (`/sp/imagens/`)
+- Gestão de imagens de operações
+- Upload para Supabase Storage
+- Sistema de notificações para novos uploads
+- Categorização e pesquisa
+
+=============================================================================
+6. BASE DE DADOS (SUPABASE)
+=============================================================================
+
+TABELAS PRINCIPAIS
+------------------
+
+**profiles** (Utilizadores)
+- id (UUID, PK)
+- email (text)
+- full_name (text)
+- role (text: 'admin' | 'user' | 'readonly')
+- created_at (timestamp)
+
+**inqueritos** (Inquéritos Criminais - Tabela Central)
+- id (UUID, PK)
+- nuipc (text, UNIQUE)
+- data_ocorrencia (date)
+- data_queixa (date)
+- data_registo (date)
+- data_conclusao (date, nullable)
+- tipo_crime (text)
+- denunciantes (jsonb array)
+- denunciados (jsonb array)
+- estado (text: 'por_iniciar' | 'em_curso' | 'concluido' | 'arquivado')
+- classificacao (text: 'normal' | 'urgente' | 'segredo_justica')
+- destino (text, nullable)
+- numero_oficio (text, nullable)
+- observacoes (text)
+- user_id (UUID, FK → profiles.id, nullable)
+- created_at (timestamp)
+- updated_at (timestamp)
+
+**diligencias** (Tarefas de Investigação)
+- id (UUID, PK)
+- inquerito_id (UUID, FK → inqueritos.id)
+- descricao (text)
+- tipo (text)
+- data_solicitacao (date)
+- data_conclusao (date, nullable)
+- estado (text: 'pendente' | 'concluida' | 'cancelada')
+- prioridade (text)
+- responsavel_id (UUID, FK → profiles.id)
+- created_at (timestamp)
+
+**inquiry_relationships** (Relações entre Inquéritos)
+- id (UUID, PK)
+- inquiry_a_id (UUID, FK → inqueritos.id)
+- inquiry_b_id (UUID, FK → inqueritos.id)
+- relationship_type (text)
+- notes (text)
+- created_at (timestamp)
+
+**correspondencia** (Correspondência Oficial)
+- id (UUID, PK)
+- tipo (text: 'recebida' | 'enviada')
+- numero_oficio (text)
+- data (date)
+- remetente (text)
+- destinatario (text)
+- assunto (text)
+- conteudo (text)
+- lida (boolean)
+- attachment_url (text, nullable)
+- created_at (timestamp)
+
+**sp_processos_crime** (Processos-Crime Oficiais)
+- id (UUID, PK)
+- numero_sequencial (integer, UNIQUE)
+- nuipc_completo (text)
+- data_registo (date)
+- tipo_crime (text)
+- entidade_origem (text)
+- entidade_destino (text)
+- numero_oficio_entrada (text)
+- numero_oficio_envio (text, nullable)
+- envio_em (date, nullable)
+- sp_detidos_info (jsonb array)
+- sp_apreensoes_info (jsonb array)
+- sp_apreensoes_drogas (jsonb object)
+- observacoes (text)
+- created_at (timestamp)
+
+**sp_inqueritos_externos** (Inquéritos de Entidades Externas + Deprecadas)
+- id (UUID, PK)
+- nuipc (text)
+- numero_oficio (text)
+- origem (text)
+- destino (text)
+- assunto (text)
+- data_entrada (date)
+- observacoes (text)  # Contém [DEPRECADA] se for deprecada
+- srv (text)
+- created_at (timestamp)
+
+**sp_config_years** (Configuração de Anos Fiscais)
+- id (UUID, PK)
+- year (integer, UNIQUE)
+- stock_processos_start (integer, default 0)
+- stock_precatorias_start (integer, default 0)
+- is_active (boolean)
+- created_at (timestamp)
+
+**sp_correspondencia** (Correspondência SP)
+- id (UUID, PK)
+- tipo (text)
+- numero_oficio (text)
+- data (date)
+- remetente (text)
+- destinatario (text)
+- assunto (text)
+- conteudo (text)
+- lida (boolean)
+- created_at (timestamp)
+
+**sp_imagens** (Galeria de Imagens)
+- id (UUID, PK)
+- titulo (text)
+- descricao (text)
+- data_evento (date)
+- url (text)
+- thumbnail_url (text, nullable)
+- created_at (timestamp)
+
+**imagem_notifications** (Notificações de Novas Imagens)
+- id (UUID, PK)
+- imagem_id (UUID, FK → sp_imagens.id)
+- user_id (UUID, FK → profiles.id)
+- viewed (boolean, default false)
+- created_at (timestamp)
+
+**contact_phone** (Lista Telefónica)
+- id (UUID, PK)
+- name (text)
+- position (text)
+- phone (text)
+- email (text, nullable)
+- department (text, nullable)
+- created_at (timestamp)
+
+**suggestions** (Sugestões/Feedback)
+- id (UUID, PK)
+- user_id (UUID, FK → profiles.id)
+- title (text)
+- description (text)
+- status (text: 'pending' | 'approved' | 'rejected')
+- created_at (timestamp)
+
+ROW LEVEL SECURITY (RLS)
+-------------------------
+- Todas as tabelas têm RLS ativado
+- Políticas baseadas em:
+  * auth.uid() para operações do utilizador
+  * role para operações administrativas
+- Service Role Key usado em Server Actions para bypass controlado
+
+REALTIME
+--------
+- Subscriptions ativas em:
+  * `inqueritos` (lista principal)
+  * `diligencias` (atualizações de tarefas)
+  * `correspondencia` (notificações)
+  * `sp_imagens` (novos uploads)
+
+=============================================================================
+7. FUNCIONALIDADES DETALHADAS
+=============================================================================
+
+A. GESTÃO DE INQUÉRITOS
+------------------------
+
+**Criação de Inquérito**
+1. Formulário com validação (React Hook Form + Zod)
+2. Campos dinâmicos para denunciantes/denunciados
+3. Auto-sugestões baseadas em histórico
+4. Atribuição automática ou manual a investigador
+5. Geração de notificações
+
+**Atualização de Estado**
+1. Dialog de mudança de estado
+2. Estados suportados:
+   - por_iniciar → em_curso
+   - em_curso → concluido
+   - concluido → (reabertura) em_curso
+3. Campos obrigatórios por estado:
+   - concluido: requer `numeroOficio` e `destino`
+   - Ao reabrir: limpa `data_conclusao`, `numeroOficio`, reset destino "SII"
+4. Sincronização com `sp_processos_crime` se aplicável
+
+**Filtros e Pesquisa**
+- Filtro por estado (multi-select)
+- Filtro por investigador
+- Filtro por tipo de crime
+- Pesquisa por NUIPC (case-insensitive)
+- Ordenação por data (mais recente primeiro)
+
+**Exportações**
+- Lista para PDF com tabela formatada
+- Exportação DOCX usando template (`capa.docx`)
+- Preenchimento automático de campos:
+  * {{NUIPC}}, {{CRIME}}, {{DENUNCIANTE}}, {{DENUNCIADO}}
+  * {{DATA_OCORRENCIA}}, {{DATA_QUEIXA}}, {{DATA_REGISTO}}
+- Suporte para listas multi-linha
+
+B. GESTÃO DE DILIGÊNCIAS
+-------------------------
+
+**CRUD de Diligências**
+- Criação vinculada a inquérito
+- Atribuição a investigador específico ou equipa
+- Datas de início/conclusão
+- Priorização (baixa, média, alta, urgente)
+- Estados (pendente, em_curso, concluída, cancelada)
+
+**Notificações**
+- Alerta automático para diligências próximas do prazo
+- Notificação ao responsável na atribuição
+- Histórico de alterações
+
+C. SECRETARIA DE PROCESSOS (SP)
+--------------------------------
+
+**Lógica de Contabilização Operacional**
+
+A SP mantém um sistema de contabilidade operacional baseado em:
+- **Anos Fiscais**: Cada ano tem stock inicial configurado
+- **Fallback Automático**: Se stock do ano atual = 0, calcula automaticamente
+  o carryover do ano anterior (Stock Ant + Entradas Ant - Saídas Ant)
+
+**Tabela "Resumo de Movimento" (Processos Crime)**
+- **Pendentes Mês Anterior**: 
+  * Se Jan: Stock Inicial do Ano
+  * Se outros meses: Stock Ano + Entradas YTD - Saídas YTD
+- **Entrados**: Processos registados oficialmente via SP no período
+- **Concluídos**: Todos os processos concluídos (oficial + manual), 
+  excluindo Deprecadas
+- **Transitam**: Pendentes + Entrados - Concluídos
+
+**Tabela "Movimento de Deprecadas"**
+- Lógica espelhada à primeira tabela
+- Filtragem por tag [DEPRECADA] em observações
+- Stock separado: `stock_precatorias_start`
+
+**Integração SP ↔ SII**
+- Quando `entidade_destino = "SII ALBUFEIRA"` em `sp_processos_crime`:
+  1. Verifica se NUIPC existe em `inqueritos`
+  2. Se não: cria novo inquérito automaticamente
+  3. Se sim: atualiza dados e reseta para redistribuição
+- Sincronização bidirecional em alterações de estado
+
+D. EXPORTAÇÕES E RELATÓRIOS
+----------------------------
+
+**PDF Generation**
+- jsPDF + jsPDF-autotable
+- Template consistente:
+  * Logo no cabeçalho
+  * Nome da organização
+  * Nome do utilizador que exportou
+  * Data de emissão
+  * Rodapé com paginação
+
+**Tipos de Exportação**
+1. **Listagem Geral** (SP):
+   - Processos-Crime completos
+   - Inquéritos Externos
+   - Deprecadas com estado
+2. **Relatório Mensal** (PDF estatístico)
+3. **Capa de Processo** (DOCX personalizado)
+4. **Relatórios Analíticos** (SII)
+
+**Excel Export**
+- ExcelJS para geração de ficheiros .xlsx
+- Formatação de células (cores, bordas, alinhamento)
+- Fórmulas para totais e médias
+- Multi-sheet support
+
+E. SISTEMA DE NOTIFICAÇÕES
+---------------------------
+
+**Toast Notifications** (Sonner)
+- Sucesso em operações CRUD
+- Alertas de erro
+- Avisos de validação
+
+**Realtime Notifications**
+- Nova correspondência recebida
+- Diligência atribuída
+- Inquérito atualizado por outro user
+- Upload de nova imagem
+
+=============================================================================
+8. AUTENTICAÇÃO E SEGURANÇA
+=============================================================================
+
+FLUXO DE AUTENTICAÇÃO
+---------------------
+1. Utilizador acede `/login`
+2. Insere email + password
+3. Server Action valida com Supabase Auth
+4. Supabase retorna JWT (Access Token + Refresh Token)
+5. Tokens armazenados em cookies HTTP-only
+6. Middleware verifica tokens em cada request
+7. Se inválido: redirect para `/login`
+8. Se válido: permite acesso
+
+MIDDLEWARE (`src/middleware.ts`)
+--------------------------------
+- Protege todas as rotas exceto `/login` e assets públicos
+- Verifica sessão activa via `createServerClient`
+- Atualiza sessão automaticamente (refresh tokens)
+- Redirect para `/login` se não autenticado
+
+ROW LEVEL SECURITY (RLS)
+-------------------------
+- Ativo em todas as tabelas
+- Políticas de exemplo:
+  ```sql
+  -- Utilizador só vê os seus inquéritos atribuídos
+  CREATE POLICY "users_own_inquiries" ON inqueritos
+    FOR SELECT USING (auth.uid() = user_id);
+  
+  -- Admins vêem tudo
+  CREATE POLICY "admins_all_access" ON inqueritos
+    FOR ALL USING (
+      (SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'
+    );
+  ```
+
+SERVER vs CLIENT
+----------------
+- **Server Actions**: Usam Service Role Key (bypass RLS controlado)
+- **Client Components**: Usam Anon Key (RLS aplicado)
+- Server Actions em ficheiros `actions.ts` com `'use server'`
+
+VARIÁVEIS DE AMBIENTE (`.env.local`)
+-------------------------------------
+```
+NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_ID].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=[ANON_KEY]
+SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]
+```
+
+=============================================================================
+9. FLUXOS DE TRABALHO
+=============================================================================
+
+FLUXO: Novo Inquérito (Via SII)
+--------------------------------
+1. Utilizador → "Novo Inquérito"
+2. Preenche formulário → Submit
+3. Server Action `createInquiry`:
+   - Valida dados
+   - Insere em `inqueritos` (user_id = null se para distribuir)
+   - Retorna sucesso/erro
+4. Realtime → Atualiza lista para todos os users conectados
+5. Se atribuído → Notificação para o investigador
+
+FLUXO: Registo de Processo-Crime (Via SP)
+------------------------------------------
+1. SP → "Novo Processo Crime"
+2. Preenche dados oficiais → Submit
+3. Server Action `createProcessoCrime`:
+   - Gera `numero_sequencial` automático
+   - Insere em `sp_processos_crime`
+   - Se `entidade_destino = "SII ALBUFEIRA"`:
+     * Verifica NUIPC em `inqueritos`
+     * Se não existe: cria inquérito automático
+     * Se existe: atualiza e reseta para redistribuição
+4. Dashboard SP atualiza estatísticas
+
+FLUXO: Conclusão de Inquérito
+------------------------------
+1. Investigador → Botão "Concluir" no inquérito
+2. Dialog pede:
+   - Número de Ofício
+   - Destino (Tribunal, Arquivado, etc.)
+3. Server Action `updateInquiryState`:
+   - Atualiza `estado = 'concluido'`
+   - Define `data_conclusao = now()`
+   - Guarda `numero_oficio` e `destino`
+4. Se havia registo em `sp_processos_crime`:
+   - Sincroniza dados de conclusão
+5. Realtime atualiza dashboard
+
+FLUXO: Exportação de Relatório Mensal
+--------------------------------------
+1. SP → Mapas → Relatório Mensal
+2. Seleciona intervalo de datas (mês)
+3. Clica "Exportar"
+4. Server Action `fetchMonthlyReportStats`:
+   - Obtém ano do intervalo
+   - Fetch `sp_config_years` para stock inicial
+   - Se stock = 0: Calcula fallback (ano anterior)
+   - Calcula YTD se não for Janeiro
+   - Conta Entradas e Saídas no período
+   - Retorna objeto com estatísticas
+5. `generateMonthlyReportPDF`:
+   - Gera PDF com 2 tabelas
+   - Adiciona cabeçalho oficial
+   - Download automático
+
+FLUXO: Reabertura de Inquérito Concluído
+-----------------------------------------
+1. Inquérito com `estado = 'concluido'`
+2. Utilizador muda estado → "Em Curso"
+3. Server Action:
+   - Define `estado = 'em_curso'`
+   - Limpa `data_conclusao = null`
+   - Limpa `numero_oficio = null`
+   - Define `destino = 'SII'`
+4. Se havia sync com `sp_processos_crime`:
+   - Limpa também os dados de conclusão lá
+
+=============================================================================
+10. CONFIGURAÇÕES E DEPLOYMENT
+=============================================================================
+
+DEPLOYMENT NA VERCEL
+--------------------
+1. Conectar repositório GitHub
+2. Configurar variáveis de ambiente (Supabase)
+3. Build automático em push para `master`
+4. Vercel gera URL:
+   - Production: `https://sii4.vercel.app`
+   - Preview: `https://sii4-[branch].vercel.app`
+
+BUILD PROCESS
+-------------
+```bash
+npm run build
+```
+- Compila TypeScript
+- Otimiza React components
+- Gera Server Actions
+- Minimiza CSS/JS
+- Output: `.next/` directory
+
+CONFIGURAÇÃO SUPABASE
+---------------------
+1. Criar projeto em supabase.com
+2. Executar migrações SQL (criar tabelas)
+3. Configurar RLS policies
+4. Ativar Realtime nas tabelas desejadas
+5. Copiar API keys para `.env.local`
+
+SCRIPTS ÚTEIS
+-------------
+```bash
+npm run dev         # Dev server (localhost:3000)
+npm run build       # Build produção
+npm run start       # Start produção
+npm run lint        # ESLint check
+```
+
+MONITORIZAÇÃO
+-------------
+- Vercel Analytics (performance)
+- Supabase Dashboard (queries, storage, auth)
+- Logs de erro em Vercel
+- Realtime monitoring de sessões ativas
+
+=============================================================================
+NOTAS FINAIS
+=============================================================================
+
+**Estado Atual do Projeto**
+- ✅ Totalmente funcional em produção
+- ✅ Sistema de autenticação robusto
+- ✅ Módulo SII completo e operacional
+- ✅ Módulo SP implementado com estatísticas avançadas
+- ✅ Exportações PDF/Excel/DOCX funcionais
+- ✅ Realtime updates ativos
+- ✅ Responsivo (desktop + tablet)
+
+**Melhorias Futuras Possíveis**
+- [ ] Modo offline (PWA)
+- [ ] Notificações push (browser notifications)
+- [ ] App móvel (React Native)
+- [ ] Assinaturas digitais em documentos
+- [ ] Integração com sistemas externos (APIs)
+- [ ] Dashboard executivo (BI Avançado)
+- [ ] Sistema de permissões granulares
+- [ ] Auditoria completa (logs detalhados)
+- [ ] Backup automático de base de dados
+
+**Contactos e Documentação**
+- Repository: https://github.com/JMBG86/sii4
+- Deploy: https://sii4.vercel.app
+- Supabase: [Project Dashboard URL]
+
+**Última Atualização**: 2026-01-06
+**Versão do Sistema**: 4.x
+**Desenvolvido por**: [Equipa de Desenvolvimento]
+
+=============================================================================
+FIM DO DOCUMENTO
+=============================================================================

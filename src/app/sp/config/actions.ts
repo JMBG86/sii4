@@ -140,50 +140,7 @@ export async function updateYearConfig(year: number, stockProcessos: number, sto
 export async function getYearProgress(year: number) {
     const supabase = await createClient()
 
-    // 1. Get all NUIPCs for this year's processes
-    const { data: processes } = await supabase
-        .from('sp_processos_crime')
-        .select('nuipc_completo')
-        .eq('ano', year)
-        .not('nuipc_completo', 'is', null)
-
-
-    let concludedCount = 0
-
-    if (processes && processes.length > 0) {
-        const nuipcs = processes.map(p => p.nuipc_completo)
-
-        // 2. Count how many of these are Concluded in Inqueritos
-        const chunkSize = 500
-        for (let i = 0; i < nuipcs.length; i += chunkSize) {
-            const chunk = nuipcs.slice(i, i + chunkSize)
-            const { count } = await supabase
-                .from('inqueritos')
-                .select('*', { count: 'exact', head: true })
-                .in('nuipc', chunk)
-                .eq('estado', 'concluido')
-
-            concludedCount += (count || 0)
-        }
-    }
-
-
-
-
-    // 3. Count Deprecadas Progress (Precatórias) - Filtered for Stock Reduction
-    // Logic: Stock Reduction = Total Concluded - Concluded New Official Entries
-    // This ensures new official entries (which increase flow) don't incorrectly reduce the Initial Stock count.
-    const startIso = `${year}-01-01T00:00:00.000Z`
-    const endIso = `${year}-12-31T23:59:59.999Z`
-    const startObj = `${year}-01-01`
-    const endObj = `${year}-12-31`
-
-
-    // A. Get details of New Official Entries to identify "Official" vs "Manual"
-    // We need to check if the concluded NUIPCs are Official (exist in sp_inqueritos_externos)
-    // And if so, what year they entered.
-
-    // First, let's identify the "Active Year" to know strictly which rule to apply
+    // Get Active Year
     const { data: activeYearData } = await supabase
         .from('sp_config_years')
         .select('year')
@@ -191,7 +148,91 @@ export async function getYearProgress(year: number) {
         .single()
     const activeYear = activeYearData?.year || new Date().getFullYear()
 
+    const startIso = `${year}-01-01T00:00:00.000Z`
+    const activeYearStartIso = `${activeYear}-01-01T00:00:00.000Z`
+    // Rule: Reductions to past years' stock only count if concluded in the active year (2026+)
+    const completionStart = (year < activeYear) ? activeYearStartIso : startIso
+
+    // ===================================================================
+    // PROCESSOS CRIME (NON-DEPRECADAS) - Stock Reduction Logic
+    // ===================================================================
+
+    // Fetch all concluded processes (excluding Deprecadas)
+    const { data: allConcludedProc } = await supabase
+        .from('inqueritos')
+        .select('nuipc')
+        .eq('estado', 'concluido')
+        .not('observacoes', 'ilike', '%DEPRECADA%')
+        .gte('data_conclusao', completionStart)
+    // Unbounded end date to count cumulative reductions
+
+    let concludedBacklogProc = 0
+    let concludedOfficialProc = 0
+    let concludedManualProc = 0
+
+    if (allConcludedProc && allConcludedProc.length > 0) {
+        const concludedNuipcs = allConcludedProc.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n)
+
+        // Check which NUIPCs are official (exist in sp_processos_crime or sp_inqueritos_externos)
+        let officialMapProc = new Map<string, string>() // NUIPC -> data_registo/data_entrada
+
+        if (concludedNuipcs.length > 0) {
+            // Check sp_processos_crime
+            const { data: officialsProc } = await supabase
+                .from('sp_processos_crime')
+                .select('nuipc_completo, data_registo')
+                .in('nuipc_completo', concludedNuipcs)
+
+            officialsProc?.forEach(o => {
+                if (o.nuipc_completo) officialMapProc.set(o.nuipc_completo.trim().toUpperCase(), o.data_registo)
+            })
+
+            // Also check sp_inqueritos_externos (non-Deprecadas)
+            const { data: officialsExt } = await supabase
+                .from('sp_inqueritos_externos')
+                .select('nuipc, data_entrada')
+                .in('nuipc', concludedNuipcs)
+                .not('observacoes', 'ilike', '%DEPRECADA%')
+
+            officialsExt?.forEach(o => {
+                if (o.nuipc && !officialMapProc.has(o.nuipc.trim().toUpperCase())) {
+                    officialMapProc.set(o.nuipc.trim().toUpperCase(), o.data_entrada)
+                }
+            })
+        }
+
+        allConcludedProc.forEach(d => {
+            const nuipc = d.nuipc?.trim().toUpperCase()
+            const isOfficial = nuipc && officialMapProc.has(nuipc)
+            const entryDate = isOfficial ? officialMapProc.get(nuipc) : null
+            const entryYear = entryDate ? new Date(entryDate).getFullYear() : null
+
+            if (isOfficial) concludedOfficialProc++
+            else concludedManualProc++
+
+            if (year === activeYear) {
+                // Active Year (2026): Manual processes reduce Previous Year stock (2025)
+                // Official processes are neutral (new flow for 2026)
+                if (!isOfficial) {
+                    concludedBacklogProc++
+                }
+            } else {
+                // Past Year (2025): Manual processes reduce this year's stock
+                // Official processes belong to the year's flow
+                if (!isOfficial) {
+                    concludedBacklogProc++
+                }
+            }
+        })
+    }
+
+    // ===================================================================
+    // DEPRECADAS (PRECATORIAS) - Stock Reduction Logic (Existing)
+    // ===================================================================
+
     let concludedBacklogCount = 0
+    let officialConcludedCount = 0
+    let manualConcludedCount = 0
 
     // Fetch all concluded deprecadas for the year
     const { data: allConcluded } = await supabase
@@ -199,19 +240,14 @@ export async function getYearProgress(year: number) {
         .select('nuipc')
         .eq('estado', 'concluido')
         .ilike('observacoes', '%DEPRECADA%')
-        .gte('data_conclusao', startIso)
+        .gte('data_conclusao', completionStart)
     // .lte('data_conclusao', endIso) // Unbounded to count cumulative reductions since start of year
-
-
-    let officialConcludedCount = 0
-    let manualConcludedCount = 0
 
     if (allConcluded && allConcluded.length > 0) {
         // Collect NUIPCs to batch query
         const concludedNuipcs = allConcluded.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n)
 
         // Fetch Official info for these NUIPCs
-        // We use a lenient query; matches usually by nuipc
         let officialMap = new Map<string, string>() // NUIPC -> data_entrada
         if (concludedNuipcs.length > 0) {
             const chunkSize = 200
@@ -221,7 +257,7 @@ export async function getYearProgress(year: number) {
                     .from('sp_inqueritos_externos')
                     .select('nuipc, data_entrada')
                     .in('nuipc', chunk)
-                    .ilike('observacoes', '%DEPRECADA%') // Ensure we only match deprecadas? Not strictly necessary if NUIPC match
+                    .ilike('observacoes', '%DEPRECADA%')
 
                 officials?.forEach(o => {
                     if (o.nuipc) officialMap.set(o.nuipc.trim().toUpperCase(), o.data_entrada)
@@ -247,7 +283,6 @@ export async function getYearProgress(year: number) {
                     concludedBacklogCount++
                 }
             } else {
-
                 // Rule: Past Year (2025) counts "Manual"
                 // Official -> Ignored (belongs to 2026)
                 // Manual -> Backlog Reduction
@@ -259,7 +294,13 @@ export async function getYearProgress(year: number) {
     }
 
     return {
-        total_concluded: concludedCount,
+        // Processos Crime (Non-Deprecadas)
+        total_concluded: concludedOfficialProc + concludedManualProc,
+        total_concluded_backlog: concludedBacklogProc, // NEW: Manual completions
+        total_concluded_official: concludedOfficialProc,
+        total_concluded_manual: concludedManualProc,
+
+        // Deprecadas (Precatórias)
         total_precatorias_concluded: concludedBacklogCount,
         total_precatorias_official: officialConcludedCount,
         total_precatorias_manual: manualConcludedCount
