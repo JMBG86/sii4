@@ -16,9 +16,12 @@ import {
     Shield,
     BarChart3,
     Lightbulb,
+
     Mail,
     Phone,
+    ArrowDownRight,
 } from 'lucide-react'
+
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -70,8 +73,11 @@ export function Sidebar() {
     const [userName, setUserName] = useState('')
     const [isAdmin, setIsAdmin] = useState(false)
 
+
     const [pendingCount, setPendingCount] = useState(0)
     const [unreadMailCount, setUnreadMailCount] = useState(0)
+    const [hasDeprecadas, setHasDeprecadas] = useState(false)
+
 
     useEffect(() => {
         const getUser = async () => {
@@ -98,6 +104,7 @@ export function Sidebar() {
                     if (count !== null) setPendingCount(count)
                 }
 
+
                 // 2. Fetch Unread Correspondence (for ALL users)
                 const { data: myInquiries } = await supabase
                     .from('inqueritos')
@@ -115,8 +122,20 @@ export function Sidebar() {
 
                     if (mailCount !== null) setUnreadMailCount(mailCount)
                 }
+
+                // 3. Check for Deprecadas (My Inquiries with DEPRECADA tag)
+                const { count: depCount } = await supabase
+                    .from('inqueritos')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id)
+                    .ilike('observacoes', '%DEPRECADA%')
+
+                if (depCount && depCount > 0) {
+                    setHasDeprecadas(true)
+                }
             }
         }
+
         getUser()
 
         // Subscribe to changes to update count in realtime
@@ -177,13 +196,32 @@ export function Sidebar() {
                         >
                             <item.icon className="h-4 w-4" />
                             {item.title}
+
                             {item.href === '/correspondencia' && unreadMailCount > 0 && (
                                 <span className="ml-1 text-xs text-blue-600 font-bold">
                                     ({unreadMailCount})
                                 </span>
                             )}
                         </Link>
+
+
                     ))}
+
+                    {hasDeprecadas && (
+                        <Link
+                            href="/deprecadas"
+                            className={cn(
+                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:text-primary',
+                                pathname === '/deprecadas'
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'
+                                    : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+                            )}
+                        >
+                            <ArrowDownRight className="h-4 w-4" />
+                            Deprecadas
+                        </Link>
+                    )}
+
 
                     {isAdmin && (
                         <>

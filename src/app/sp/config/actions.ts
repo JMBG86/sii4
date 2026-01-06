@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/client'
+'use server'
+import { createClient } from '@/lib/supabase/server'
 
 export type FiscalYearConfig = {
     year: number
@@ -9,7 +10,7 @@ export type FiscalYearConfig = {
 }
 
 export async function getFiscalYears() {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
         .from('sp_config_years')
         .select('*')
@@ -20,7 +21,7 @@ export async function getFiscalYears() {
 }
 
 export async function getActiveYear() {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data, error } = await supabase
         .from('sp_config_years')
         .select('*')
@@ -37,7 +38,7 @@ export async function getActiveYear() {
 }
 
 export async function openNewYear(config: FiscalYearConfig, seedCount: number = 0) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // 1. Register Year
     const { error: configError } = await supabase
@@ -95,7 +96,7 @@ export async function openNewYear(config: FiscalYearConfig, seedCount: number = 
 }
 
 export async function deleteYear(year: number) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Safety check: Cannot delete 2025 (Root) or prevent accidental data loss?
     // User requested "apagar para efeitos de testes".
@@ -120,7 +121,7 @@ export async function deleteYear(year: number) {
 }
 
 export async function updateYearConfig(year: number, stockProcessos: number, stockPrecatorias: number) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
         .from('sp_config_years')
@@ -137,7 +138,7 @@ export async function updateYearConfig(year: number, stockProcessos: number, sto
 }
 
 export async function getYearProgress(year: number) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // 1. Get all NUIPCs for this year's processes
     const { data: processes } = await supabase
@@ -146,55 +147,123 @@ export async function getYearProgress(year: number) {
         .eq('ano', year)
         .not('nuipc_completo', 'is', null)
 
-    if (!processes || processes.length === 0) {
-        return { total_concluded: 0 }
-    }
 
-    const nuipcs = processes.map(p => p.nuipc_completo)
-
-    // 2. Count how many of these are Concluded in Inqueritos
     let concludedCount = 0
-    const chunkSize = 500
-    for (let i = 0; i < nuipcs.length; i += chunkSize) {
-        const chunk = nuipcs.slice(i, i + chunkSize)
-        const { count } = await supabase
-            .from('inqueritos')
-            .select('*', { count: 'exact', head: true })
-            .in('nuipc', chunk)
-            .eq('estado', 'concluido')
 
-        concludedCount += (count || 0)
-    }
+    if (processes && processes.length > 0) {
+        const nuipcs = processes.map(p => p.nuipc_completo)
 
-    // 3. Count Deprecadas Progress (Precatórias)
-    // Deprecadas are in sp_inqueritos_externos with tag 'DEPRECADA'
-    // Filter by data_entrada within the year
-    const start = `${year}-01-01`
-    const end = `${year}-12-31`
-
-    const { data: deprecadas } = await supabase
-        .from('sp_inqueritos_externos')
-        .select('nuipc')
-        .ilike('observacoes', '%DEPRECADA%')
-        .gte('data_entrada', start)
-        .lte('data_entrada', end)
-
-    let concludedPrec = 0
-    if (deprecadas && deprecadas.length > 0) {
-        const depNuipcs = deprecadas.map(d => d.nuipc).filter(n => n)
-
-        for (let i = 0; i < depNuipcs.length; i += chunkSize) {
-            const chunk = depNuipcs.slice(i, i + chunkSize)
+        // 2. Count how many of these are Concluded in Inqueritos
+        const chunkSize = 500
+        for (let i = 0; i < nuipcs.length; i += chunkSize) {
+            const chunk = nuipcs.slice(i, i + chunkSize)
             const { count } = await supabase
                 .from('inqueritos')
                 .select('*', { count: 'exact', head: true })
                 .in('nuipc', chunk)
                 .eq('estado', 'concluido')
 
-            concludedPrec += (count || 0)
+            concludedCount += (count || 0)
         }
     }
 
-    return { total_concluded: concludedCount, total_precatorias_concluded: concludedPrec }
+
+
+
+    // 3. Count Deprecadas Progress (Precatórias) - Filtered for Stock Reduction
+    // Logic: Stock Reduction = Total Concluded - Concluded New Official Entries
+    // This ensures new official entries (which increase flow) don't incorrectly reduce the Initial Stock count.
+    const startIso = `${year}-01-01T00:00:00.000Z`
+    const endIso = `${year}-12-31T23:59:59.999Z`
+    const startObj = `${year}-01-01`
+    const endObj = `${year}-12-31`
+
+
+    // A. Get details of New Official Entries to identify "Official" vs "Manual"
+    // We need to check if the concluded NUIPCs are Official (exist in sp_inqueritos_externos)
+    // And if so, what year they entered.
+
+    // First, let's identify the "Active Year" to know strictly which rule to apply
+    const { data: activeYearData } = await supabase
+        .from('sp_config_years')
+        .select('year')
+        .eq('is_active', true)
+        .single()
+    const activeYear = activeYearData?.year || new Date().getFullYear()
+
+    let concludedBacklogCount = 0
+
+    // Fetch all concluded deprecadas for the year
+    const { data: allConcluded } = await supabase
+        .from('inqueritos')
+        .select('nuipc')
+        .eq('estado', 'concluido')
+        .ilike('observacoes', '%DEPRECADA%')
+        .gte('data_conclusao', startIso)
+    // .lte('data_conclusao', endIso) // Unbounded to count cumulative reductions since start of year
+
+
+    let officialConcludedCount = 0
+    let manualConcludedCount = 0
+
+    if (allConcluded && allConcluded.length > 0) {
+        // Collect NUIPCs to batch query
+        const concludedNuipcs = allConcluded.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n)
+
+        // Fetch Official info for these NUIPCs
+        // We use a lenient query; matches usually by nuipc
+        let officialMap = new Map<string, string>() // NUIPC -> data_entrada
+        if (concludedNuipcs.length > 0) {
+            const chunkSize = 200
+            for (let i = 0; i < concludedNuipcs.length; i += chunkSize) {
+                const chunk = concludedNuipcs.slice(i, i + chunkSize)
+                const { data: officials } = await supabase
+                    .from('sp_inqueritos_externos')
+                    .select('nuipc, data_entrada')
+                    .in('nuipc', chunk)
+                    .ilike('observacoes', '%DEPRECADA%') // Ensure we only match deprecadas? Not strictly necessary if NUIPC match
+
+                officials?.forEach(o => {
+                    if (o.nuipc) officialMap.set(o.nuipc.trim().toUpperCase(), o.data_entrada)
+                })
+            }
+        }
+
+        allConcluded.forEach(d => {
+            const nuipc = d.nuipc?.trim().toUpperCase()
+            const isOfficial = nuipc && officialMap.has(nuipc)
+            const entryDate = isOfficial ? officialMap.get(nuipc) : null
+            const entryYear = entryDate ? new Date(entryDate).getFullYear() : null
+
+            if (isOfficial) officialConcludedCount++
+            else manualConcludedCount++
+
+            if (year === activeYear) {
+                // Rule: Active Year (2026) counts "Official Backlog"
+                // Manual -> Ignored (belongs to 2025)
+                // New Official (Entry == 2026) -> Neutral (Ignored)
+                // Old Official (Entry < 2026) -> Backlog Reduction
+                if (isOfficial && entryYear && entryYear < year) {
+                    concludedBacklogCount++
+                }
+            } else {
+
+                // Rule: Past Year (2025) counts "Manual"
+                // Official -> Ignored (belongs to 2026)
+                // Manual -> Backlog Reduction
+                if (!isOfficial) {
+                    concludedBacklogCount++
+                }
+            }
+        })
+    }
+
+    return {
+        total_concluded: concludedCount,
+        total_precatorias_concluded: concludedBacklogCount,
+        total_precatorias_official: officialConcludedCount,
+        total_precatorias_manual: manualConcludedCount
+    }
 }
+
 

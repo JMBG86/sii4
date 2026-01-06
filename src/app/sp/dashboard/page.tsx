@@ -128,6 +128,7 @@ export default function SPDashboard() {
                     </CardContent>
                 </Card>
 
+
                 {/* Total Detainees Card */}
                 <Card className="hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -141,6 +142,52 @@ export default function SPDashboard() {
                         </div>
                     </CardContent>
                 </Card>
+
+
+
+                {/* Deprecadas Card - NEW */}
+                <Card className="hover:shadow-md transition-shadow border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-900/20 col-span-1 md:col-span-2 lg:col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Deprecadas ({years.active})</CardTitle>
+                        <ArrowDownRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {/* Previous Year Block */}
+                        <div className="bg-white/50 dark:bg-black/20 p-2 rounded text-xs space-y-1">
+                            <div className="font-semibold text-gray-500 mb-1 border-b border-gray-200 dark:border-gray-700 pb-1">
+                                {years.previous} (Existentes)
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span>Existentes:</span>
+                                <span className="font-mono font-bold text-amber-600">
+                                    {(previous.deprecadas?.stockStart || 0) - (previous.deprecadas?.concluidas || 0)}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span>Feitas:</span>
+                                <span className="font-mono font-bold text-green-600">{previous.deprecadas?.concluidas || 0}</span>
+                            </div>
+                        </div>
+
+                        {/* Active Year Block */}
+                        <div className="bg-white/50 dark:bg-black/20 p-2 rounded text-xs space-y-1">
+                            <div className="font-semibold text-gray-500 mb-1 border-b border-gray-200 dark:border-gray-700 pb-1">
+                                {years.active} (Corrente)
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span>Registadas:</span>
+                                <span className="font-mono font-bold text-blue-600">{active.deprecadas?.entradas || 0}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span>Feitas:</span>
+                                <span className="font-mono font-bold text-green-600">{active.deprecadas?.concluidas || 0}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+
+
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 align-start items-start">

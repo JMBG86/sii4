@@ -53,7 +53,10 @@ export async function createDeprecada(formData: FormData) {
 
     // Integration: Create Pending Inquiry if SII ALBUFEIRA
     // (Same logic as External Inquiries)
-    if (rawData.destino === 'SII ALBUFEIRA') {
+
+    // Integration: Create Pending Inquiry if SII ALBUFEIRA or SII
+    // (Same logic as External Inquiries)
+    if (rawData.destino === 'SII ALBUFEIRA' || rawData.destino === 'SII') {
         try {
             const { data: existing } = await supabase
                 .from('inqueritos')
@@ -69,7 +72,7 @@ export async function createDeprecada(formData: FormData) {
                     user_id: null,
                     numero_oficio: rawData.numero_oficio,
                     observacoes: `[DEPRECADA] ${rawData.observacoes} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
-                    destino: 'SII ALBUFEIRA',
+                    destino: 'SII', // Normalize to SII
                     denunciados: [],
                     denunciantes: []
                 })
@@ -79,6 +82,7 @@ export async function createDeprecada(formData: FormData) {
             console.error('Integration error:', err)
         }
     }
+
 
     return { success: true }
 }

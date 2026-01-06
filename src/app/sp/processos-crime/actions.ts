@@ -498,16 +498,28 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     // --- DEPRECADA STATS (Assuming Precatorias Stock applies here) ---
     // Similar Logic using stockPrecStart
 
-    // D1. Entradas Deprecadas (Month)
+
+    // D1. Entradas Deprecadas (Month) - Use sp_inqueritos_externos (Official Entries only)
     const getDepEntradas = async (from: string, to: string) => {
-        const { data } = await supabase.from('inqueritos').select('nuipc').gte('created_at', from).lte('created_at', to).ilike('observacoes', '%DEPRECADA%')
+        const { data } = await supabase
+            .from('sp_inqueritos_externos')
+            .select('nuipc')
+            .gte('data_entrada', from)
+            .lte('data_entrada', to)
+            .ilike('observacoes', '%DEPRECADA%')
         return new Set(data?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
     }
     const depEntradas = await getDepEntradas(startDate, endDate)
 
-    // D2. Concluidas Deprecadas (Month)
+    // D2. Concluidas Deprecadas (Month) - Use inqueritos (All completions, including manual)
     const getDepConcluidas = async (from: string, to: string) => {
-        const { data } = await supabase.from('inqueritos').select('nuipc').eq('estado', 'concluido').gte('data_conclusao', from).lte('data_conclusao', to).ilike('observacoes', '%DEPRECADA%')
+        const { data } = await supabase
+            .from('inqueritos')
+            .select('nuipc')
+            .eq('estado', 'concluido')
+            .gte('data_conclusao', from)
+            .lte('data_conclusao', to)
+            .ilike('observacoes', '%DEPRECADA%')
         return new Set(data?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
     }
     const depConcluidas = await getDepConcluidas(startDate, endDate)
@@ -516,16 +528,28 @@ export async function fetchMonthlyReportStats(startDate: string, endDate: string
     let depPendentes = stockPrecStart
 
     if (startDate > jan1) {
-        // Entries YTD
-        const { data: entYTD } = await supabase.from('inqueritos').select('nuipc').gte('created_at', jan1).lt('created_at', startDate).ilike('observacoes', '%DEPRECADA%')
+        // Entries YTD - Use sp_inqueritos_externos
+        const { data: entYTD } = await supabase
+            .from('sp_inqueritos_externos')
+            .select('nuipc')
+            .gte('data_entrada', jan1)
+            .lt('data_entrada', startDate)
+            .ilike('observacoes', '%DEPRECADA%')
         const entYTDCount = new Set(entYTD?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
 
-        // Exits YTD
-        const { data: exitYTD } = await supabase.from('inqueritos').select('nuipc').eq('estado', 'concluido').gte('data_conclusao', jan1).lt('data_conclusao', startDate).ilike('observacoes', '%DEPRECADA%')
+        // Exits YTD - Use inqueritos
+        const { data: exitYTD } = await supabase
+            .from('inqueritos')
+            .select('nuipc')
+            .eq('estado', 'concluido')
+            .gte('data_conclusao', jan1)
+            .lt('data_conclusao', startDate)
+            .ilike('observacoes', '%DEPRECADA%')
         const exitYTDCount = new Set(exitYTD?.map(d => d.nuipc?.trim().toUpperCase()).filter(n => n) || []).size
 
         depPendentes = stockPrecStart + entYTDCount - exitYTDCount
     }
+
 
     const depTransitam = depPendentes + depEntradas - depConcluidas
 

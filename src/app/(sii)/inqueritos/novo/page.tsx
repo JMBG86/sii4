@@ -12,8 +12,11 @@ import {
     SelectContent,
     SelectItem,
     SelectTrigger,
+
     SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+
 import { useState, useEffect } from 'react'
 import { Loader2, Plus, X } from 'lucide-react'
 import { Profile } from '@/types/database'
@@ -239,8 +242,24 @@ export default function AddInquiryPage() {
                             </Select>
                         </div>
 
+
+
+                        <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-blue-50/50 dark:bg-blue-900/10">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="is_deprecada" className="text-base font-semibold text-blue-900 dark:text-blue-100">
+                                    É Deprecada?
+                                </Label>
+                                <div className="text-sm text-muted-foreground">
+                                    Se ativado, este processo será tratado como Carta Precatória (Deprecada).
+                                </div>
+                            </div>
+                            <Switch id="is_deprecada" name="is_deprecada" />
+                        </div>
+
+
                         <div className="space-y-2">
                             <Label htmlFor="observacoes">Observações</Label>
+
                             <Textarea
                                 id="observacoes"
                                 name="observacoes"

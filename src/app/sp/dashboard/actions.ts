@@ -1,10 +1,13 @@
-import { createClient } from '@/lib/supabase/client'
+'use server'
+import { createClient } from '@/lib/supabase/server'
+import { getYearProgress, getActiveYear } from '../config/actions'
 
 export type SeizureCategoryStats = {
     total: number;
     isValue?: boolean;
     subs: Record<string, number>;
 }
+
 
 export type YearStats = {
     processos: number;
@@ -13,6 +16,12 @@ export type YearStats = {
     totalDetidos: number;
     seizuresTree: Record<string, SeizureCategoryStats>;
     drugsTotals: Record<string, number>;
+    deprecadas: {
+        entradas: number;
+        concluidas: number;
+        stockStart?: number;
+        debug?: any;
+    }
 }
 
 export type DashboardData = {
@@ -31,8 +40,16 @@ async function getStatsForYear(supabase: any, year: number): Promise<YearStats> 
         { count: countCorrespondencia },
         { data: detaineesData },
         { data: seizuresData },
-        { data: drugsData }
+        { data: drugsData },
+
+
+        { count: countDeprecadasEntradas },
+        precatoriasProgress,
+        { data: configData },
+        activeYearConfig // Fetch active year config
     ] = await Promise.all([
+
+
         // 1. Processos Logic: Count non-null NUIPCs for the year
         supabase.from('sp_processos_crime')
             .select('*', { count: 'exact', head: true })
@@ -65,11 +82,45 @@ async function getStatsForYear(supabase: any, year: number): Promise<YearStats> 
         // 6. Drugs (Real Count via Join)
         supabase.from('sp_apreensoes_drogas')
             .select('*, sp_processos_crime!inner(ano)')
-            .eq('sp_processos_crime.ano', year)
+            .eq('sp_processos_crime.ano', year),
+
+        // 7. Deprecadas Entradas
+        supabase.from('sp_inqueritos_externos')
+            .select('*', { count: 'exact', head: true })
+            .ilike('observacoes', '%DEPRECADA%')
+            .gte('data_entrada', startDate)
+            .lte('data_entrada', endDate),
+
+
+        // 8. Deprecadas Concluidas via Shared Logic
+        getYearProgress(year),
+
+        // 9. Get Fiscal Year Config for Stock Start
+        supabase.from('sp_config_years')
+            .select('stock_precatorias_start')
+            .eq('year', year)
+            .single(),
+
+        // 10. Get Active Year (for comparison)
+        getActiveYear()
     ])
+
 
     // Calculate Total Detainees from real rows
     const totalDetidos = detaineesData?.reduce((acc: number, curr: any) => acc + (curr.quantidade || 0), 0) || 0
+    console.log(`[getStatsForYear] Year: ${year}, ConfigData:`, configData)
+    const stockStart = (configData as any)?.stock_precatorias_start || 0
+
+    // Logic:
+    // Active Year (2026): "Feitas" = Official Concluded (All throughput)
+    // Previous Year (2025): "Feitas" = Manual Concluded (Backlog Reduction)
+    const yearStats: any = precatoriasProgress
+    const currentActiveYear = (activeYearConfig as any)?.year || new Date().getFullYear()
+
+    const concludedCount = (currentActiveYear === year)
+        ? (yearStats?.total_precatorias_official || 0)
+        : (yearStats?.total_precatorias_manual || 0)
+
 
     // --- Seizures Aggregation ---
     const seizuresTree: Record<string, SeizureCategoryStats> = {}
@@ -132,12 +183,19 @@ async function getStatsForYear(supabase: any, year: number): Promise<YearStats> 
         correspondencia: countCorrespondencia || 0,
         totalDetidos,
         seizuresTree,
-        drugsTotals
+        drugsTotals,
+        deprecadas: {
+            entradas: countDeprecadasEntradas || 0,
+            concluidas: concludedCount || 0,
+            stockStart: stockStart || 0,
+            debug: precatoriasProgress
+        }
     }
 }
 
+
 export async function getDashboardCounts(activeYear: number = 2026, previousYear: number = 2024): Promise<DashboardData> {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const [active, previous] = await Promise.all([
         getStatsForYear(supabase, activeYear),

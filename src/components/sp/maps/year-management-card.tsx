@@ -19,7 +19,9 @@ export function YearManagementCard() {
     const [loading, setLoading] = useState(false)
     const [newYearOpen, setNewYearOpen] = useState(false)
     const [editYearOpen, setEditYearOpen] = useState(false)
+
     const [refreshKey, setRefreshKey] = useState(0)
+    const [debugLogs, setDebugLogs] = useState<any[]>([])
 
     // Form State
     const [targetYear, setTargetYear] = useState<string>((new Date().getFullYear() + 1).toString())
@@ -36,11 +38,12 @@ export function YearManagementCard() {
             const data = await getFiscalYears()
             setYears(data || [])
 
+
             // Load stats for each year (concluded count)
             const statsMap: Record<number, { proc: number, prec: number }> = {}
             if (data) {
                 for (const y of data) {
-                    const res = await getYearProgress(y.year)
+                    const res: any = await getYearProgress(y.year)
                     statsMap[y.year] = {
                         proc: res.total_concluded,
                         prec: res.total_precatorias_concluded || 0
@@ -49,10 +52,13 @@ export function YearManagementCard() {
             }
             setStats(statsMap)
 
+
+
         } catch (err) {
             console.error(err)
         }
     }
+
 
     async function handleOpenYear() {
         if (!targetYear) return
@@ -325,8 +331,29 @@ export function YearManagementCard() {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
+
+                    <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-800 rounded text-[10px] font-mono whitespace-pre-wrap overflow-auto max-h-[200px]">
+                        <strong>DEBUG INFO (Temporário):</strong>
+                        {Object.entries(years).map(([_, y]) => {
+                            // Find stats using y.year if available, or just render what we have
+                            return (
+                                <div key={y.year} className="mb-2 border-b pb-1">
+                                    {/* We need to store debug info in state to show it here. 
+                                        Currently 'stats' only stores {proc, prec}.
+                                        I need to update the state to store debug info. 
+                                    */}
+                                </div>
+                            )
+                        })}
+                        {/* Actually, let's just JSON stringify the 'stats' if I update the type, 
+                           OR create a new state 'debugLogs'. 
+                           Let's go with a new state 'debugLogs'. 
+                        */}
+                        {JSON.stringify(debugLogs, null, 2)}
+                    </div>
                 </div>
             </CardContent>
         </Card>
+
     )
 }

@@ -8,10 +8,17 @@ export async function createInquiry(formData: FormData) {
     const data_ocorrencia = formData.get('data_ocorrencia') as string
     const data_participacao = formData.get('data_participacao') as string
     const data_atribuicao = formData.get('data_atribuicao') as string || new Date().toISOString().split('T')[0]
+
     const classificacao = formData.get('classificacao') as string
-    const observacoes = formData.get('observacoes') as string
+    let observacoes = formData.get('observacoes') as string
+    const isDeprecada = formData.get('is_deprecada') === 'on'
+
+    if (isDeprecada) {
+        observacoes = observacoes ? `${observacoes} [DEPRECADA]` : '[DEPRECADA]'
+    }
 
     // Parse JSON fields
+
     const denunciantesRaw = formData.get('denunciantes') as string
     const denunciadosRaw = formData.get('denunciados') as string
 
