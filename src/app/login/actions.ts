@@ -1,7 +1,9 @@
-import { createClient } from '@/lib/supabase/client'
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
@@ -11,12 +13,12 @@ export async function login(formData: FormData) {
         return { error: 'Missing credentials' }
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
 
-    if (error) {
+    if (signInError) {
         return { error: 'Could not authenticate user' }
     }
 
@@ -29,13 +31,17 @@ export async function login(formData: FormData) {
     if (context === 'sp') {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('access_sp')
+            .select('role, access_sp')
             .eq('id', user.id)
             .single()
 
-        if (!profile?.access_sp) {
+        const hasAccess = profile?.access_sp === true || profile?.role === 'admin' || profile?.role === 'sp'
+
+        if (!hasAccess) {
             await supabase.auth.signOut()
-            return { error: 'Unauthorized: Sem acesso à Secção de Processos' }
+            return {
+                error: `Unauthorized: Sem acesso à Secção de Processos. (Debug: role=${profile?.role}, access_sp=${profile?.access_sp})`
+            }
         }
 
         return { success: true, redirect: '/sp/dashboard' }
