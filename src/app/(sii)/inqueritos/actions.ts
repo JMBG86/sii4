@@ -203,7 +203,8 @@ export async function deleteInquiry(inquiryId: string) {
         .eq('id', inquiryId)
         .single()
 
-    const isSP = inquiry?.observacoes?.includes('[Importado da SP]')
+    const isSP = inquiry?.observacoes?.includes('[Importado da SP]') ||
+        inquiry?.observacoes?.includes('[Importado de Inq. Externos]')
     const isUnassigned = inquiry?.user_id === null
 
     // If it's from SP but already unassigned (e.g. from Distribution page), we allow Hard Delete to clear it.

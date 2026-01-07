@@ -133,7 +133,7 @@ export default function DistribuicaoPage() {
                                                 <TableCell className="font-mono font-medium">{inq.nuipc}</TableCell>
                                                 <TableCell>{inq.tipo_crime || '-'}</TableCell>
                                                 <TableCell>
-                                                    {inq.observacoes?.includes('[Importado da SP]') ? (
+                                                    {(inq.observacoes?.includes('[Importado da SP]') || inq.observacoes?.includes('[Importado de Inq. Externos]')) ? (
                                                         <Badge variant="secondary">SP (Importado)</Badge>
                                                     ) : isDeprecada ? (
                                                         <Badge className="bg-orange-500 hover:bg-orange-600">Deprecada</Badge>
