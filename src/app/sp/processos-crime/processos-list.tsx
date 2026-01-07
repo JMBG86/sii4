@@ -120,13 +120,13 @@ export function ProcessosTable({ year }: { year: number }) {
             </div>
 
             {/* Table */}
-            <div className="rounded-md border bg-white dark:bg-zinc-900 overflow-x-auto">
-                <Table className="whitespace-nowrap">
+            <div className="rounded-md border bg-white dark:bg-zinc-900 overflow-hidden">
+                <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[80px]">#</TableHead>
-                            <TableHead>NUIPC</TableHead>
-                            <TableHead>Data Registo</TableHead>
+                            <TableHead className="w-[60px]">#</TableHead>
+                            <TableHead className="min-w-[120px]">NUIPC</TableHead>
+                            <TableHead className="min-w-[100px]">Data Registo</TableHead>
                             <TableHead>Detidos</TableHead>
                             <TableHead>Apreensões</TableHead>
                             <TableHead>Localização</TableHead>
@@ -183,18 +183,18 @@ export function ProcessosTable({ year }: { year: number }) {
                                             <span className="text-muted-foreground text-xs">-</span>
                                         )}
                                     </TableCell>
-                                    <TableCell>{row.localizacao || '-'}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={row.tipo_crime}>{row.tipo_crime || '-'}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={row.denunciante}>{row.denunciante || '-'}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={row.vitima}>{row.vitima || '-'}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={row.arguido}>{row.arguido || '-'}</TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={row.entidade_destino}>
+                                    <TableCell className="max-w-[150px] truncate" title={row.localizacao || ''}>{row.localizacao || '-'}</TableCell>
+                                    <TableCell className="max-w-[120px] truncate" title={row.tipo_crime || ''}>{row.tipo_crime || '-'}</TableCell>
+                                    <TableCell className="max-w-[100px] truncate" title={row.denunciante || ''}>{row.denunciante || '-'}</TableCell>
+                                    <TableCell className="max-w-[100px] truncate" title={row.vitima || ''}>{row.vitima || '-'}</TableCell>
+                                    <TableCell className="max-w-[100px] truncate" title={row.arguido || ''}>{row.arguido || '-'}</TableCell>
+                                    <TableCell className="max-w-[100px] truncate" title={row.entidade_destino || ''}>
                                         {(row.entidade_destino === 'SII ALBUFEIRA' || row.entidade_destino === 'SII') ? (
                                             <Badge className="bg-blue-600 hover:bg-blue-700 border-0">
                                                 SII
                                             </Badge>
                                         ) : row.entidade_destino ? (
-                                            <Badge variant="secondary">{row.entidade_destino}</Badge>
+                                            <Badge variant="secondary" className="max-w-full truncate">{row.entidade_destino}</Badge>
                                         ) : '-'}
                                     </TableCell>
                                     <TableCell className="text-right">

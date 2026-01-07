@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { SPProcessoCrime, SPEntidade, SPDetidoInfo } from '@/types/database'
-import { updateProcesso, getEntidades, createEntidade, getDetidos, deleteProcesso } from './actions'
+import { updateProcesso, getEntidades, createEntidade, getDetidos, deleteProcesso, getCrimeTypes, createCrimeType } from './actions'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -164,6 +164,65 @@ function EntitySelect({ value, onChange }: { value: string, onChange: (val: stri
     )
 }
 
+// Custom "Creatable" Select for Crime Types
+function CrimeTypeSelect({ value, onChange }: { value: string, onChange: (val: string) => void }) {
+    const [types, setTypes] = useState<{ id: string, nome: string }[]>([])
+    const [loading, setLoading] = useState(false)
+    const [isCreating, setIsCreating] = useState(false)
+    const [newTypeName, setNewTypeName] = useState('')
+
+    useEffect(() => {
+        getCrimeTypes().then(setTypes).catch(console.error)
+    }, [])
+
+    async function handleCreate() {
+        if (!newTypeName) return
+        setLoading(true)
+        const res = await createCrimeType(newTypeName)
+        if (res.data) {
+            setTypes(prev => [...prev, res.data].sort((a, b) => a.nome.localeCompare(b.nome)))
+            onChange(res.data.nome)
+            setIsCreating(false)
+            setNewTypeName('')
+        }
+        setLoading(false)
+    }
+
+    if (isCreating) {
+        return (
+            <div className="flex gap-2">
+                <Input
+                    value={newTypeName}
+                    onChange={e => setNewTypeName(e.target.value)}
+                    placeholder="Novo Tipo de Crime..."
+                    autoFocus
+                />
+                <Button type="button" size="icon" onClick={handleCreate} disabled={loading}>
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setIsCreating(false)}>Cancelar</Button>
+            </div>
+        )
+    }
+
+    return (
+        <Select value={value} onValueChange={(val) => {
+            if (val === 'NEW_ENTRY') setIsCreating(true)
+            else onChange(val)
+        }}>
+            <SelectTrigger>
+                <SelectValue placeholder="Selecione tipo de crime" />
+            </SelectTrigger>
+            <SelectContent>
+                {types.map(t => (
+                    <SelectItem key={t.id} value={t.nome}>{t.nome}</SelectItem>
+                ))}
+                <SelectItem value="NEW_ENTRY" className="text-blue-600 font-medium">+ Adicionar Novo</SelectItem>
+            </SelectContent>
+        </Select>
+    )
+}
+
 export function ProcessoDetailDialog({
     processo,
     open,
@@ -176,6 +235,7 @@ export function ProcessoDetailDialog({
     const [loading, setLoading] = useState(false)
     const [detidos, setDetidos] = useState(processo.detidos || false)
     const [entidade, setEntidade] = useState(processo.entidade_destino || '')
+    const [tipoCrime, setTipoCrime] = useState(processo.tipo_crime || '')
 
     // New Flags
     const [criancas, setCriancas] = useState(processo.criancas_sinalizadas || false)
@@ -207,6 +267,7 @@ export function ProcessoDetailDialog({
         setImagens(processo.imagens_associadas || false)
         setNotificacao(processo.notificacao_imagens || false)
         setEntidade(processo.entidade_destino || '')
+        setTipoCrime(processo.tipo_crime || '')
         setShowArmas(false)
         setShowAmmo(false)
         setShowExplosives(false)
@@ -298,6 +359,7 @@ export function ProcessoDetailDialog({
     async function handleSubmit(formData: FormData) {
         setLoading(true)
         formData.set('entidade_destino', entidade)
+        formData.set('tipo_crime', tipoCrime)
 
         // Booleans
         formData.set('detidos', detidos ? 'on' : 'off')
@@ -1184,8 +1246,8 @@ export function ProcessoDetailDialog({
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="tipo_crime">Tipo de Crime</Label>
-                                <Input id="tipo_crime" name="tipo_crime" defaultValue={processo.tipo_crime || ''} />
+                                <Label>Tipo de Crime</Label>
+                                <CrimeTypeSelect value={tipoCrime} onChange={setTipoCrime} />
                             </div>
 
                             <div className="space-y-2">
@@ -1197,16 +1259,16 @@ export function ProcessoDetailDialog({
                         {/* Column 2: Persons & Destination */}
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="arguido">Arguido / Suspeito</Label>
-                                <Textarea id="arguido" name="arguido" defaultValue={processo.arguido || ''} className="h-20" />
+                                <Label htmlFor="denunciante">Denunciante</Label>
+                                <Input id="denunciante" name="denunciante" defaultValue={processo.denunciante || ''} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="vitima">Vítima / Lesado</Label>
                                 <Input id="vitima" name="vitima" defaultValue={processo.vitima || ''} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="denunciante">Denunciante</Label>
-                                <Input id="denunciante" name="denunciante" defaultValue={processo.denunciante || ''} />
+                                <Label htmlFor="arguido">Arguido / Suspeito</Label>
+                                <Textarea id="arguido" name="arguido" defaultValue={processo.arguido || ''} className="h-20" />
                             </div>
                         </div>
 

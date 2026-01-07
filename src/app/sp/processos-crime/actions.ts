@@ -431,3 +431,17 @@ export async function createEntidade(nome: string) {
     if (error) return { error: error.message }
     return { data }
 }
+
+// --- Crime Types ---
+export async function getCrimeTypes() {
+    const supabase = createClient()
+    const { data } = await supabase.from('sp_tipo_crime').select('*').order('nome', { ascending: true })
+    return data || []
+}
+
+export async function createCrimeType(nome: string) {
+    const supabase = createClient()
+    const { data, error } = await supabase.from('sp_tipo_crime').insert({ nome }).select().single()
+    if (error) return { error: error.message }
+    return { data }
+}
