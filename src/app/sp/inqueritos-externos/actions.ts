@@ -36,7 +36,8 @@ export async function createInqueritoExterno(formData: FormData) {
         assunto: formData.get('assunto') as string,
         destino: formData.get('destino') as string,
         data_entrada: formData.get('data_entrada') as string,
-        observacoes: formData.get('observacoes') as string
+        observacoes: formData.get('observacoes') as string,
+        tipo_crime: formData.get('tipo_crime') as string
     }
 
     if (!rawData.nuipc) return { error: "NUIPC é obrigatório." }
@@ -63,6 +64,7 @@ export async function createInqueritoExterno(formData: FormData) {
 
                 let updatePayload: any = {
                     numero_oficio: rawData.numero_oficio,
+                    tipo_crime: rawData.tipo_crime,
                     // Append import note to existing or replace? User says "atualizar estes dados".
                     // Let's prepend to keep history visible
                     observacoes: `[Atualização SP: ${new Date().toLocaleDateString()}] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} \n\n${existing.observacoes || ''}`
@@ -98,7 +100,8 @@ export async function createInqueritoExterno(formData: FormData) {
                     observacoes: `[Importado de Inq. Externos] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
                     destino: 'SII ALBUFEIRA',
                     denunciados: [],
-                    denunciantes: []
+                    denunciantes: [],
+                    tipo_crime: rawData.tipo_crime
                 })
 
                 if (insertError) {
@@ -124,7 +127,8 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
         assunto: formData.get('assunto') as string,
         destino: formData.get('destino') as string,
         data_entrada: formData.get('data_entrada') as string,
-        observacoes: formData.get('observacoes') as string
+        observacoes: formData.get('observacoes') as string,
+        tipo_crime: formData.get('tipo_crime') as string
     }
 
     if (!rawData.nuipc) return { error: "NUIPC é obrigatório." }
@@ -149,6 +153,7 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
                 // Update existing
                 let updatePayload: any = {
                     numero_oficio: rawData.numero_oficio,
+                    tipo_crime: rawData.tipo_crime,
                     observacoes: `[Atualização SP: ${new Date().toLocaleDateString()}] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} \n\n${existing.observacoes || ''}`
                 }
 
@@ -178,7 +183,8 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
                     observacoes: `[Importado de Inq. Externos] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
                     destino: 'SII ALBUFEIRA',
                     denunciados: [],
-                    denunciantes: []
+                    denunciantes: [],
+                    tipo_crime: rawData.tipo_crime
                 })
 
                 if (insertError) {

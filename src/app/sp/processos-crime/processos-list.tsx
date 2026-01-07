@@ -25,6 +25,7 @@ export function ProcessosTable({ year }: { year: number }) {
     const [totalPages, setTotalPages] = useState(1)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedProcess, setSelectedProcess] = useState<SPProcessoCrime | null>(null)
+    const [isReadOnly, setIsReadOnly] = useState(false)
 
     const loadData = useCallback(async () => {
         setLoading(true)
@@ -149,7 +150,17 @@ export function ProcessosTable({ year }: { year: number }) {
                             const cats = getSeizureCategories(row)
 
                             return (
-                                <TableRow key={row.id} className={cn(!row.nuipc_completo && "opacity-50 hover:opacity-80")}>
+                                <TableRow
+                                    key={row.id}
+                                    className={cn(
+                                        "cursor-pointer hover:bg-muted/50 transition-colors",
+                                        !row.nuipc_completo && "opacity-50 hover:opacity-80"
+                                    )}
+                                    onClick={() => {
+                                        setSelectedProcess(row)
+                                        setIsReadOnly(true)
+                                    }}
+                                >
                                     <TableCell className="font-mono font-bold text-muted-foreground">
                                         {row.numero_sequencial}
                                     </TableCell>
@@ -198,7 +209,15 @@ export function ProcessosTable({ year }: { year: number }) {
                                         ) : '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm" onClick={() => setSelectedProcess(row)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedProcess(row)
+                                                setIsReadOnly(false)
+                                            }}
+                                        >
                                             <Edit2 className="h-3 w-3 mr-1" />
                                             {row.nuipc_completo ? 'Editar' : 'Registar'}
                                         </Button>
@@ -214,9 +233,11 @@ export function ProcessosTable({ year }: { year: number }) {
                 <ProcessoDetailDialog
                     processo={selectedProcess}
                     open={!!selectedProcess}
+                    readOnly={isReadOnly}
                     onOpenChange={(open: boolean) => {
                         if (!open) {
                             setSelectedProcess(null)
+                            setIsReadOnly(false)
                             // Small delay to ensure DB propagation/revalidation
                             setTimeout(() => loadData(), 100)
                         }

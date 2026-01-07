@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { COUNTRIES } from '@/constants/countries'
+import { CrimeTypeSelect } from '../components/crime-type-select'
 
 const WEAPON_CONFIG: Record<string, string[]> = {
     'Armas de fogo': [
@@ -103,7 +104,8 @@ const VEHICLE_TYPES = [
 const CURRENCIES = ['Euros', 'Dolares', 'Libras', 'Outros']
 
 // Custom "Creatable" Select for Entities
-function EntitySelect({ value, onChange }: { value: string, onChange: (val: string) => void }) {
+// Custom "Creatable" Select for Entities
+function EntitySelect({ value, onChange, readOnly }: { value: string, onChange: (val: string) => void, readOnly?: boolean }) {
     const [entidades, setEntidades] = useState<SPEntidade[]>([])
     const [loading, setLoading] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
@@ -146,7 +148,7 @@ function EntitySelect({ value, onChange }: { value: string, onChange: (val: stri
         <Select value={value} onValueChange={(val) => {
             if (val === 'NEW_ENTRY') setIsCreating(true)
             else onChange(val)
-        }}>
+        }} disabled={readOnly}>
             <SelectTrigger>
                 <SelectValue placeholder="Selecione entidade" />
             </SelectTrigger>
@@ -158,79 +160,26 @@ function EntitySelect({ value, onChange }: { value: string, onChange: (val: stri
                     .map(e => (
                         <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
                     ))}
-                <SelectItem value="NEW_ENTRY" className="text-blue-600 font-medium">+ Adicionar Nova</SelectItem>
+                {!readOnly && <SelectItem value="NEW_ENTRY" className="text-blue-600 font-medium">+ Adicionar Nova</SelectItem>}
             </SelectContent>
         </Select>
     )
 }
 
 // Custom "Creatable" Select for Crime Types
-function CrimeTypeSelect({ value, onChange }: { value: string, onChange: (val: string) => void }) {
-    const [types, setTypes] = useState<{ id: string, nome: string }[]>([])
-    const [loading, setLoading] = useState(false)
-    const [isCreating, setIsCreating] = useState(false)
-    const [newTypeName, setNewTypeName] = useState('')
-
-    useEffect(() => {
-        getCrimeTypes().then(setTypes).catch(console.error)
-    }, [])
-
-    async function handleCreate() {
-        if (!newTypeName) return
-        setLoading(true)
-        const res = await createCrimeType(newTypeName)
-        if (res.data) {
-            setTypes(prev => [...prev, res.data].sort((a, b) => a.nome.localeCompare(b.nome)))
-            onChange(res.data.nome)
-            setIsCreating(false)
-            setNewTypeName('')
-        }
-        setLoading(false)
-    }
-
-    if (isCreating) {
-        return (
-            <div className="flex gap-2">
-                <Input
-                    value={newTypeName}
-                    onChange={e => setNewTypeName(e.target.value)}
-                    placeholder="Novo Tipo de Crime..."
-                    autoFocus
-                />
-                <Button type="button" size="icon" onClick={handleCreate} disabled={loading}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setIsCreating(false)}>Cancelar</Button>
-            </div>
-        )
-    }
-
-    return (
-        <Select value={value} onValueChange={(val) => {
-            if (val === 'NEW_ENTRY') setIsCreating(true)
-            else onChange(val)
-        }}>
-            <SelectTrigger>
-                <SelectValue placeholder="Selecione tipo de crime" />
-            </SelectTrigger>
-            <SelectContent>
-                {types.map(t => (
-                    <SelectItem key={t.id} value={t.nome}>{t.nome}</SelectItem>
-                ))}
-                <SelectItem value="NEW_ENTRY" className="text-blue-600 font-medium">+ Adicionar Novo</SelectItem>
-            </SelectContent>
-        </Select>
-    )
-}
+// Custom "Creatable" Select for Crime Types
+// Shared component used here
 
 export function ProcessoDetailDialog({
     processo,
     open,
-    onOpenChange
+    onOpenChange,
+    readOnly = false
 }: {
     processo: SPProcessoCrime
     open: boolean
     onOpenChange: (open: boolean) => void
+    readOnly?: boolean
 }) {
     const [loading, setLoading] = useState(false)
     const [detidos, setDetidos] = useState(processo.detidos || false)
@@ -393,30 +342,30 @@ export function ProcessoDetailDialog({
             <DialogContent className="sm:max-w-[95vw] h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
-                        {processo.nuipc_completo ? 'Editar Processo' : `Registar Processo - Sequencial #${processo.numero_sequencial}`}
+                        {readOnly ? 'Visualizar Processo' : (processo.nuipc_completo ? 'Editar Processo' : `Registar Processo - Sequencial #${processo.numero_sequencial}`)}
                     </DialogTitle>
                 </DialogHeader>
                 <form action={handleSubmit}>
-                    <div className="grid grid-cols-2 gap-6 py-4">
+                    <fieldset disabled={readOnly} className="grid grid-cols-2 gap-6 py-4 border-0 p-0 m-0 min-w-0 disabled:opacity-100">
                         {/* Column 1: Core Info */}
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="nuipc_completo">NUIPC Completo</Label>
-                                <Input id="nuipc_completo" name="nuipc_completo" defaultValue={processo.nuipc_completo || ''} placeholder="Ex: 500/25.3GBABF" required />
+                                <Input id="nuipc_completo" name="nuipc_completo" defaultValue={processo.nuipc_completo || ''} placeholder="Ex: 500/25.3GBABF" required readOnly={readOnly} />
                             </div>
 
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="data_registo">Data Registo</Label>
-                                    <Input id="data_registo" name="data_registo" type="date" defaultValue={processo.data_registo?.split('T')[0] || new Date().toISOString().split('T')[0]} />
+                                    <Input id="data_registo" name="data_registo" type="date" defaultValue={processo.data_registo?.split('T')[0] || new Date().toISOString().split('T')[0]} readOnly={readOnly} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="data_factos">Data Factos</Label>
-                                    <Input id="data_factos" name="data_factos" type="date" defaultValue={processo.data_factos?.split('T')[0]} />
+                                    <Input id="data_factos" name="data_factos" type="date" defaultValue={processo.data_factos?.split('T')[0]} readOnly={readOnly} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="data_conhecimento">Data Conhec.</Label>
-                                    <Input id="data_conhecimento" name="data_conhecimento" type="date" defaultValue={processo.data_conhecimento?.split('T')[0]} />
+                                    <Input id="data_conhecimento" name="data_conhecimento" type="date" defaultValue={processo.data_conhecimento?.split('T')[0]} readOnly={readOnly} />
                                 </div>
                             </div>
 
@@ -424,7 +373,7 @@ export function ProcessoDetailDialog({
                                 {/* Detainees Section */}
                                 <div className="space-y-2">
                                     <div className="flex items-center space-x-2">
-                                        <Switch id="detidos" name="detidos" checked={detidos} onCheckedChange={setDetidos} />
+                                        <Switch id="detidos" name="detidos" checked={detidos} onCheckedChange={setDetidos} disabled={readOnly} />
                                         <Label htmlFor="detidos" className="font-semibold text-red-600">Existem Detidos?</Label>
                                     </div>
 
@@ -438,8 +387,9 @@ export function ProcessoDetailDialog({
                                                         min={1}
                                                         value={item.quantidade}
                                                         onChange={(e) => updateDetaineeRow(idx, 'quantidade', parseInt(e.target.value))}
+                                                        readOnly={readOnly}
                                                     />
-                                                    <Select value={item.sexo} onValueChange={(val) => updateDetaineeRow(idx, 'sexo', val)}>
+                                                    <Select value={item.sexo} onValueChange={(val) => updateDetaineeRow(idx, 'sexo', val)} disabled={readOnly}>
                                                         <SelectTrigger className="w-20">
                                                             <SelectValue placeholder="SX" />
                                                         </SelectTrigger>
@@ -448,7 +398,7 @@ export function ProcessoDetailDialog({
                                                             <SelectItem value="F">F</SelectItem>
                                                         </SelectContent>
                                                     </Select>
-                                                    <Select value={item.nacionalidade} onValueChange={(val) => updateDetaineeRow(idx, 'nacionalidade', val)}>
+                                                    <Select value={item.nacionalidade} onValueChange={(val) => updateDetaineeRow(idx, 'nacionalidade', val)} disabled={readOnly}>
                                                         <SelectTrigger className="flex-1">
                                                             <SelectValue />
                                                         </SelectTrigger>
@@ -456,15 +406,19 @@ export function ProcessoDetailDialog({
                                                             {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                                                         </SelectContent>
                                                     </Select>
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeDetaineeRow(idx)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    {!readOnly && (
+                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeDetaineeRow(idx)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             ))}
-                                            <Button type="button" variant="outline" size="sm" onClick={addDetaineeRow} className="w-full border-dashed text-muted-foreground border-red-200 hover:border-red-400 hover:text-red-600">
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Adicionar Detidos
-                                            </Button>
+                                            {!readOnly && (
+                                                <Button type="button" variant="outline" size="sm" onClick={addDetaineeRow} className="w-full border-dashed text-muted-foreground border-red-200 hover:border-red-400 hover:text-red-600">
+                                                    <Plus className="h-4 w-4 mr-2" />
+                                                    Adicionar Detidos
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -472,7 +426,7 @@ export function ProcessoDetailDialog({
                                 {/* Children Section */}
                                 <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-zinc-800">
                                     <div className="flex items-center space-x-2">
-                                        <Switch id="criancas" checked={criancas} onCheckedChange={setCriancas} />
+                                        <Switch id="criancas" checked={criancas} onCheckedChange={setCriancas} disabled={readOnly} />
                                         <Label htmlFor="criancas" className="font-semibold text-orange-600">Crianças Sinalizadas/Em Perigo?</Label>
                                     </div>
 
@@ -485,6 +439,7 @@ export function ProcessoDetailDialog({
                                                         className="flex-1"
                                                         value={item.nome}
                                                         onChange={(e) => updateChildRow(idx, 'nome', e.target.value)}
+                                                        readOnly={readOnly}
                                                     />
                                                     <Input
                                                         type="number"
@@ -494,16 +449,21 @@ export function ProcessoDetailDialog({
                                                         max={18}
                                                         value={item.idade}
                                                         onChange={(e) => updateChildRow(idx, 'idade', parseInt(e.target.value))}
+                                                        readOnly={readOnly}
                                                     />
-                                                    <Button type="button" variant="ghost" size="icon" onClick={() => removeChildRow(idx)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    {!readOnly && (
+                                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeChildRow(idx)} className="text-red-500 hover:text-red-600 hover:bg-red-50">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             ))}
-                                            <Button type="button" variant="outline" size="sm" onClick={addChildRow} className="w-full border-dashed text-muted-foreground border-orange-200 hover:border-orange-400 hover:text-orange-600">
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Adicionar Crianças
-                                            </Button>
+                                            {!readOnly && (
+                                                <Button type="button" variant="outline" size="sm" onClick={addChildRow} className="w-full border-dashed text-muted-foreground border-orange-200 hover:border-orange-400 hover:text-orange-600">
+                                                    <Plus className="h-4 w-4 mr-2" />
+                                                    Adicionar Crianças
+                                                </Button>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -511,7 +471,7 @@ export function ProcessoDetailDialog({
                                 {/* Seizures Section */}
                                 <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
                                     <div className="flex items-center space-x-2">
-                                        <Switch id="apreensoes" checked={apreensoes} onCheckedChange={setApreensoes} />
+                                        <Switch id="apreensoes" checked={apreensoes} onCheckedChange={setApreensoes} disabled={readOnly} />
                                         <Label htmlFor="apreensoes" className="font-semibold text-purple-600 text-base">Existem Apreensões?</Label>
                                     </div>
 
@@ -529,6 +489,7 @@ export function ProcessoDetailDialog({
                                                                 if (!checked) setDrugs({})
                                                                 else setDrugs({ heroina_g: 0 }) // init with dummy to toggle on
                                                             }}
+                                                            disabled={readOnly}
                                                         />
                                                         <Label htmlFor="cat_drugs" className="font-medium">Estupefacientes</Label>
                                                     </div>
@@ -538,35 +499,35 @@ export function ProcessoDetailDialog({
                                                     <div className="bg-purple-50 dark:bg-zinc-900/50 p-4 rounded-md grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Cocaína (g)</Label>
-                                                            <Input type="number" step="0.01" value={drugs?.cocaina_g || ''} onChange={e => updateDrugField('cocaina_g', parseFloat(e.target.value))} className="h-8" />
+                                                            <Input type="number" step="0.01" value={drugs?.cocaina_g || ''} onChange={e => updateDrugField('cocaina_g', parseFloat(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Heroína (g)</Label>
-                                                            <Input type="number" step="0.01" value={drugs?.heroina_g || ''} onChange={e => updateDrugField('heroina_g', parseFloat(e.target.value))} className="h-8" />
+                                                            <Input type="number" step="0.01" value={drugs?.heroina_g || ''} onChange={e => updateDrugField('heroina_g', parseFloat(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Haxixe/Resina (g)</Label>
-                                                            <Input type="number" step="0.01" value={drugs?.cannabis_resina_g || ''} onChange={e => updateDrugField('cannabis_resina_g', parseFloat(e.target.value))} className="h-8" />
+                                                            <Input type="number" step="0.01" value={drugs?.cannabis_resina_g || ''} onChange={e => updateDrugField('cannabis_resina_g', parseFloat(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Liamba/Folhas (g)</Label>
-                                                            <Input type="number" step="0.01" value={drugs?.cannabis_folhas_g || ''} onChange={e => updateDrugField('cannabis_folhas_g', parseFloat(e.target.value))} className="h-8" />
+                                                            <Input type="number" step="0.01" value={drugs?.cannabis_folhas_g || ''} onChange={e => updateDrugField('cannabis_folhas_g', parseFloat(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Óleo Cannabis (g)</Label>
-                                                            <Input type="number" step="0.01" value={drugs?.cannabis_oleo_g || ''} onChange={e => updateDrugField('cannabis_oleo_g', parseFloat(e.target.value))} className="h-8" />
+                                                            <Input type="number" step="0.01" value={drugs?.cannabis_oleo_g || ''} onChange={e => updateDrugField('cannabis_oleo_g', parseFloat(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Sintéticas (g)</Label>
-                                                            <Input type="number" step="0.01" value={drugs?.sinteticas_g || ''} onChange={e => updateDrugField('sinteticas_g', parseFloat(e.target.value))} className="h-8" />
+                                                            <Input type="number" step="0.01" value={drugs?.sinteticas_g || ''} onChange={e => updateDrugField('sinteticas_g', parseFloat(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Plantas (Un)</Label>
-                                                            <Input type="number" value={drugs?.cannabis_plantas_un || ''} onChange={e => updateDrugField('cannabis_plantas_un', parseInt(e.target.value))} className="h-8" />
+                                                            <Input type="number" value={drugs?.cannabis_plantas_un || ''} onChange={e => updateDrugField('cannabis_plantas_un', parseInt(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                         <div className="space-y-1">
                                                             <Label className="text-xs">Subst. Psicoativas (Un)</Label>
-                                                            <Input type="number" value={drugs?.substancias_psicoativas_un || ''} onChange={e => updateDrugField('substancias_psicoativas_un', parseInt(e.target.value))} className="h-8" />
+                                                            <Input type="number" value={drugs?.substancias_psicoativas_un || ''} onChange={e => updateDrugField('substancias_psicoativas_un', parseInt(e.target.value))} className="h-8" readOnly={readOnly} />
                                                         </div>
                                                     </div>
                                                 )}
@@ -584,6 +545,7 @@ export function ProcessoDetailDialog({
                                                                 setSeizuresList(prev => prev.filter(s => !s.tipo.startsWith('Material Informático:')))
                                                             }
                                                         }}
+                                                        disabled={readOnly}
                                                     />
                                                     <Label htmlFor="cat_it" className="font-medium">Material Informático e Comunicações</Label>
                                                 </div>
@@ -1227,14 +1189,14 @@ export function ProcessoDetailDialog({
                                 {/* Imagens Section */}
                                 <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
                                     <div className="flex items-center space-x-2">
-                                        <Switch id="imagens" checked={imagens} onCheckedChange={setImagens} />
+                                        <Switch id="imagens" checked={imagens} onCheckedChange={setImagens} disabled={readOnly} />
                                         <Label htmlFor="imagens" className="font-semibold text-pink-600 text-base">Tem Imagens?</Label>
                                     </div>
 
                                     {imagens && (
                                         <div className="space-y-3 mt-3 animate-in fade-in pl-4 border-l-2 border-pink-200">
                                             <div className="flex items-center space-x-2">
-                                                <Switch id="notificacao" checked={notificacao} onCheckedChange={setNotificacao} />
+                                                <Switch id="notificacao" checked={notificacao} onCheckedChange={setNotificacao} disabled={readOnly} />
                                                 <Label htmlFor="notificacao" className="font-medium">Foi feita a Notificação?</Label>
                                             </div>
                                             <p className="text-xs text-muted-foreground">
@@ -1247,12 +1209,12 @@ export function ProcessoDetailDialog({
 
                             <div className="space-y-2">
                                 <Label>Tipo de Crime</Label>
-                                <CrimeTypeSelect value={tipoCrime} onChange={setTipoCrime} />
+                                <CrimeTypeSelect value={tipoCrime} onChange={setTipoCrime} readOnly={readOnly} />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="localizacao">Localização</Label>
-                                <Input id="localizacao" name="localizacao" defaultValue={processo.localizacao || ''} />
+                                <Input id="localizacao" name="localizacao" defaultValue={processo.localizacao || ''} readOnly={readOnly} />
                             </div>
                         </div>
 
@@ -1260,15 +1222,15 @@ export function ProcessoDetailDialog({
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="denunciante">Denunciante</Label>
-                                <Input id="denunciante" name="denunciante" defaultValue={processo.denunciante || ''} />
+                                <Input id="denunciante" name="denunciante" defaultValue={processo.denunciante || ''} readOnly={readOnly} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="vitima">Vítima / Lesado</Label>
-                                <Input id="vitima" name="vitima" defaultValue={processo.vitima || ''} />
+                                <Input id="vitima" name="vitima" defaultValue={processo.vitima || ''} readOnly={readOnly} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="arguido">Arguido / Suspeito</Label>
-                                <Textarea id="arguido" name="arguido" defaultValue={processo.arguido || ''} className="h-20" />
+                                <Textarea id="arguido" name="arguido" defaultValue={processo.arguido || ''} className="h-20" readOnly={readOnly} />
                             </div>
                         </div>
 
@@ -1278,28 +1240,28 @@ export function ProcessoDetailDialog({
                                 <h3 className="font-semibold text-sm">Dados de Envio</h3>
                                 <div className="space-y-2">
                                     <Label>Entidade Destino</Label>
-                                    <EntitySelect value={entidade} onChange={setEntidade} />
+                                    <EntitySelect value={entidade} onChange={setEntidade} readOnly={readOnly} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">
                                         <Label htmlFor="envio_em">Data Envio</Label>
-                                        <Input id="envio_em" name="envio_em" type="date" defaultValue={processo.envio_em?.split('T')[0]} />
+                                        <Input id="envio_em" name="envio_em" type="date" defaultValue={processo.envio_em?.split('T')[0]} readOnly={readOnly} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="numero_oficio_envio">Nº Ofício Envio</Label>
-                                        <Input id="numero_oficio_envio" name="numero_oficio_envio" defaultValue={processo.numero_oficio_envio || ''} />
+                                        <Input id="numero_oficio_envio" name="numero_oficio_envio" defaultValue={processo.numero_oficio_envio || ''} readOnly={readOnly} />
                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="observacoes">Observações / Apreensões</Label>
-                                <Textarea id="observacoes" name="observacoes" defaultValue={processo.observacoes || ''} className="h-[150px]" />
+                                <Textarea id="observacoes" name="observacoes" defaultValue={processo.observacoes || ''} className="h-[150px]" readOnly={readOnly} />
                             </div>
                         </div>
-                    </div>
+                    </fieldset>
 
                     <DialogFooter className="flex justify-between sm:justify-between items-center w-full">
-                        {processo.nuipc_completo && (
+                        {!readOnly && processo.nuipc_completo && (
                             <Button
                                 type="button"
                                 variant="destructive"
@@ -1321,12 +1283,16 @@ export function ProcessoDetailDialog({
                                 Apagar
                             </Button>
                         )}
-                        <div className="flex gap-2">
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Gravar Processo
+                        <div className="flex gap-2 ml-auto">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                                {readOnly ? 'Fechar' : 'Cancelar'}
                             </Button>
+                            {!readOnly && (
+                                <Button type="submit" disabled={loading}>
+                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Gravar Processo
+                                </Button>
+                            )}
                         </div>
                     </DialogFooter>
                 </form>
@@ -1334,3 +1300,4 @@ export function ProcessoDetailDialog({
         </Dialog>
     )
 }
+

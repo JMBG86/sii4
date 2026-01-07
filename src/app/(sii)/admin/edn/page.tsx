@@ -15,12 +15,20 @@ import {
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 import { InquiryFlowChart } from './charts/inquiry-flow-chart'
 import { TeamPerformanceTable } from './charts/team-performance-table'
 import { WeeklyReportDialog } from './weekly-report-dialog'
 import { generateWeeklyProductivityReport, generateDashboardReport } from '@/lib/pdf-generator'
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, parseISO, subMonths, subWeeks } from 'date-fns'
 import { pt } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 type UserStat = {
     userId: string
@@ -75,6 +83,8 @@ export default function EstadoDaNacaoPage() {
     const [weeklyOverallStats, setWeeklyOverallStats] = useState<any[]>([])
     const [weeklyKeys, setWeeklyKeys] = useState<string[]>([])
     const [weeklyLabels, setWeeklyLabels] = useState<string[]>([])
+
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
@@ -167,8 +177,8 @@ export default function EstadoDaNacaoPage() {
             // 2. Fetch Inquiries
             const { data: inquiries, error: inqError } = await supabase
                 .from('inqueritos')
-                // Added observacoes and destino and nuipc
-                .select('id, nuipc, user_id, estado, created_at, data_conclusao, numero_oficio, observacoes, destino')
+                // Added observacoes and destino and nuipc, tipo_crime, data_atribuicao
+                .select('id, nuipc, user_id, estado, created_at, data_conclusao, numero_oficio, observacoes, destino, tipo_crime, data_atribuicao')
 
             if (inqError) {
                 console.error('Error fetching inquiries', inqError)
@@ -796,6 +806,91 @@ export default function EstadoDaNacaoPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* Inqueritos por Militar - NEW SECTION */}
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Inquéritos por Militar</CardTitle>
+                        <CardDescription>Visualize os processos ativos de cada investigador.</CardDescription>
+                    </div>
+                    <div className="w-72">
+                        <Select value={selectedUserId || ''} onValueChange={setSelectedUserId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione um militar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {stats.map((s) => (
+                                    <SelectItem key={s.userId} value={s.userId}>
+                                        {s.userName} ({s.activeInquiries} ativos)
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {!selectedUserId ? (
+                        <div className="py-12 text-center text-muted-foreground border-2 border-dashed rounded-lg">
+                            Selecione um militar para visualizar os seus inquéritos ativos.
+                        </div>
+                    ) : (
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>NUIPC</TableHead>
+                                        <TableHead>Tipo Crime</TableHead>
+                                        <TableHead>Data Atribuição</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {rawInquiries
+                                        .filter(inq => inq.user_id === selectedUserId && inq.estado !== 'concluido')
+                                        .sort((a, b) => {
+                                            const da = a.data_atribuicao || a.created_at
+                                            const db = b.data_atribuicao || b.created_at
+                                            return db.localeCompare(da)
+                                        })
+                                        .map((inq) => (
+                                            <TableRow key={inq.id}>
+                                                <TableCell className="font-mono font-bold">{inq.nuipc}</TableCell>
+                                                <TableCell className="max-w-[300px] truncate" title={inq.tipo_crime || ''}>
+                                                    {inq.tipo_crime || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {inq.data_atribuicao ? new Date(inq.data_atribuicao).toLocaleDateString() : (inq.created_at ? new Date(inq.created_at).toLocaleDateString() : '-')}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={cn(
+                                                        inq.estado === 'em_diligencias' && "border-blue-200 text-blue-700 bg-blue-50",
+                                                        inq.estado === 'aguardando_resposta' && "border-yellow-200 text-yellow-700 bg-yellow-50",
+                                                        inq.estado === 'por_iniciar' && "border-slate-200 text-slate-700 bg-slate-50",
+                                                        inq.estado === 'tribunal' && "border-purple-200 text-purple-700 bg-purple-50"
+                                                    )}>
+                                                        {inq.estado === 'por_iniciar' && 'Por Iniciar'}
+                                                        {inq.estado === 'em_diligencias' && 'Em Diligências'}
+                                                        {inq.estado === 'aguardando_resposta' && 'Aguardando Resposta'}
+                                                        {inq.estado === 'tribunal' && 'Tribunal'}
+                                                        {!['por_iniciar', 'em_diligencias', 'aguardando_resposta', 'tribunal'].includes(inq.estado) && inq.estado}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    {rawInquiries.filter(inq => inq.user_id === selectedUserId && inq.estado !== 'concluido').length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                                Este militar não possui inquéritos ativos de momento.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     )
 }

@@ -131,25 +131,22 @@ async function getStatsForYear(supabase: any, year: number): Promise<YearStats> 
 
     seizuresData?.forEach((item: any) => {
         if (item.tipo) {
-            const mainCat = item.tipo.split(':')[0].trim()
+            const parts = item.tipo.split(':')
+            const mainCat = parts[0].trim()
+            const subCat = parts.length > 1 ? parts[1].trim() : 'Geral'
+
             if (mainCat === 'Numerário') {
                 const amount = parseFloat(item.descricao) || 0
                 const cat = getCat('Numerário', true)
                 cat.total += amount
-                cat.subs['Euros'] = (cat.subs['Euros'] || 0) + amount
-            } else if (mainCat === 'Material Informático') {
-                const qtd = parseInt(item.descricao) || 1
-                const cat = getCat('Material Informático')
-                cat.total += qtd
-                const lowerType = item.tipo.toLowerCase()
-                if (lowerType.includes('telemovel') || lowerType.includes('telemóvel') || lowerType.includes('telemoveis') || lowerType.includes('telemóveis') || lowerType.includes('smartphone')) {
-                    cat.subs['Telemóveis'] = (cat.subs['Telemóveis'] || 0) + qtd
-                }
+                const label = subCat !== 'Geral' ? subCat : 'Euros'
+                cat.subs[label] = (cat.subs[label] || 0) + amount
             } else {
                 const cat = getCat(mainCat)
                 const val = parseInt(item.descricao)
                 const qty = isNaN(val) ? 1 : val
                 cat.total += qty
+                cat.subs[subCat] = (cat.subs[subCat] || 0) + qty
             }
         }
     })

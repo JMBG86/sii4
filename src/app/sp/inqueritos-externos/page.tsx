@@ -34,6 +34,7 @@ import { getEntidades } from '../processos-crime/actions'
 import { SPInqueritoExterno, SPEntidade } from '@/types/database'
 import { getFiscalYears } from '@/app/sp/config/actions'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { CrimeTypeSelect } from '../components/crime-type-select'
 
 export default function InqueritosExternosPage() {
     const [data, setData] = useState<SPInqueritoExterno[]>([])
@@ -57,7 +58,8 @@ export default function InqueritosExternosPage() {
         assunto: '',
         destino: '',
         data_entrada: new Date().toISOString().split('T')[0],
-        observacoes: ''
+        observacoes: '',
+        tipo_crime: ''
     })
 
     // Load Years
@@ -123,7 +125,8 @@ export default function InqueritosExternosPage() {
                 assunto: item.assunto || '',
                 destino: item.destino || '',
                 data_entrada: item.data_entrada || new Date().toISOString().split('T')[0],
-                observacoes: item.observacoes || ''
+                observacoes: item.observacoes || '',
+                tipo_crime: item.tipo_crime || ''
             })
             // Optionally check on edit too?
             if (item.nuipc) {
@@ -143,7 +146,8 @@ export default function InqueritosExternosPage() {
                 assunto: '',
                 destino: '',
                 data_entrada: new Date().toISOString().split('T')[0],
-                observacoes: ''
+                observacoes: '',
+                tipo_crime: ''
             })
         }
         setOpen(true)
@@ -230,6 +234,7 @@ export default function InqueritosExternosPage() {
                                         <TableHead>Nº Ofício</TableHead>
                                         <TableHead>Origem</TableHead>
                                         <TableHead>Assunto</TableHead>
+                                        <TableHead>Tipo Crime</TableHead>
                                         <TableHead>Destino</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
@@ -255,6 +260,7 @@ export default function InqueritosExternosPage() {
                                                 <TableCell>{item.numero_oficio}</TableCell>
                                                 <TableCell>{item.origem}</TableCell>
                                                 <TableCell>{item.assunto}</TableCell>
+                                                <TableCell>{item.tipo_crime}</TableCell>
                                                 <TableCell>{item.destino}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
@@ -336,9 +342,18 @@ export default function InqueritosExternosPage() {
                                 </Select>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label>Assunto</Label>
-                            <Input value={formData.assunto} onChange={e => setFormData({ ...formData, assunto: e.target.value })} />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Assunto</Label>
+                                <Input value={formData.assunto} onChange={e => setFormData({ ...formData, assunto: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Tipo de Crime</Label>
+                                <CrimeTypeSelect
+                                    value={formData.tipo_crime}
+                                    onChange={val => setFormData({ ...formData, tipo_crime: val })}
+                                />
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label>Observações</Label>

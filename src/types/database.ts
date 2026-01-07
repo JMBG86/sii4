@@ -198,5 +198,6 @@ export interface SPInqueritoExterno {
     destino?: string
     data_entrada?: string
     observacoes?: string
+    tipo_crime?: string
     created_at: string
 }

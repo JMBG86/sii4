@@ -215,14 +215,16 @@ export default function SPDashboard() {
                                             </div>
 
                                             {/* Subcategories */}
-                                            {Object.entries(stats.subs as Record<string, number>).map(([subKey, subVal]) => (
-                                                <div key={subKey} className="flex justify-between items-center text-xs pl-4 pr-1 text-gray-600 dark:text-gray-400">
-                                                    <span>↳ {subKey}</span>
-                                                    <span className="font-mono font-semibold">
-                                                        {stats.isValue ? formatMoney(subVal) : subVal}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                            {Object.entries(stats.subs as Record<string, number>)
+                                                .filter(([subKey]) => Object.keys(stats.subs).length > 1 || subKey !== 'Geral')
+                                                .map(([subKey, subVal]) => (
+                                                    <div key={subKey} className="flex justify-between items-center text-xs pl-4 pr-1 text-gray-600 dark:text-gray-400">
+                                                        <span>↳ {subKey}</span>
+                                                        <span className="font-mono font-semibold">
+                                                            {stats.isValue ? formatMoney(subVal) : subVal}
+                                                        </span>
+                                                    </div>
+                                                ))}
                                         </div>
                                     ))
                             ) : (
