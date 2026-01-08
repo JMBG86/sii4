@@ -16,7 +16,7 @@ import {
     Shield,
     BarChart3,
     Lightbulb,
-
+    MapPin,
     Mail,
     Phone,
     ArrowDownRight,
@@ -62,6 +62,11 @@ const sidebarItems = [
         title: 'Lista Telefónica',
         href: '/lista-telefonica',
         icon: Phone,
+    },
+    {
+        title: 'Zonas Quentes',
+        href: '/zonas-quentes',
+        icon: MapPin,
     },
 ]
 

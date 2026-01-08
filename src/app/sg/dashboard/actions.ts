@@ -190,10 +190,72 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
 
     const drugsPorRemeter = drugsCount - drugsRemetido
 
-    const hotZones = [
-        { crime: 'Furto Veículo', count: 12 },
-        { crime: 'Tráfico', count: 5 }
-    ]
+    // --- Hot Zones (Patterns) Logic ---
+    let hotZones: { crime: string, count: number }[] = []
+
+    try {
+        // We can't import fetchGeolocatedInquiries easily if it's in another action file that might have 'use server' conflicts or circular deps? 
+        // Actually, importing server action into server action is fine.
+        // But to be safe and clean, let's keep it simple.
+
+        // We need the data. Let's reuse the logic or fetch it here.
+        // Re-fetching might be expensive but it's parallelized above.
+        // Actually, let's just create a new query for points here to avoid cross-file dependency issues if any.
+
+        const { data: spPoints } = await supabase
+            .from('sp_processos_crime')
+            .select('id, nuipc_completo, tipo_crime, latitude, longitude')
+            .eq('ano', year)
+            .not('latitude', 'is', null)
+
+        const { data: inqPoints } = await supabase
+            .from('inqueritos')
+            .select('id, nuipc, tipo_crime, latitude, longitude')
+            .gte('data_ocorrencia', `${year}-01-01`)
+            .lte('data_ocorrencia', `${year}-12-31`)
+            .not('latitude', 'is', null)
+
+        // Normalize
+        const points: any[] = [
+            ...(spPoints || []).map(p => ({
+                id: p.id,
+                nuipc: p.nuipc_completo,
+                tipo_crime: p.tipo_crime || 'Indeterminado',
+                latitude: p.latitude,
+                longitude: p.longitude
+            })),
+            ...(inqPoints || []).map(p => ({
+                id: p.id,
+                nuipc: p.nuipc,
+                tipo_crime: p.tipo_crime || 'Indeterminado',
+                latitude: p.latitude,
+                longitude: p.longitude
+            }))
+        ]
+
+        // Import helper dynamically or use copied logic if import fails? 
+        // We establish lib/geo-utils.ts as a safe shared place.
+        // But we need to make sure we can import it in this server file.
+        // (geo-utils is pure JS/TS, should be fine).
+
+        const { detectPatterns } = require('@/lib/geo-utils')
+
+        const patterns = detectPatterns(points, 500)
+
+        // Aggregate by Crime Type
+        const counts: Record<string, number> = {}
+        patterns.forEach((p: any) => {
+            // Pattern description usually " ... crimes de [TYPE] ..."
+            // But we know the type from the cluster points
+            const type = p.points[0]?.tipo_crime || 'Outros'
+            counts[type] = (counts[type] || 0) + 1
+        })
+
+        hotZones = Object.entries(counts).map(([crime, count]) => ({ crime, count }))
+
+    } catch (e) {
+        console.error('Error calculating hot zones for dashboard:', e)
+    }
 
     return {
         year: reportYear,

@@ -1,9 +1,9 @@
-import { fetchGeolocatedInquiries, fetchDistinctCrimeTypes } from './actions'
-import { ZonesDashboard } from './zones-dashboard'
+import { fetchGeolocatedInquiries, fetchDistinctCrimeTypes } from '@/app/sg/zonas-quentes/actions'
+import { ZonesDashboard } from '@/app/sg/zonas-quentes/zones-dashboard'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ZonesPage(props: { searchParams: Promise<{ startDate?: string, endDate?: string, crimeTypes?: string }> }) {
+export default async function SIIZonesPage(props: { searchParams: Promise<{ startDate?: string, endDate?: string, crimeTypes?: string }> }) {
     const searchParams = await props.searchParams
     const safeSearchParams = searchParams || {}
 
