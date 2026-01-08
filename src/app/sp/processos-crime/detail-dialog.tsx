@@ -242,7 +242,13 @@ export function ProcessoDetailDialog({
                     setChildrenList(data?.map((d: any) => ({ nome: d.nome, idade: d.idade || 0 })) || [])
                 })
                 getApreensoes(processo.id).then(data => {
-                    const list = data?.map((d: any) => ({ tipo: d.tipo, descricao: d.descricao })) || []
+                    const list = data?.map((d: any) => ({
+                        tipo: d.tipo,
+                        descricao: d.descricao,
+                        remetido: d.remetido,
+                        local_remessa: d.local_remessa,
+                        local_deposito: d.local_deposito
+                    })) || []
                     setSeizuresList(list)
                     // Auto-open sections if items exist
                     if (list.some((i: any) => i.tipo.startsWith('Armas:'))) setShowArmas(true)
@@ -254,7 +260,11 @@ export function ProcessoDetailDialog({
                     if (list.some((i: any) => i.tipo.startsWith('Documentos:'))) setShowDocs(true)
                 })
                 getDrogas(processo.id).then(data => {
-                    setDrugs(data || {})
+                    setDrugs(data ? {
+                        ...data,
+                        entregue_lpc: data.entregue_lpc,
+                        data_entrega: data.data_entrega
+                    } : {})
                 })
             })
         }

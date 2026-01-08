@@ -337,7 +337,11 @@ export async function updateProcesso(id: string, formData: FormData) {
             const rows = seizuresList.map((d: any) => ({
                 processo_id: id,
                 tipo: d.tipo,
-                descricao: d.descricao
+                descricao: d.descricao,
+                // Preserve SG Status if present
+                remetido: d.remetido || false,
+                local_remessa: d.local_remessa || null,
+                local_deposito: d.local_deposito || null
             }))
             await supabase.from('sp_apreensoes_info').insert(rows)
         }
@@ -363,7 +367,10 @@ export async function updateProcesso(id: string, formData: FormData) {
                 cannabis_oleo_g: parseFloat(drogasData.cannabis_oleo_g) || 0,
                 sinteticas_g: parseFloat(drogasData.sinteticas_g) || 0,
                 cannabis_plantas_un: parseInt(drogasData.cannabis_plantas_un) || 0,
-                substancias_psicoativas_un: parseInt(drogasData.substancias_psicoativas_un) || 0
+                substancias_psicoativas_un: parseInt(drogasData.substancias_psicoativas_un) || 0,
+                // Preserve SG Status if present (Drugs)
+                entregue_lpc: drogasData.entregue_lpc || false,
+                data_entrega: drogasData.data_entrega || null
             }
             await supabase.from('sp_apreensoes_drogas').insert(drugRow)
         }

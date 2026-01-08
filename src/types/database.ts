@@ -175,6 +175,9 @@ export interface SPApreensaoInfo {
     processo_id: string
     tipo: string
     descricao: string
+    remetido?: boolean // SG status field
+    local_remessa?: string // SG status field
+    local_deposito?: string // SG status field
     created_at: string
 }
 
@@ -189,6 +192,8 @@ export interface SPApreensaoDroga {
     sinteticas_g: number
     cannabis_plantas_un: number
     substancias_psicoativas_un: number
+    entregue_lpc?: boolean // SG status field
+    data_entrega?: string // SG status field
     created_at: string
 }
 
