@@ -36,6 +36,9 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         year = activeConfig?.year || new Date().getFullYear()
     }
 
+    const reportYear = year! // Assert non-null because logic above ensures it
+
+
     // Parallel Queries
     // 1. Image Stats
     // 2. Detainees
@@ -149,7 +152,7 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
     ]
 
     return {
-        year,
+        year: reportYear,
         imagesStats: {
             total: totalImagens,
             pending: pendingImagens,
