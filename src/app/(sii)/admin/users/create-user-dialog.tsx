@@ -74,20 +74,46 @@ export function CreateUserDialog() {
                             <Label htmlFor="password">Password</Label>
                             <Input id="password" name="password" type="password" required minLength={6} />
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="admin"
-                                checked={isAdmin}
-                                onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
-                            />
-                            <Label htmlFor="admin">Acesso de Administrador</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="access_sp"
-                                name="access_sp"
-                            />
-                            <Label htmlFor="access_sp">Acesso SP (Processos)</Label>
+
+                        <div className="space-y-3 pt-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="admin"
+                                    checked={isAdmin}
+                                    onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                                />
+                                <Label htmlFor="admin" className="font-semibold">Acesso de Administrador</Label>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="access_sp"
+                                        name="access_sp"
+                                    />
+                                    <Label htmlFor="access_sp">Acesso SP (Processos)</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="access_sg"
+                                        name="access_sg"
+                                    />
+                                    <Label htmlFor="access_sg">Acesso SG (Sargentos)</Label>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="default_app">Aplicação Padrão (Ao iniciar sessão)</Label>
+                                <select
+                                    id="default_app"
+                                    name="default_app"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="sii">SII - Investigação (Padrão)</option>
+                                    <option value="sp">SP - Secretaria de Processos</option>
+                                    <option value="sg">SG - Secção de Sargentos</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

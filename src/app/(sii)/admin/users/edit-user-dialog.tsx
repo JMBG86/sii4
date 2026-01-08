@@ -21,8 +21,10 @@ interface Profile {
     id: string
     email: string | null
     full_name: string | null
-    role: 'user' | 'admin'
+    role: 'user' | 'admin' | string
     access_sp?: boolean
+    access_sg?: boolean
+    default_app?: string
 }
 
 export function EditUserDialog({ user }: { user: Profile }) {
@@ -73,14 +75,7 @@ export function EditUserDialog({ user }: { user: Profile }) {
                                 required
                             />
                         </div>
-                        {/* Email editing is purely visual in Profile usually unless we call Admin Auth API.
-                            For now, we just show it disabled or allow editing profile display only?
-                            Prompt asked to edit name AND email. 
-                            Let's keep email read-only for now or add a note. 
-                            Actually, updateProfile only changes profile table. Auth email remains.
-                            Let's just show it readonly to avoid confusion, or allow edit if we want to change DISPLAY email?
-                            Let's keep it simple: ReadOnly. Changing auth email is complex.
-                        */}
+
                         <div className="grid gap-2">
                             <Label htmlFor="email">Email (Login)</Label>
                             <Input
@@ -94,21 +89,48 @@ export function EditUserDialog({ user }: { user: Profile }) {
                             </p>
                         </div>
 
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="admin-edit"
-                                checked={isAdmin}
-                                onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
-                            />
-                            <Label htmlFor="admin-edit">Acesso de Administrador</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="access_sp_edit"
-                                name="access_sp"
-                                defaultChecked={user.access_sp}
-                            />
-                            <Label htmlFor="access_sp_edit">Acesso SP (Processos)</Label>
+                        <div className="space-y-3 pt-2">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="admin-edit"
+                                    checked={isAdmin}
+                                    onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                                />
+                                <Label htmlFor="admin-edit" className="font-semibold">Acesso de Administrador</Label>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="access_sp_edit"
+                                        name="access_sp"
+                                        defaultChecked={user.access_sp}
+                                    />
+                                    <Label htmlFor="access_sp_edit">Acesso SP</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="access_sg_edit"
+                                        name="access_sg"
+                                        defaultChecked={user.access_sg}
+                                    />
+                                    <Label htmlFor="access_sg_edit">Acesso SG</Label>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="default_app">Aplicação Padrão</Label>
+                                <select
+                                    id="default_app"
+                                    name="default_app"
+                                    defaultValue={user.default_app || 'sii'}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="sii">SII - Investigação (Padrão)</option>
+                                    <option value="sp">SP - Secretaria de Processos</option>
+                                    <option value="sg">SG - Secção de Sargentos</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>

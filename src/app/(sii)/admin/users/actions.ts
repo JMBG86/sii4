@@ -59,6 +59,8 @@ export async function createUser(formData: FormData) {
         .update({
             role: role,
             access_sp: access_sp,
+            access_sg: formData.get('access_sg') === 'on',
+            default_app: formData.get('default_app'),
             full_name: fullName
         })
         .eq('id', user.user.id)
@@ -72,6 +74,8 @@ export async function createUser(formData: FormData) {
                 email: email,
                 role: role,
                 access_sp: access_sp,
+                access_sg: formData.get('access_sg') === 'on',
+                default_app: formData.get('default_app'),
                 full_name: fullName,
                 updated_at: new Date().toISOString()
             })
@@ -98,7 +102,9 @@ export async function updateUser(userId: string, formData: FormData) {
         .update({
             full_name: fullName,
             role: role,
-            access_sp: formData.get('access_sp') === 'on'
+            access_sp: formData.get('access_sp') === 'on',
+            access_sg: formData.get('access_sg') === 'on',
+            default_app: formData.get('default_app'),
         })
         .eq('id', userId)
 

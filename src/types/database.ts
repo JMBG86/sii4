@@ -49,8 +49,10 @@ export interface Profile {
     id: string
     email: string | null
     full_name: string | null
-    role: 'user' | 'admin'
+    role: 'user' | 'admin' | 'sargento'
     access_sp?: boolean
+    access_sg?: boolean
+    default_app?: 'sii' | 'sp' | 'sg' // New preference
     created_at: string
 }
 

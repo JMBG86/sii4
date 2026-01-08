@@ -51,7 +51,7 @@ function LoginForm() {
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* App Context Selector */}
-                    <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="grid grid-cols-3 gap-2 mb-4">
                         <label className="cursor-pointer">
                             <input type="radio" name="context" value="sii" className="peer sr-only" defaultChecked />
                             <div className="rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary peer-checked:border-blue-600 peer-checked:bg-blue-50 peer-checked:text-blue-900 text-center transition-all">
@@ -62,6 +62,12 @@ function LoginForm() {
                             <input type="radio" name="context" value="sp" className="peer sr-only" />
                             <div className="rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-900 text-center transition-all">
                                 <span className="block font-semibold">SP</span>
+                            </div>
+                        </label>
+                        <label className="cursor-pointer">
+                            <input type="radio" name="context" value="sg" className="peer sr-only" />
+                            <div className="rounded-md border-2 border-muted bg-popover p-2 hover:bg-accent peer-checked:border-amber-600 peer-checked:bg-amber-50 peer-checked:text-amber-900 text-center transition-all">
+                                <span className="block font-semibold">SG</span>
                             </div>
                         </label>
                     </div>

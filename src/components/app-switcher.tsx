@@ -3,16 +3,28 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-react'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from '@/components/ui/button'
+import { LayoutGrid, FileText, Shield, ChevronDown } from 'lucide-react'
 
 export function AppSwitcher() {
     const router = useRouter()
     const pathname = usePathname()
     const [loading, setLoading] = useState(true)
-    const [canSwitch, setCanSwitch] = useState(false)
-    const [isSP, setIsSP] = useState(false)
+
+    // Access Flags
+    const [canAccessSP, setCanAccessSP] = useState(false)
+    const [canAccessSG, setCanAccessSG] = useState(false)
+
+    // Current Context
+    const [currentCode, setCurrentCode] = useState<'SII' | 'SP' | 'SG'>('SII')
 
     useEffect(() => {
         const checkAccess = async () => {
@@ -24,17 +36,19 @@ export function AppSwitcher() {
                 return
             }
 
-            // Check profile for admin role and sp access
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('role, access_sp')
+                .select('role, access_sp, access_sg')
                 .eq('id', user.id)
                 .single()
 
-            if (profile?.role === 'admin' && profile?.access_sp === true) {
-                setCanSwitch(true)
-            }
+            if (profile) {
+                const isAdmin = profile.role === 'admin'
+                const isSargento = profile.role === 'sargento'
 
+                if (isAdmin || profile.access_sp) setCanAccessSP(true)
+                if (isAdmin || isSargento || profile.access_sg) setCanAccessSG(true)
+            }
             setLoading(false)
         }
 
@@ -42,35 +56,55 @@ export function AppSwitcher() {
     }, [])
 
     useEffect(() => {
-        setIsSP(pathname?.startsWith('/sp') || false)
+        if (pathname?.startsWith('/sp')) setCurrentCode('SP')
+        else if (pathname?.startsWith('/sg')) setCurrentCode('SG')
+        else setCurrentCode('SII')
     }, [pathname])
 
-    const handleSwitch = (checked: boolean) => {
-        setIsSP(checked)
-        if (checked) {
-            router.push('/sp/dashboard')
-        } else {
-            router.push('/')
-        }
+    const handleSwitch = (code: 'SII' | 'SP' | 'SG') => {
+        if (code === 'SP') router.push('/sp/dashboard')
+        else if (code === 'SG') router.push('/sg/dashboard')
+        else router.push('/')
     }
 
-    if (loading) return null // Or a small skeleton
-    if (!canSwitch) return null
+    if (loading) return null
+
+    // If only has SII access (no SP or SG), don't show switcher
+    if (!canAccessSP && !canAccessSG) return null
 
     return (
-        <div className="flex items-center gap-2 mr-2">
-            <Label htmlFor="app-mode" className={`text-xs font-semibold ${!isSP ? 'text-blue-600' : 'text-gray-400'}`}>
-                SII
-            </Label>
-            <Switch
-                id="app-mode"
-                checked={isSP}
-                onCheckedChange={handleSwitch}
-                className="data-[state=checked]:bg-emerald-600 data-[state=unchecked]:bg-blue-600"
-            />
-            <Label htmlFor="app-mode" className={`text-xs font-semibold ${isSP ? 'text-emerald-600' : 'text-gray-400'}`}>
-                SP
-            </Label>
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                    {currentCode === 'SII' && <span className="text-blue-600 font-bold">SII</span>}
+                    {currentCode === 'SP' && <span className="text-emerald-600 font-bold">SP</span>}
+                    {currentCode === 'SG' && <span className="text-amber-600 font-bold">SG</span>}
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Módulos</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem onClick={() => handleSwitch('SII')} className="gap-2">
+                    <div className="h-2 w-2 rounded-full bg-blue-600" />
+                    <span>Investigação (SII)</span>
+                </DropdownMenuItem>
+
+                {canAccessSP && (
+                    <DropdownMenuItem onClick={() => handleSwitch('SP')} className="gap-2">
+                        <div className="h-2 w-2 rounded-full bg-emerald-600" />
+                        <span>Secretaria (SP)</span>
+                    </DropdownMenuItem>
+                )}
+
+                {canAccessSG && (
+                    <DropdownMenuItem onClick={() => handleSwitch('SG')} className="gap-2">
+                        <div className="h-2 w-2 rounded-full bg-amber-600" />
+                        <span>Sargentos (SG)</span>
+                    </DropdownMenuItem>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
     )
 }
