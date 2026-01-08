@@ -93,10 +93,26 @@ export default function SGDashboardPage() {
                         <Users className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{data.totalDetidos}</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Total de detidos registados no ano corrente.
-                        </p>
+                        <div className="text-2xl font-bold mb-2">{data.totalDetidos}</div>
+
+                        <div className="space-y-2 h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                            {data.detaineesBreakdown && data.detaineesBreakdown.length > 0 ? (
+                                data.detaineesBreakdown.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-xs border-b border-gray-100 dark:border-zinc-800 pb-1 last:border-0 last:pb-0">
+                                        <span className="text-muted-foreground truncate max-w-[180px]" title={item.crime}>
+                                            {item.crime}
+                                        </span>
+                                        <span className="font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200 px-1.5 rounded-sm">
+                                            {item.count}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Sem detidos registados.
+                                </p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
 

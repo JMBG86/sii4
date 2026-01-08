@@ -275,6 +275,31 @@ export async function updateProcesso(id: string, formData: FormData) {
                 idade: parseInt(d.idade)
             }))
             await supabase.from('sp_criancas_info').insert(rows)
+
+            // --- CPCJ Integration: Auto-create records in sp_cpcj ---
+            if (updates.nuipc_completo) {
+                for (const child of criancasList) {
+                    // Check if already exists to avoid duplicates on re-save
+                    const { data: existing } = await supabase
+                        .from('sp_cpcj')
+                        .select('id')
+                        .eq('nuipc', updates.nuipc_completo)
+                        .eq('nome_menor', child.nome)
+                        .single()
+
+                    if (!existing) {
+                        await supabase.from('sp_cpcj').insert({
+                            data_entrada: updates.data_registo || new Date().toISOString().split('T')[0],
+                            nuipc: updates.nuipc_completo,
+                            nome_menor: child.nome,
+                            idade: parseInt(child.idade) || null,
+                            motivo: 'Sinalizado via Processo Crime',
+                            estado: 'Pendente',
+                            observacoes: `Importado do Processo ${updates.nuipc_completo}`
+                        })
+                    }
+                }
+            }
         }
     }
     promises.push(updateCriancas())

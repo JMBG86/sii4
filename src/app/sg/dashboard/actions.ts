@@ -19,6 +19,7 @@ export type SGDashboardData = {
     seizuresTree: Record<string, SeizureCategoryStats>;
     drugsTotals: Record<string, number>;
     totalDetidos: number;
+    detaineesBreakdown: { crime: string; count: number }[];
     mobilePhones: {
         total: number;
         despacho: number; // Placeholder
@@ -60,7 +61,7 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
 
         // 2. Detainees
         supabase.from('sp_detidos_info')
-            .select('quantidade, sp_processos_crime!inner(ano)')
+            .select('quantidade, sp_processos_crime!inner(ano, tipo_crime)')
             .eq('sp_processos_crime.ano', year),
 
         // 3. Seizures (including Phones)
@@ -82,6 +83,18 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
 
     // --- Process Detainees ---
     const totalDetidos = detaineesData?.reduce((acc: number, curr: any) => acc + (curr.quantidade || 0), 0) || 0
+
+    // Group Detainees by Crime
+    const detaineesMap: Record<string, number> = {}
+    detaineesData?.forEach((d: any) => {
+        const crime = d.sp_processos_crime?.tipo_crime || 'Outros'
+        const qtd = d.quantidade || 0
+        detaineesMap[crime] = (detaineesMap[crime] || 0) + qtd
+    })
+
+    const detaineesBreakdown = Object.entries(detaineesMap)
+        .map(([crime, count]) => ({ crime, count }))
+        .sort((a, b) => b.count - a.count)
 
     // --- Process Seizures & Phones ---
     const seizuresTree: Record<string, SeizureCategoryStats> = {}
@@ -161,6 +174,7 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         seizuresTree,
         drugsTotals,
         totalDetidos,
+        detaineesBreakdown,
         mobilePhones: {
             total: mobilePhonesCount,
             despacho: 0,

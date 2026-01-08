@@ -66,6 +66,16 @@ const sidebarItems = [
         href: '/sp/estatisticas',
         icon: BarChart3,
     },
+    {
+        title: 'CPCJ',
+        href: '/sp/cpcj',
+        icon: User, // Using User as generic or maybe replace with Baby in component
+    },
+    {
+        title: 'Informações',
+        href: '/sp/informacoes',
+        icon: FileText,
+    },
 ]
 
 import { getPendingImagesCount } from '@/app/sp/imagens/actions'
