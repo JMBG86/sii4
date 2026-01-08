@@ -326,3 +326,14 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
     }
     return { success: true }
 }
+
+export async function updateInquiryLocation(id: string, lat: number, lng: number) {
+    const supabase = createClient()
+    const { error } = await supabase
+        .from('inqueritos')
+        .update({ latitude: lat, longitude: lng })
+        .eq('id', id)
+
+    if (error) throw new Error(error.message)
+    return { success: true }
+}
