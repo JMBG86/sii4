@@ -1,7 +1,9 @@
 'use server'
 import { createClient } from '@/lib/supabase/server'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export async function fetchSGStatisticsData() {
+    noStore()
     const supabase = await createClient()
 
     // Fetch all processes with related data for Charts
@@ -12,6 +14,7 @@ export async function fetchSGStatisticsData() {
             id,
             data_registo,
             total_detidos,
+            tipo_crime,
             entidade_destino,
             sp_detidos_info(nacionalidade),
             sp_apreensoes_drogas(*),

@@ -14,7 +14,9 @@ import {
     ResponsiveContainer,
     PieChart,
     Pie,
-    Cell
+    Cell,
+    BarChart,
+    Bar
 } from 'recharts'
 import { Loader2 } from 'lucide-react'
 import { getISOWeek, getYear } from 'date-fns'
@@ -24,15 +26,25 @@ type ProcessData = {
     id: string
     data_registo: string | null
     entidade_destino: string | null
+    tipo_crime: string | null
     total_detidos: number
     sp_detidos_info: { nacionalidade: string }[]
     sp_apreensoes_drogas: any[]
     sp_apreensoes_info: { tipo: string, descricao?: string }[]
 }
 
-// SG Amber Theme Colors
-const COLORS = ['#d97706', '#f59e0b', '#fbbf24', '#b45309', '#78350f', '#92400e', '#fcd34d']
-// Original: ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658']
+// Modern Professional Palette
+const COLORS = [
+    '#3b82f6', // bright blue
+    '#10b981', // emerald
+    '#6366f1', // indigo
+    '#f59e0b', // amber
+    '#ec4899', // pink
+    '#8b5cf6', // violet
+    '#14b8a6', // teal
+    '#f43f5e', // rose
+    '#64748b', // slate
+]
 
 export default function SGEstatisticaPage() {
     const [loading, setLoading] = useState(true)
@@ -102,6 +114,20 @@ export default function SGEstatisticaPage() {
             drugsByMonth[monthKey]['Liamba'] = (drugsByMonth[monthKey]['Liamba'] || 0) + (drugs.cannabis_folhas_g || 0)
         }
     })
+
+    // 1.1 Detainees by Crime Type
+    const detaineesByCrime: Record<string, number> = {}
+    data.forEach(p => {
+        if (p.total_detidos && p.total_detidos > 0) {
+            const crime = p.tipo_crime || 'Outros'
+            detaineesByCrime[crime] = (detaineesByCrime[crime] || 0) + p.total_detidos
+        }
+    })
+
+    const detaineesByCrimeChartData = Object.entries(detaineesByCrime)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8) // Limit to top 8 for readability
 
     // Transform to Recharts Array
     const detaineesChartData = Object.entries(detaineesByMonth)
@@ -218,8 +244,37 @@ export default function SGEstatisticaPage() {
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
-                                <Line type="monotone" dataKey="Detidos" stroke="#d97706" activeDot={{ r: 8 }} />
+                                <Line type="monotone" dataKey="Detidos" stroke={COLORS[0]} activeDot={{ r: 8 }} />
                             </LineChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-amber-200 dark:border-amber-800">
+                    <CardHeader>
+                        <CardTitle>Detidos por Tipo de Crime</CardTitle>
+                        <CardDescription>Top crimes com mais detenções</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={detaineesByCrimeChartData} layout="vertical" margin={{ left: 40, right: 30 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                                <XAxis type="number" hide />
+                                <YAxis
+                                    dataKey="name"
+                                    type="category"
+                                    width={100}
+                                    tick={{ fontSize: 11 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                />
+                                <Tooltip cursor={{ fill: 'transparent' }} />
+                                <Bar dataKey="value" fill={COLORS[0]} radius={[0, 4, 4, 0]} barSize={20} label={{ position: 'right', fill: '#888', fontSize: 12 }}>
+                                    {detaineesByCrimeChartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
@@ -252,34 +307,30 @@ export default function SGEstatisticaPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-amber-200 dark:border-amber-800">
-                    <CardHeader>
-                        <CardTitle>Tipos de Apreensão</CardTitle>
-                        <CardDescription>Distribuição por categoria</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={seizuresChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    label={({ name, percent }: { name?: string | number; percent?: number }) => `${name ?? ''} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
-                                    outerRadius={80}
-                                    fill="#78350f"
-                                    dataKey="value"
-                                >
-                                    {seizuresChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
             </div>
+
+            {/* ROW 1.5: Seizure Types (Full Width for better visibility) */}
+            <Card className="border-amber-200 dark:border-amber-800">
+                <CardHeader>
+                    <CardTitle>Tipos de Apreensão</CardTitle>
+                    <CardDescription>Distribuição por categoria</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={seizuresChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                            <YAxis allowDecimals={false} />
+                            <Tooltip cursor={{ fill: 'transparent' }} />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
+                                {seizuresChartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
 
             {/* ROW 2: Destinations Chart */}
             <div className="grid gap-6 md:grid-cols-2">
@@ -327,10 +378,10 @@ export default function SGEstatisticaPage() {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Line type="monotone" dataKey="Heroína" stroke="#fbbf24" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Cocaína" stroke="#b45309" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Haxixe" stroke="#92400e" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Liamba" stroke="#78350f" strokeWidth={2} />
+                            <Line type="monotone" dataKey="Heroína" stroke={COLORS[3]} strokeWidth={2} />
+                            <Line type="monotone" dataKey="Cocaína" stroke={COLORS[7]} strokeWidth={2} />
+                            <Line type="monotone" dataKey="Haxixe" stroke={COLORS[1]} strokeWidth={2} />
+                            <Line type="monotone" dataKey="Liamba" stroke={COLORS[0]} strokeWidth={2} />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
@@ -350,10 +401,10 @@ export default function SGEstatisticaPage() {
                             <YAxis />
                             <Tooltip />
                             <Legend />
-                            <Line type="monotone" dataKey="Heroína" stroke="#fbbf24" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Cocaína" stroke="#b45309" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Haxixe" stroke="#92400e" strokeWidth={2} />
-                            <Line type="monotone" dataKey="Liamba" stroke="#78350f" strokeWidth={2} />
+                            <Line type="monotone" dataKey="Heroína" stroke={COLORS[3]} strokeWidth={2} />
+                            <Line type="monotone" dataKey="Cocaína" stroke={COLORS[7]} strokeWidth={2} />
+                            <Line type="monotone" dataKey="Haxixe" stroke={COLORS[1]} strokeWidth={2} />
+                            <Line type="monotone" dataKey="Liamba" stroke={COLORS[0]} strokeWidth={2} />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>
