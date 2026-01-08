@@ -30,8 +30,8 @@ export function ArmasView({ module }: ArmasViewProps) {
         const used = new Set<string>()
         data.forEach(d => {
             if (d.remetido && d.local_remessa) {
-                const loc = d.local_remessa.toUpperCase()
-                if (!standard.includes(loc)) {
+                const loc = d.local_remessa.trim().toUpperCase()
+                if (!standard.includes(loc) && loc.length > 0) {
                     used.add(loc)
                 }
             }
@@ -45,9 +45,14 @@ export function ArmasView({ module }: ArmasViewProps) {
 
     async function load() {
         setLoading(true)
-        const res = await fetchSeizures('Armas')
-        setData(res || [])
-        setLoading(false)
+        try {
+            const res = await fetchSeizures('Armas')
+            setData(res || [])
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setLoading(false)
+        }
     }
 
     function openEdit(item: any) {
@@ -57,12 +62,12 @@ export function ArmasView({ module }: ArmasViewProps) {
         if (!item.remetido) {
             setDestino('cofre')
         } else {
-            const local = item.local_remessa?.toUpperCase() || 'PSP'
+            const local = item.local_remessa?.trim().toUpperCase() || 'PSP'
             if (availableDestinations.includes(local)) {
                 setDestino(local)
             } else {
                 setDestino('outro')
-                setCustomDestino(local)
+                setCustomDestino(item.local_remessa?.trim() || '') // Use original case for input
             }
         }
         setIsDialogOpen(true)
@@ -71,22 +76,30 @@ export function ArmasView({ module }: ArmasViewProps) {
     async function handleSave() {
         if (!selectedItem) return
 
-        let remetido = false
-        let local = 'Cofre'
+        try {
+            let remetido = false
+            let local = 'Cofre'
 
-        if (destino !== 'cofre') {
-            remetido = true
-            if (destino === 'outro') {
-                if (!customDestino.trim()) return // Prevent empty custom
-                local = customDestino.trim().toUpperCase()
-            } else {
-                local = destino
+            if (destino !== 'cofre') {
+                remetido = true
+                if (destino === 'outro') {
+                    if (!customDestino.trim()) {
+                        alert('Por favor indique o nome do destino.')
+                        return
+                    }
+                    local = customDestino.trim().toUpperCase()
+                } else {
+                    local = destino
+                }
             }
-        }
 
-        await updateSeizureStatus(selectedItem.id, remetido, local)
-        setIsDialogOpen(false)
-        load()
+            await updateSeizureStatus(selectedItem.id, remetido, local)
+            setIsDialogOpen(false)
+            load()
+        } catch (error) {
+            console.error(error)
+            alert('Erro ao guardar alterações.')
+        }
     }
 
     if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
@@ -118,11 +131,11 @@ export function ArmasView({ module }: ArmasViewProps) {
                             {data.map((item) => {
                                 let badge = <Badge variant="outline" className="border-amber-500 text-amber-600">Em Cofre</Badge>
                                 if (item.remetido) {
-                                    const dest = item.local_remessa || 'PSP'
+                                    const dest = item.local_remessa?.trim().toUpperCase() || 'PSP'
                                     if (dest === 'NAT') badge = <Badge className="bg-blue-600 hover:bg-blue-700">NAT</Badge>
                                     else if (dest === 'PSP') badge = <Badge className="bg-green-600 hover:bg-green-700">PSP</Badge>
                                     else if (dest === 'DIAP') badge = <Badge className="bg-orange-500 hover:bg-orange-600">DIAP</Badge>
-                                    else badge = <Badge className="bg-gray-600 hover:bg-gray-700">{dest}</Badge>
+                                    else badge = <Badge className="bg-gray-600 hover:bg-gray-700">{item.local_remessa}</Badge>
                                 }
                                 return (
                                     <TableRow key={item.id}>
@@ -163,7 +176,7 @@ export function ArmasView({ module }: ArmasViewProps) {
                                 <div className="w-[200px]">
                                     <Select value={destino} onValueChange={setDestino}>
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="cofre">Em Cofre</SelectItem>
