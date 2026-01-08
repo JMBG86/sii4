@@ -61,7 +61,7 @@ const sgSidebarItems = [
 
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
-import { getSidebarCounts } from '@/app/sg/sidebar-actions'
+import { getSidebarCounts } from '@/features/seizures/actions'
 
 export function SGSidebar() {
     const pathname = usePathname()

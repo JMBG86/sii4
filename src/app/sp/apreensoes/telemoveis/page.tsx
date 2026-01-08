@@ -2,6 +2,6 @@
 
 import { TelemoveisView } from '@/features/seizures/components/TelemoveisView'
 
-export default function TelemoveisPage() {
-    return <TelemoveisView module="sg" />
+export default function SPTelemoveisPage() {
+    return <TelemoveisView module="sp" />
 }

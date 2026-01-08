@@ -2,6 +2,6 @@
 
 import { NumerarioView } from '@/features/seizures/components/NumerarioView'
 
-export default function NumerarioPage() {
-    return <NumerarioView module="sg" />
+export default function SPNumerarioPage() {
+    return <NumerarioView module="sp" />
 }

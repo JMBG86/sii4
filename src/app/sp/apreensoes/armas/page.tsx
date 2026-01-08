@@ -2,6 +2,6 @@
 
 import { ArmasView } from '@/features/seizures/components/ArmasView'
 
-export default function ArmasPage() {
-    return <ArmasView module="sg" />
+export default function SPArmasPage() {
+    return <ArmasView module="sp" />
 }

@@ -671,19 +671,28 @@ export function ProcessoDetailDialog({
 
                                                                                 return (
                                                                                     <div key={idx} className="flex gap-2 items-center">
-                                                                                        <Select
-                                                                                            value={currentSubtype}
-                                                                                            onValueChange={(val) => updateSeizureType(realIdx, `${fullTypePrefix}: ${val}`)}
-                                                                                        >
-                                                                                            <SelectTrigger className="flex-1 h-8 text-sm">
-                                                                                                <SelectValue />
-                                                                                            </SelectTrigger>
-                                                                                            <SelectContent>
-                                                                                                {options.map(opt => (
-                                                                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                                                                ))}
-                                                                                            </SelectContent>
-                                                                                        </Select>
+                                                                                        {weaponCategory === 'Outras' ? (
+                                                                                            <Input
+                                                                                                value={currentSubtype === 'Outra' ? '' : currentSubtype}
+                                                                                                placeholder="Especificar..."
+                                                                                                className="flex-1 h-8 text-sm"
+                                                                                                onChange={(e) => updateSeizureType(realIdx, `${fullTypePrefix}: ${e.target.value}`)}
+                                                                                            />
+                                                                                        ) : (
+                                                                                            <Select
+                                                                                                value={currentSubtype}
+                                                                                                onValueChange={(val) => updateSeizureType(realIdx, `${fullTypePrefix}: ${val}`)}
+                                                                                            >
+                                                                                                <SelectTrigger className="flex-1 h-8 text-sm">
+                                                                                                    <SelectValue />
+                                                                                                </SelectTrigger>
+                                                                                                <SelectContent>
+                                                                                                    {options.map(opt => (
+                                                                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                                                                    ))}
+                                                                                                </SelectContent>
+                                                                                            </Select>
+                                                                                        )}
                                                                                         <Input
                                                                                             type="number"
                                                                                             min="1"

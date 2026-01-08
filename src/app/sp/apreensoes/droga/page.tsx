@@ -2,6 +2,6 @@
 
 import { DrogaView } from '@/features/seizures/components/DrogaView'
 
-export default function DrogaPage() {
-    return <DrogaView module="sg" />
+export default function SPDrogaPage() {
+    return <DrogaView module="sp" />
 }
