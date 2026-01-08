@@ -128,7 +128,7 @@ export function ArmasView({ module }: ArmasViewProps) {
                                     <TableRow key={item.id}>
                                         <TableCell>{new Date(item.created_at).toLocaleDateString()}</TableCell>
                                         <TableCell className="font-mono">{item.sp_processos_crime?.nuipc_completo}</TableCell>
-                                        <TableCell>{item.tipo.replace('Armas: ', '').replace('Munições: ', '').replace('Explosivos: ', '')}</TableCell>
+                                        <TableCell>{item.tipo.replace(/: /g, ' > ')}</TableCell>
                                         <TableCell>{item.descricao}</TableCell>
                                         <TableCell>{badge}</TableCell>
                                         <TableCell>
