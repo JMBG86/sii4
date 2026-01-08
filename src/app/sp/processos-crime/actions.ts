@@ -221,6 +221,25 @@ export async function updateProcesso(id: string, formData: FormData) {
     updates.imagens_associadas = formData.get('imagens_associadas') === 'on'
     updates.notificacao_imagens = formData.get('notificacao_imagens') === 'on'
 
+    // --- VALIDATION: Check NUIPC vs Sequence Number ---
+    if (updates.nuipc_completo) {
+        // Fetch current sequence number
+        const { data: currentProcess } = await supabase
+            .from('sp_processos_crime')
+            .select('numero_sequencial')
+            .eq('id', id)
+            .single()
+
+        if (currentProcess && currentProcess.numero_sequencial) {
+            const nuipcPrefix = updates.nuipc_completo.split('/')[0]
+            const sequenceStr = String(currentProcess.numero_sequencial)
+
+            if (nuipcPrefix !== sequenceStr) {
+                return { error: `Validação Falhou: O NUIPC (${updates.nuipc_completo}) deve começar com o número do registo (${sequenceStr}). Exemplo: ${sequenceStr}/...` }
+            }
+        }
+    }
+
     // Update Main Process
     const { error: processError } = await supabase
         .from('sp_processos_crime')
