@@ -88,7 +88,7 @@ function SearchControl({ onSelect }: { onSelect: (lat: number, lng: number) => v
     }
 
     return (
-        <div className="absolute top-4 left-4 z-[1000] bg-white dark:bg-slate-900 p-2 rounded shadow-md flex gap-2 w-72">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white dark:bg-slate-900 p-2 rounded shadow-md flex gap-2 w-80">
             <Input
                 placeholder="Pesquisar morada..."
                 value={query}
@@ -122,6 +122,17 @@ export default function CrimeLocationMap({ initialLat, initialLng, onLocationCha
 
     return (
         <div className="relative w-full h-[400px] border rounded-md overflow-hidden">
+            {/* Custom Styles for Leaflet Controls */}
+            <style jsx global>{`
+                .leaflet-control-zoom-in,
+                .leaflet-control-zoom-out {
+                    width: 40px !important;
+                    height: 40px !important;
+                    line-height: 40px !important;
+                    font-size: 22px !important;
+                }
+            `}</style>
+
             {!readonly && <SearchControl onSelect={handleSelectLocation} />}
 
             <MapContainer

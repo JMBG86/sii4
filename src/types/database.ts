@@ -131,6 +131,8 @@ export interface SPProcessoCrime {
     // nacionalidade removed
     total_detidos?: number // New field
     localizacao?: string
+    latitude?: number
+    longitude?: number
     tipo_crime?: string
     denunciante?: string
     vitima?: string

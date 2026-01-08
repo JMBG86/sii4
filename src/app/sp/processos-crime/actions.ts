@@ -205,6 +205,7 @@ export async function updateProcesso(id: string, formData: FormData) {
     // Map FormData to DB columns
     const fields = [
         'nuipc_completo', 'data_registo', 'data_factos', 'data_conhecimento', 'localizacao',
+        'latitude', 'longitude',
         'tipo_crime', 'denunciante', 'vitima', 'arguido',
         'envio_em', 'numero_oficio_envio', 'entidade_destino', 'observacoes'
     ]

@@ -11,51 +11,91 @@ export async function fetchGeolocatedInquiries(
     noStore()
     const supabase = await createClient()
 
-    let query = supabase
+    // 1. Fetch Inqueritos (SII)
+    let queryInq = supabase
         .from('inqueritos')
         .select('id, nuipc, tipo_crime, latitude, longitude, data_ocorrencia, profiles:user_id(full_name)')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
-        .order('data_ocorrencia', { ascending: false })
 
-    if (startDate) {
-        query = query.gte('data_ocorrencia', startDate)
-    }
+    if (startDate) queryInq = queryInq.gte('data_ocorrencia', startDate)
+    if (endDate) queryInq = queryInq.lte('data_ocorrencia', endDate)
+    if (crimeTypes && crimeTypes.length > 0) queryInq = queryInq.in('tipo_crime', crimeTypes)
 
-    if (endDate) {
-        query = query.lte('data_ocorrencia', endDate)
-    }
+    // 2. Fetch Processos SP
+    let querySP = supabase
+        .from('sp_processos_crime')
+        .select('id, nuipc_completo, tipo_crime, latitude, longitude, data_factos')
+        .not('nuipc_completo', 'is', null) // Ensure valid
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
 
-    if (crimeTypes && crimeTypes.length > 0) {
-        query = query.in('tipo_crime', crimeTypes)
-    }
+    if (startDate) querySP = querySP.gte('data_factos', startDate)
+    if (endDate) querySP = querySP.lte('data_factos', endDate)
+    if (crimeTypes && crimeTypes.length > 0) querySP = querySP.in('tipo_crime', crimeTypes)
 
-    const { data, error } = await query
+    // Execute Parallel
+    const [resInq, resSP] = await Promise.all([queryInq, querySP])
 
-    if (error) {
-        console.error('Error fetching geolocated inquiries:', error)
-        throw new Error('Falha ao obter dados de geolocalização')
-    }
+    if (resInq.error) console.error('Error fetching inqueritos locations:', resInq.error)
+    if (resSP.error) console.error('Error fetching SP locations:', resSP.error)
 
-    return data || []
+    const inqData = resInq.data || []
+    const spData = resSP.data || []
+
+    // Normalize Data
+    // We want a unified structure: { id, nuipc, tipo_crime, latitude, longitude, data_ocorrencia, source: 'SII' | 'SP' }
+
+    const mappedInq = inqData.map(d => ({
+        id: d.id,
+        nuipc: d.nuipc,
+        tipo_crime: d.tipo_crime || 'Indeterminado',
+        latitude: d.latitude,
+        longitude: d.longitude,
+        data_ocorrencia: d.data_ocorrencia,
+        profiles: d.profiles,
+        source: 'SII'
+    }))
+
+    const mappedSP = spData.map(d => ({
+        id: d.id,
+        nuipc: d.nuipc_completo, // Use nuipc_completo for SP
+        tipo_crime: d.tipo_crime || 'Indeterminado',
+        latitude: d.latitude,
+        longitude: d.longitude,
+        data_ocorrencia: d.data_factos, // Map data_factos to data_ocorrencia
+        profiles: { full_name: 'SP' }, // Placeholder for profile
+        source: 'SP'
+    }))
+
+    // Merge and Sort by Date Descending
+    const merged = [...mappedInq, ...mappedSP].sort((a, b) => {
+        const dateA = a.data_ocorrencia ? new Date(a.data_ocorrencia).getTime() : 0
+        const dateB = b.data_ocorrencia ? new Date(b.data_ocorrencia).getTime() : 0
+        return dateB - dateA
+    })
+
+    return merged
 }
 
 export async function fetchDistinctCrimeTypes() {
     const supabase = await createClient()
 
-    // We only want types that have geolocation
-    const { data, error } = await supabase
-        .from('inqueritos')
-        .select('tipo_crime')
-        .not('latitude', 'is', null)
-        .order('tipo_crime', { ascending: true })
+    const [resInq, resSP] = await Promise.all([
+        supabase
+            .from('inqueritos')
+            .select('tipo_crime')
+            .not('latitude', 'is', null),
+        supabase
+            .from('sp_processos_crime')
+            .select('tipo_crime')
+            .not('latitude', 'is', null)
+    ])
 
-    if (error) {
-        console.error('Error fetching crime types:', error)
-        return []
-    }
+    const types = new Set<string>()
 
-    // Uniq
-    const types = Array.from(new Set(data.map(d => d.tipo_crime))).filter(Boolean)
-    return types
+    if (resInq.data) resInq.data.forEach(d => { if (d.tipo_crime) types.add(d.tipo_crime) })
+    if (resSP.data) resSP.data.forEach(d => { if (d.tipo_crime) types.add(d.tipo_crime) })
+
+    return Array.from(types).sort()
 }

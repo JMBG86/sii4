@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { COUNTRIES } from '@/constants/countries'
 import { CrimeTypeSelect } from '../components/crime-type-select'
+import { LocationPickerModal } from '@/components/maps/location-picker-modal'
 
 const WEAPON_CONFIG: Record<string, string[]> = {
     'Armas de fogo': [
@@ -186,6 +187,12 @@ export function ProcessoDetailDialog({
     const [entidade, setEntidade] = useState(processo.entidade_destino || '')
     const [tipoCrime, setTipoCrime] = useState(processo.tipo_crime || '')
 
+    // Location Logic
+    const [locationModalOpen, setLocationModalOpen] = useState(false)
+    const [coords, setCoords] = useState<{ lat: number, lng: number } | null>(
+        processo.latitude && processo.longitude ? { lat: processo.latitude, lng: processo.longitude } : null
+    )
+
     // New Flags
     const [criancas, setCriancas] = useState(processo.criancas_sinalizadas || false)
     const [apreensoes, setApreensoes] = useState(processo.apreensoes || false)
@@ -216,7 +223,9 @@ export function ProcessoDetailDialog({
         setImagens(processo.imagens_associadas || false)
         setNotificacao(processo.notificacao_imagens || false)
         setEntidade(processo.entidade_destino || '')
+        setEntidade(processo.entidade_destino || '')
         setTipoCrime(processo.tipo_crime || '')
+        setCoords(processo.latitude && processo.longitude ? { lat: processo.latitude, lng: processo.longitude } : null)
         setShowArmas(false)
         setShowAmmo(false)
         setShowExplosives(false)
@@ -309,6 +318,12 @@ export function ProcessoDetailDialog({
         setLoading(true)
         formData.set('entidade_destino', entidade)
         formData.set('tipo_crime', tipoCrime)
+
+        // Coordinates
+        if (coords) {
+            formData.set('latitude', coords.lat.toString())
+            formData.set('longitude', coords.lng.toString())
+        }
 
         // Booleans
         formData.set('detidos', detidos ? 'on' : 'off')
@@ -1223,8 +1238,42 @@ export function ProcessoDetailDialog({
 
                             <div className="space-y-2">
                                 <Label htmlFor="localizacao">Localização</Label>
-                                <Input id="localizacao" name="localizacao" defaultValue={processo.localizacao || ''} readOnly={readOnly} />
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="localizacao"
+                                        name="localizacao"
+                                        defaultValue={processo.localizacao || ''}
+                                        readOnly={readOnly}
+                                        placeholder="Morada ou local..."
+                                    />
+                                    {!readOnly && (
+                                        <Button
+                                            type="button"
+                                            className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                                            onClick={() => setLocationModalOpen(true)}
+                                        >
+                                            CRIAR LOCALIZAÇÃO
+                                        </Button>
+                                    )}
+                                </div>
+                                {coords && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Coordenadas associadas: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                                    </p>
+                                )}
                             </div>
+
+                            <LocationPickerModal
+                                open={locationModalOpen}
+                                onOpenChange={setLocationModalOpen}
+                                initialLat={coords?.lat}
+                                initialLng={coords?.lng}
+                                onSave={(lat, lng) => {
+                                    setCoords({ lat, lng })
+                                    // Optional: Auto-fill text if empty? Or just confirm
+                                    // Let's just track coords. The user can type address manually or drag map to see it.
+                                }}
+                            />
                         </div>
 
                         {/* Column 2: Persons & Destination */}
