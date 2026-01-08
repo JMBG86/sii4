@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getActiveYear } from '@/app/sp/config/actions'
 
-// Reuse types from SP if possible or redefine slightly adapted versions
 export type SeizureCategoryStats = {
     total: number;
     isValue?: boolean;
@@ -18,15 +17,29 @@ export type SGDashboardData = {
     };
     seizuresTree: Record<string, SeizureCategoryStats>;
     drugsTotals: Record<string, number>;
+    drugsStats: {
+        count: number;
+        remetido: number;
+        porByRemeter: number;
+    };
+    cashStats: {
+        total: number;
+        remetido: number;
+        porRemeter: number;
+    };
+    weaponsStats: {
+        total: number;
+        remetido: number;
+        porRemeter: number;
+    };
     totalDetidos: number;
     detaineesBreakdown: { crime: string; count: number }[];
     mobilePhones: {
         total: number;
-        despacho: number; // Placeholder
-        pericia: number;  // Placeholder
-        tribunal: number; // Placeholder
+        remetido: number;
+        porRemeter: number;
     };
-    hotZones: { crime: string, count: number }[]; // Placeholder
+    hotZones: { crime: string, count: number }[];
 }
 
 export async function getSGDashboardStats(year?: number): Promise<SGDashboardData> {
@@ -37,68 +50,56 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         year = activeConfig?.year || new Date().getFullYear()
     }
 
-    const reportYear = year! // Assert non-null because logic above ensures it
-
-
-    // Parallel Queries
-    // 1. Image Stats
-    // 2. Detainees
-    // 3. Seizures (General)
-    // 4. Drugs
-    // 5. Mobile Phones Specific
+    const reportYear = year!
 
     const [
-        { data: imagesInfo }, // Use data to filter locally or use count queries
+        { data: imagesInfo },
         { data: detaineesData },
         { data: seizuresData },
         { data: drugsData },
     ] = await Promise.all([
-        // 1. Images Info (Fetch basic flags)
         supabase.from('sp_processos_crime')
             .select('id, imagens_associadas, notificacao_imagens')
             .eq('ano', year)
             .eq('imagens_associadas', true),
 
-        // 2. Detainees
         supabase.from('sp_detidos_info')
             .select('quantidade, sp_processos_crime!inner(ano, tipo_crime)')
             .eq('sp_processos_crime.ano', year),
 
-        // 3. Seizures (including Phones)
         supabase.from('sp_apreensoes_info')
-            .select('tipo, descricao, sp_processos_crime!inner(ano)')
+            .select('tipo, descricao, remetido, sp_processos_crime!inner(ano)')
             .eq('sp_processos_crime.ano', year),
 
-        // 4. Drugs
         supabase.from('sp_apreensoes_drogas')
             .select('*, sp_processos_crime!inner(ano)')
             .eq('sp_processos_crime.ano', year),
     ])
 
-    // --- Process Images Stats ---
-    // Total = query returned only true
+    // Images
     const totalImagens = imagesInfo?.length || 0
     const concludedImagens = imagesInfo?.filter((i: any) => i.notificacao_imagens === true).length || 0
     const pendingImagens = totalImagens - concludedImagens
 
-    // --- Process Detainees ---
+    // Detainees
     const totalDetidos = detaineesData?.reduce((acc: number, curr: any) => acc + (curr.quantidade || 0), 0) || 0
-
-    // Group Detainees by Crime
     const detaineesMap: Record<string, number> = {}
     detaineesData?.forEach((d: any) => {
         const crime = d.sp_processos_crime?.tipo_crime || 'Outros'
-        const qtd = d.quantidade || 0
-        detaineesMap[crime] = (detaineesMap[crime] || 0) + qtd
+        const qty = d.quantidade || 0
+        detaineesMap[crime] = (detaineesMap[crime] || 0) + qty
     })
-
     const detaineesBreakdown = Object.entries(detaineesMap)
         .map(([crime, count]) => ({ crime, count }))
         .sort((a, b) => b.count - a.count)
 
-    // --- Process Seizures & Phones ---
+    // Seizures
     const seizuresTree: Record<string, SeizureCategoryStats> = {}
-    let mobilePhonesCount = 0
+
+    // Stats accumulators
+    let phonesTotal = 0, phonesRemetido = 0, phonesPorRemeter = 0
+    let cashTotal = 0, cashRemetido = 0, cashPorRemeter = 0
+    let weaponsTotal = 0, weaponsRemetido = 0, weaponsPorRemeter = 0
 
     const getCat = (name: string, isValue = false) => {
         if (!seizuresTree[name]) seizuresTree[name] = { total: 0, isValue, subs: {} }
@@ -110,22 +111,45 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
             const parts = item.tipo.split(':')
             const mainCat = parts[0].trim()
             const subCat = parts.length > 1 ? parts[1].trim() : 'Geral'
+            const lowerType = item.tipo.toLowerCase()
 
-            // Mobile Phone Check
-            if (mainCat.toLowerCase().includes('telemóvel') || mainCat.toLowerCase().includes('telemoveis')) {
+            // --- Mobile Phones logic ---
+            if (lowerType.includes('telemóvel') || lowerType.includes('telemoveis')) {
                 const val = parseInt(item.descricao)
                 const qty = isNaN(val) ? 1 : val
-                mobilePhonesCount += qty
+                phonesTotal += qty
+                if (item.remetido) phonesRemetido += qty
+                else phonesPorRemeter += qty
             }
 
-            // General Tree Logic (Copied from SP)
+            // --- Cash Logic ---
             if (mainCat === 'Numerário') {
                 const amount = parseFloat(item.descricao) || 0
+                cashTotal += amount
+                if (item.remetido) cashRemetido += amount
+                else cashPorRemeter += amount
+
+                // Tree Logic (Only populate tree if valid mainCat)
                 const cat = getCat('Numerário', true)
                 cat.total += amount
                 const label = subCat !== 'Geral' ? subCat : 'Euros'
                 cat.subs[label] = (cat.subs[label] || 0) + amount
+            }
+
+            // --- Weapons Logic ---
+            else if (mainCat === 'Armas' || lowerType.includes('arma') || mainCat === 'Explosivos' || mainCat === 'Munições') {
+                const val = parseInt(item.descricao)
+                const qty = isNaN(val) ? 1 : val
+                weaponsTotal += qty
+                if (item.remetido) weaponsRemetido += qty
+                else weaponsPorRemeter += qty
+
+                // For the tree we keep standard categories
+                const cat = getCat(mainCat)
+                cat.total += qty
+                cat.subs[subCat] = (cat.subs[subCat] || 0) + qty
             } else {
+                // Other categories for Tree
                 const cat = getCat(mainCat)
                 const val = parseInt(item.descricao)
                 const qty = isNaN(val) ? 1 : val
@@ -147,7 +171,13 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         'Subst. Psicoativas (un)': 0
     }
 
+    let drugsCount = 0
+    let drugsRemetido = 0
+
     drugsData?.forEach((d: any) => {
+        drugsCount++
+        if (d.entregue_lpc) drugsRemetido++
+
         drugsTotals['Heroína (g)'] += d.heroina_g || 0
         drugsTotals['Cocaína (g)'] += d.cocaina_g || 0
         drugsTotals['Cannabis Folhas (g)'] += d.cannabis_folhas_g || 0
@@ -158,7 +188,8 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         drugsTotals['Subst. Psicoativas (un)'] += d.substancias_psicoativas_un || 0
     })
 
-    // --- Hot Zones Placeholder ---
+    const drugsPorRemeter = drugsCount - drugsRemetido
+
     const hotZones = [
         { crime: 'Furto Veículo', count: 12 },
         { crime: 'Tráfico', count: 5 }
@@ -173,13 +204,27 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         },
         seizuresTree,
         drugsTotals,
+        drugsStats: {
+            count: drugsCount,
+            remetido: drugsRemetido,
+            porByRemeter: drugsPorRemeter
+        },
+        cashStats: {
+            total: cashTotal,
+            remetido: cashRemetido,
+            porRemeter: cashPorRemeter
+        },
+        weaponsStats: {
+            total: weaponsTotal,
+            remetido: weaponsRemetido,
+            porRemeter: weaponsPorRemeter
+        },
         totalDetidos,
         detaineesBreakdown,
         mobilePhones: {
-            total: mobilePhonesCount,
-            despacho: 0,
-            pericia: 0,
-            tribunal: 0
+            total: phonesTotal,
+            remetido: phonesRemetido,
+            porRemeter: phonesPorRemeter
         },
         hotZones
     }

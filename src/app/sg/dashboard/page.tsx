@@ -12,9 +12,7 @@ import {
     Users,
     Loader2,
     Calendar,
-    Send,
     Gavel,
-    Search
 } from "lucide-react"
 
 export default function SGDashboardPage() {
@@ -65,7 +63,9 @@ export default function SGDashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {/* 1. Processos com Imagens */}
+                {/* --- LINHA 1 --- */}
+
+                {/* 1. Imagens */}
                 <Card className="hover:shadow-md transition-shadow border-amber-200 dark:border-amber-800">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Imagens</CardTitle>
@@ -94,7 +94,6 @@ export default function SGDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold mb-2">{data.totalDetidos}</div>
-
                         <div className="space-y-2 h-[120px] overflow-y-auto pr-1 custom-scrollbar">
                             {data.detaineesBreakdown && data.detaineesBreakdown.length > 0 ? (
                                 data.detaineesBreakdown.map((item, idx) => (
@@ -116,35 +115,10 @@ export default function SGDashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* 3. Telemóveis */}
-                <Card className="hover:shadow-md transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Telemóveis</CardTitle>
-                        <Smartphone className="h-4 w-4 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold mb-2">{data.mobilePhones.total}</div>
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                            <div className="flex justify-between">
-                                <span>Com Despacho</span>
-                                <span className="font-mono text-gray-700 dark:text-gray-300">{data.mobilePhones.despacho}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Enviados Perícia</span>
-                                <span className="font-mono text-gray-700 dark:text-gray-300">{data.mobilePhones.pericia}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Enviados Tribunal</span>
-                                <span className="font-mono text-gray-700 dark:text-gray-300">{data.mobilePhones.tribunal}</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 4. Zonas Quentes (Alertas) */}
+                {/* 3. Alertas / Zonas Quentes */}
                 <Card className="hover:shadow-md transition-shadow border-red-100 dark:border-red-900/50 bg-red-50/30 dark:bg-red-950/10">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">Alertas / Zonas Quentes</CardTitle>
+                        <CardTitle className="text-sm font-medium text-red-700 dark:text-red-400">Alertas</CardTitle>
                         <ShieldAlert className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
@@ -165,8 +139,110 @@ export default function SGDashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* 5. Apreensões (Detailed Tree) - Spanning 2 cols if possible or scroll */}
-                <Card className="hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1 row-span-2">
+                {/* --- LINHA 2 --- */}
+
+                {/* 4. Armas */}
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Armas</CardTitle>
+                        <Gavel className="h-4 w-4 text-gray-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold mb-2">{data.weaponsStats.total}</div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                            <div className="flex justify-between p-1 bg-green-50 dark:bg-green-950/20 rounded border border-green-100 dark:border-green-900">
+                                <span className="text-green-700 dark:text-green-400 font-semibold">Entregues PSP</span>
+                                <span className="font-bold text-green-800 dark:text-green-300">{data.weaponsStats.remetido}</span>
+                            </div>
+                            <div className="flex justify-between p-1 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-100 dark:border-amber-900">
+                                <span className="text-amber-700 dark:text-amber-400 font-semibold">Por Entregar</span>
+                                <span className="font-bold text-amber-800 dark:text-amber-300">{data.weaponsStats.porRemeter}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 5. Estupefacientes */}
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Estupefacientes</CardTitle>
+                        <Syringe className="h-4 w-4 text-emerald-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex gap-2 mb-4">
+                            <div className="flex-1 bg-green-50 dark:bg-green-950/20 p-2 rounded border border-green-100 dark:border-green-900 text-center">
+                                <div className="text-[10px] uppercase tracking-wider font-semibold text-green-700">Entregues</div>
+                                <div className="text-lg font-bold text-green-800">{data.drugsStats.remetido}</div>
+                            </div>
+                            <div className="flex-1 bg-amber-50 dark:bg-amber-950/30 p-2 rounded border border-amber-100 dark:border-amber-900 text-center">
+                                <div className="text-[10px] uppercase tracking-wider font-semibold text-amber-700">Por Entregar</div>
+                                <div className="text-lg font-bold text-amber-800">{data.drugsStats.porByRemeter}</div>
+                            </div>
+                        </div>
+                        <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+                            {Object.entries(data.drugsTotals).map(([type, amount]) => (
+                                amount > 0 && (
+                                    <div key={type} className="flex justify-between items-center text-sm border-b border-gray-100 dark:border-zinc-800 pb-1 last:border-0 last:pb-0">
+                                        <span className="font-medium text-gray-700 dark:text-gray-300 text-xs">{type}</span>
+                                        <span className="font-mono bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-bold">
+                                            {amount.toLocaleString('pt-PT')}
+                                        </span>
+                                    </div>
+                                )
+                            ))}
+                            {Object.values(data.drugsTotals).every(v => v === 0) && (
+                                <p className="text-sm text-muted-foreground italic">Sem apreensões.</p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 6. Numerário */}
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Numerário</CardTitle>
+                        <div className="font-bold text-amber-600">€</div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold mb-2">{formatMoney(data.cashStats.total)}</div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                            <div className="flex justify-between p-1 bg-green-50 dark:bg-green-950/20 rounded border border-green-100 dark:border-green-900">
+                                <span className="text-green-700 dark:text-green-400 font-semibold">Depositado</span>
+                                <span className="font-bold text-green-800 dark:text-green-300">{formatMoney(data.cashStats.remetido)}</span>
+                            </div>
+                            <div className="flex justify-between p-1 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-100 dark:border-amber-900">
+                                <span className="text-amber-700 dark:text-amber-400 font-semibold">Cofre (Por Depositar)</span>
+                                <span className="font-bold text-amber-800 dark:text-amber-300">{formatMoney(data.cashStats.porRemeter)}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* --- LINHA 3 --- */}
+
+                {/* 7. Telemóveis */}
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Telemóveis</CardTitle>
+                        <Smartphone className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold mb-2">{data.mobilePhones.total}</div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                            <div className="flex justify-between p-1 bg-green-50 dark:bg-green-950/20 rounded border border-green-100 dark:border-green-900">
+                                <span className="text-green-700 dark:text-green-400 font-semibold">Total Remetido</span>
+                                <span className="font-bold text-green-800 dark:text-green-300">{data.mobilePhones.remetido}</span>
+                            </div>
+                            <div className="flex justify-between p-1 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-100 dark:border-amber-900">
+                                <span className="text-amber-700 dark:text-amber-400 font-semibold">Por Remeter</span>
+                                <span className="font-bold text-amber-800 dark:text-amber-300">{data.mobilePhones.porRemeter}</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 8. Detalhe de Apreensões */}
+                <Card className="hover:shadow-md transition-shadow md:col-span-2">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Detalhe de Apreensões</CardTitle>
                         <Package className="h-4 w-4 text-amber-600" />
@@ -203,31 +279,6 @@ export default function SGDashboardPage() {
                                     ))
                             ) : (
                                 <p className="text-sm text-muted-foreground italic">Sem registos de apreensões</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* 6. Estupefacientes */}
-                <Card className="hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Estupefacientes</CardTitle>
-                        <Syringe className="h-4 w-4 text-emerald-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            {Object.entries(data.drugsTotals).map(([type, amount]) => (
-                                amount > 0 && (
-                                    <div key={type} className="flex justify-between items-center text-sm border-b border-gray-100 dark:border-zinc-800 pb-1 last:border-0 last:pb-0">
-                                        <span className="font-medium text-gray-700 dark:text-gray-300 text-xs">{type}</span>
-                                        <span className="font-mono bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-bold">
-                                            {amount.toLocaleString('pt-PT')}
-                                        </span>
-                                    </div>
-                                )
-                            ))}
-                            {Object.values(data.drugsTotals).every(v => v === 0) && (
-                                <p className="text-sm text-muted-foreground italic">Sem apreensões.</p>
                             )}
                         </div>
                     </CardContent>
