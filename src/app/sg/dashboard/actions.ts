@@ -12,8 +12,10 @@ export type SGDashboardData = {
     year: number;
     imagesStats: {
         total: number;
-        pending: number;
-        concluded: number;
+        notified: number; // Yellow
+        executed: number; // Green (Resolvida)
+        pending: number; // Red (Total - Notified - Executed?) Or just Total Unresolved?
+        // User asked for: Total, Notificacao Feita, Notificacao Executada
     };
     seizuresTree: Record<string, SeizureCategoryStats>;
     drugsTotals: Record<string, number>;
@@ -59,8 +61,7 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         { data: drugsData },
     ] = await Promise.all([
         supabase.from('sp_processos_crime')
-            .select('id, imagens_associadas, notificacao_imagens')
-            .eq('ano', year)
+            .select('id, imagens_associadas, notificacao_imagens, notificacao_resolvida')
             .eq('imagens_associadas', true),
 
         supabase.from('sp_detidos_info')
@@ -76,10 +77,19 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
             .eq('sp_processos_crime.ano', year),
     ])
 
-    // Images
+    // Images (Global Stats - All Years)
     const totalImagens = imagesInfo?.length || 0
-    const concludedImagens = imagesInfo?.filter((i: any) => i.notificacao_imagens === true).length || 0
-    const pendingImagens = totalImagens - concludedImagens
+    // "Notificação Feita" - User usually means Yellow state (Notified but not resolved) OR just the flag?
+    // User asked "com notificacao feita e com notificacao executada".
+    // Notificacao Feita = notificacao_imagens = true
+    // Notificacao Executada = notificacao_resolvida = true
+    const notifiedImagens = imagesInfo?.filter((i: any) => i.notificacao_imagens === true).length || 0
+    const executedImagens = imagesInfo?.filter((i: any) => i.notificacao_resolvida === true).length || 0
+
+    // Pending (Red) = Total - Notified (assuming Notified includes Executed? No, usually distinct flags)
+    // Actually, let's stick to the requested fields for display.
+    // We can keep 'pending' calculation if needed for other UI, but user specifically asked for these 3.
+    const pendingImagens = totalImagens - notifiedImagens // Rough calc if needed
 
     // Detainees
     const totalDetidos = detaineesData?.reduce((acc: number, curr: any) => acc + (curr.quantidade || 0), 0) || 0
@@ -261,8 +271,9 @@ export async function getSGDashboardStats(year?: number): Promise<SGDashboardDat
         year: reportYear,
         imagesStats: {
             total: totalImagens,
-            pending: pendingImagens,
-            concluded: concludedImagens
+            notified: notifiedImagens,
+            executed: executedImagens,
+            pending: pendingImagens // Keeping for type safety if needed, though unused in new request
         },
         seizuresTree,
         drugsTotals,

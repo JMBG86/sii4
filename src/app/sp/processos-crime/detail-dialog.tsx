@@ -198,6 +198,7 @@ export function ProcessoDetailDialog({
     const [apreensoes, setApreensoes] = useState(processo.apreensoes || false)
     const [imagens, setImagens] = useState(processo.imagens_associadas || false)
     const [notificacao, setNotificacao] = useState(processo.notificacao_imagens || false)
+    const [resolvida, setResolvida] = useState(processo.notificacao_resolvida || false)
 
     // UI State
     const [showArmas, setShowArmas] = useState(false)
@@ -222,6 +223,7 @@ export function ProcessoDetailDialog({
         setApreensoes(processo.apreensoes || false)
         setImagens(processo.imagens_associadas || false)
         setNotificacao(processo.notificacao_imagens || false)
+        setResolvida(processo.notificacao_resolvida || false)
         setEntidade(processo.entidade_destino || '')
         setEntidade(processo.entidade_destino || '')
         setTipoCrime(processo.tipo_crime || '')
@@ -341,6 +343,7 @@ export function ProcessoDetailDialog({
         formData.set('apreensoes', apreensoes ? 'on' : 'off')
         formData.set('imagens_associadas', imagens ? 'on' : 'off')
         formData.set('notificacao_imagens', notificacao ? 'on' : 'off')
+        formData.set('notificacao_resolvida', resolvida ? 'on' : 'off')
 
         // Serialize Lists
         formData.set('detidos_info_json', detidos ? JSON.stringify(detaineesList) : '[]')
@@ -1222,22 +1225,58 @@ export function ProcessoDetailDialog({
 
                                 {/* Imagens Section */}
                                 <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-zinc-800">
-                                    <div className="flex items-center space-x-2">
-                                        <Switch id="imagens" checked={imagens} onCheckedChange={setImagens} disabled={readOnly} />
-                                        <Label htmlFor="imagens" className="font-semibold text-pink-600 text-base">Tem Imagens?</Label>
+                                    <Label className="text-base font-semibold">Estado do Processo / Imagens</Label>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        {/* 1. Tem Imagens */}
+                                        <div className="flex flex-col gap-2 border p-3 rounded bg-red-50/50 dark:bg-red-950/20 border-red-200">
+                                            <Label htmlFor="imagens" className="font-semibold text-red-700">1. Tem Imagens?</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    id="imagens"
+                                                    checked={imagens}
+                                                    onCheckedChange={setImagens}
+                                                    className="data-[state=checked]:bg-red-600"
+                                                    disabled={readOnly}
+                                                />
+                                                <span className="text-sm">{imagens ? 'Sim' : 'Não'}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* 2. Notificação Feita */}
+                                        <div className="flex flex-col gap-2 border p-3 rounded bg-amber-50/50 dark:bg-amber-950/20 border-amber-200">
+                                            <Label htmlFor="notificacao" className="font-semibold text-amber-700">2. Notificação Feita?</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    id="notificacao"
+                                                    checked={notificacao}
+                                                    onCheckedChange={setNotificacao}
+                                                    className="data-[state=checked]:bg-amber-500"
+                                                    disabled={readOnly}
+                                                />
+                                                <span className="text-sm">{notificacao ? 'Sim' : 'Não'}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* 3. Notificação Executada */}
+                                        <div className="flex flex-col gap-2 border p-3 rounded bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200">
+                                            <Label htmlFor="resolvida" className="font-semibold text-emerald-700">3. Notif. Executada?</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    id="resolvida"
+                                                    checked={resolvida}
+                                                    onCheckedChange={setResolvida}
+                                                    className="data-[state=checked]:bg-emerald-600"
+                                                    disabled={readOnly}
+                                                />
+                                                <span className="text-sm">{resolvida ? 'Sim' : 'Não'}</span>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    {imagens && (
-                                        <div className="space-y-3 mt-3 animate-in fade-in pl-4 border-l-2 border-pink-200">
-                                            <div className="flex items-center space-x-2">
-                                                <Switch id="notificacao" checked={notificacao} onCheckedChange={setNotificacao} disabled={readOnly} />
-                                                <Label htmlFor="notificacao" className="font-medium">Foi feita a Notificação?</Label>
-                                            </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                Sim + Sim = <span className="text-emerald-600 font-bold">Verde</span> | Sim + Não = <span className="text-red-600 font-bold">Vermelho</span> no separador Imagens.
-                                            </p>
-                                        </div>
-                                    )}
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        A combinação destes estados determina a cor da linha no mapa de imagens (Vermelho, Amarelo, Verde).
+                                    </p>
                                 </div>
                             </div>
 

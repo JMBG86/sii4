@@ -221,6 +221,7 @@ export async function updateProcesso(id: string, formData: FormData) {
     updates.apreensoes = formData.get('apreensoes') === 'on'
     updates.imagens_associadas = formData.get('imagens_associadas') === 'on'
     updates.notificacao_imagens = formData.get('notificacao_imagens') === 'on'
+    updates.notificacao_resolvida = formData.get('notificacao_resolvida') === 'on'
 
     // --- VALIDATION: Check NUIPC vs Sequence Number ---
     if (updates.nuipc_completo) {

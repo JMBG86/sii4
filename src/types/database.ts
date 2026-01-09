@@ -146,6 +146,7 @@ export interface SPProcessoCrime {
     apreensoes?: boolean
     imagens_associadas?: boolean // New Flag
     notificacao_imagens?: boolean // New Flag: Notification sent?
+    notificacao_resolvida?: boolean // New Flag: Notification executed?
     // Joined
     sp_apreensoes_info?: { tipo: string }[]
     sp_apreensoes_drogas?: { id: string }[] | any

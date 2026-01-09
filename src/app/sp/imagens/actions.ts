@@ -57,13 +57,13 @@ export async function updateImagensFlags(id: string, imagens: boolean, notificac
 }
 
 export async function getPendingImagesCount() {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { count, error } = await supabase
         .from('sp_processos_crime')
         .select('*', { count: 'exact', head: true })
         .eq('imagens_associadas', true)
-        .eq('notificacao_imagens', false)
+        .eq('notificacao_resolvida', false)
 
     if (error) {
         console.error('Error fetching pending images count:', error)

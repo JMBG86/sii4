@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { fetchImagensRows } from './actions' // We'll create this logic
+import { fetchImagensRows, fetchUnresolvedCounts } from '@/app/sg/imagens/actions' // We'll create this logic
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,8 +19,9 @@ import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 
 import { ImagensEditDialog } from './edit-dialog'
-import { ImagensNotificationDialog } from './notification-dialog'
-import { DeleteImageButton } from './delete-button'
+import { ImagensNotificationDialog } from '@/app/sg/imagens/notification-dialog'
+import { ImageRegistryDialog } from '@/app/sg/imagens/registry-dialog'
+import { DeleteImageButton } from '@/app/sg/imagens/delete-button'
 
 import { Suspense } from 'react'
 import { getFiscalYears } from '@/app/sp/config/actions'
@@ -41,11 +42,13 @@ function ImagensContent() {
     // Year Tabs
     const [years, setYears] = useState<number[]>([2026])
     const [activeYear, setActiveYear] = useState<number>(2026)
+    const [yearCounts, setYearCounts] = useState<Record<number, number>>({})
 
     // Dialog State
     const [selectedProcess, setSelectedProcess] = useState<any>(null)
     const [refreshTrigger, setRefreshTrigger] = useState(0)
     const [notificationOpen, setNotificationOpen] = useState(false)
+    const [registryOpen, setRegistryOpen] = useState(false)
 
     const debouncedSearch = useDebounce(searchTerm, 300)
 
@@ -69,6 +72,9 @@ function ImagensContent() {
                 setRows(data.rows)
                 setTotalPages(data.totalPages)
                 setTotalCount(data.totalCount)
+
+                // Fetch Alert Counts
+                fetchUnresolvedCounts().then(setYearCounts)
             } catch (error) {
                 console.error("Failed to load data", error)
             } finally {
@@ -96,17 +102,28 @@ function ImagensContent() {
                         Processos sinalizados com imagens de videovigilancia ({activeYear}).
                     </p>
                 </div>
-                <Button onClick={() => setNotificationOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    CRIAR NOTIFICAÇÃO DE IMAGENS
-                </Button>
+                <div className="flex gap-2">
+                    <Button onClick={() => setRegistryOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        REGISTAR NOTIFICAÇÃO DE IMAGENS
+                    </Button>
+                    <Button onClick={() => setNotificationOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        CRIAR NOTIFICAÇÃO DE IMAGENS
+                    </Button>
+                </div>
             </div>
 
             <Tabs value={activeYear.toString()} onValueChange={v => setActiveYear(parseInt(v))}>
                 <TabsList>
                     {years.map(y => (
-                        <TabsTrigger key={y} value={y.toString()}>
+                        <TabsTrigger key={y} value={y.toString()} className="flex items-center gap-2">
                             {y}
+                            {yearCounts[y] > 0 && (
+                                <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
+                                    {yearCounts[y]}
+                                </Badge>
+                            )}
                         </TabsTrigger>
                     ))}
                 </TabsList>
@@ -147,41 +164,55 @@ function ImagensContent() {
                                         </TableRow>
                                     ) : (
                                         rows.map((row) => {
-                                            const isNotified = row.notificacao_imagens
-                                            const rowClass = isNotified
-                                                ? 'cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-l-4 border-l-emerald-600 bg-emerald-100/50 font-medium'
-                                                : 'cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/40 border-l-4 border-l-red-600 bg-red-100/50 font-medium'
+                                            // Three State Logic:
+                                            // 1. Red: Tem Imagens (always true here) BUT Notif Imagens = false
+                                            // 2. Yellow: Notif Imagens = true AND Resolvida = false
+                                            // 3. Green: Resolvida = true
 
-                                            // Countdown Logic
-                                            let countdownContent: React.ReactNode = '-'
-                                            if (row.data_factos && !isNotified) {
-                                                const today = new Date()
-                                                const factDate = new Date(row.data_factos)
-                                                // Real logic: We want (FactDate + 30) - Today
-                                                const deadline = new Date(factDate)
-                                                deadline.setDate(deadline.getDate() + 30)
-
-                                                // Difference in milliseconds
-                                                const msPerDay = 1000 * 60 * 60 * 24
-                                                const remainingTime = deadline.getTime() - today.getTime()
-                                                const remainingDays = Math.ceil(remainingTime / msPerDay)
-
-                                                if (remainingDays < 0) {
-                                                    countdownContent = <span className="text-red-600 font-bold text-xs bg-red-200 dark:bg-red-900 px-2 py-1 rounded">PERÍODO ULTRAPASSADO</span>
-                                                } else {
-                                                    countdownContent = <span className={remainingDays <= 5 ? "text-amber-600 font-bold" : "text-emerald-700 font-bold"}>{remainingDays} dias restantes</span>
-                                                }
-                                            } else if (isNotified) {
-                                                countdownContent = <Badge variant="outline" className="text-emerald-700 border-emerald-600 bg-emerald-50">Notificado</Badge>
+                                            let rowClass = ''
+                                            if (row.notificacao_resolvida) {
+                                                // GREEN
+                                                rowClass = 'cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-l-4 border-l-emerald-600 bg-emerald-100/50 font-medium'
+                                            } else if (row.notificacao_imagens) {
+                                                // YELLOW (Now considered "Not Complied" by user request - needing visual urgency)
+                                                rowClass = 'cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 border-l-4 border-l-amber-500 bg-amber-100/50 font-medium'
                                             } else {
-                                                countdownContent = <span className="text-muted-foreground text-xs italic">S/ Data Factos</span>
+                                                // RED (Stronger Red as requested)
+                                                rowClass = 'cursor-pointer hover:bg-red-200 dark:hover:bg-red-900/60 border-l-4 border-l-red-700 bg-red-200/50 font-medium'
                                             }
 
+                                            // Countdown Logic (Applied to both Red and Yellow now)
+                                            let countdownContent: React.ReactNode = '-'
+
+                                            if (row.notificacao_resolvida) {
+                                                countdownContent = <Badge className="bg-emerald-600 hover:bg-emerald-700">RESOLVIDO</Badge>
+                                            } else {
+                                                // Both Red and Yellow need countdown
+                                                if (row.data_factos) {
+                                                    const today = new Date()
+                                                    const factDate = new Date(row.data_factos)
+                                                    const deadline = new Date(factDate)
+                                                    deadline.setDate(deadline.getDate() + 30)
+
+                                                    const msPerDay = 1000 * 60 * 60 * 24
+                                                    const remainingTime = deadline.getTime() - today.getTime()
+                                                    const remainingDays = Math.ceil(remainingTime / msPerDay)
+
+                                                    if (remainingDays < 0) {
+                                                        // Stronger visual for Expired
+                                                        countdownContent = <span className="text-red-700 font-extrabold text-xs bg-red-300 dark:bg-red-900 px-2 py-1 rounded">-{Math.abs(remainingDays)} DIAS (EXPIRADO)</span>
+                                                    } else {
+                                                        countdownContent = <span className={remainingDays <= 5 ? "text-amber-700 font-bold" : "text-emerald-700 font-bold"}>RESTAM {remainingDays} DIAS</span>
+                                                    }
+                                                } else {
+                                                    countdownContent = <span className="text-muted-foreground text-xs italic">S/ Data Factos</span>
+                                                }
+                                            }
                                             return (
                                                 <TableRow key={row.id} className={rowClass} onClick={() => setSelectedProcess(row)}>
                                                     <TableCell className="font-medium font-mono">
                                                         {row.nuipc_completo || 'S/ Ref'}
-                                                        {!isNotified && (
+                                                        {!row.notificacao_resolvida && (
                                                             <Badge variant="destructive" className="ml-2 text-[10px] h-5 px-1">
                                                                 FALTA NOTIFICAR
                                                             </Badge>
@@ -251,11 +282,12 @@ function ImagensContent() {
             </Tabs>
 
             {selectedProcess && (
-                <ImagensEditDialog
+                <ImageRegistryDialog
                     open={!!selectedProcess}
                     onOpenChange={(open) => !open && setSelectedProcess(null)}
-                    processo={selectedProcess}
+                    initialData={selectedProcess}
                     onSaved={() => {
+                        setSelectedProcess(null)
                         setRefreshTrigger(p => p + 1)
                     }}
                 />
@@ -264,6 +296,12 @@ function ImagensContent() {
             <ImagensNotificationDialog
                 open={notificationOpen}
                 onOpenChange={setNotificationOpen}
+            />
+
+            <ImageRegistryDialog
+                open={registryOpen}
+                onOpenChange={setRegistryOpen}
+                onSaved={() => setRefreshTrigger(p => p + 1)}
             />
         </div>
     )

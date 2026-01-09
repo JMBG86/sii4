@@ -32,10 +32,18 @@ export async function getSidebarCounts() {
         .ilike('tipo', '%Armas%') // Matches "Armas: ..."
         .eq('remetido', false)
 
+    // 5. Imagens: Count where 'imagens_associadas' is true AND 'notificacao_resolvida' is false
+    const { count: imagesCount } = await supabase
+        .from('sp_processos_crime')
+        .select('*', { count: 'exact', head: true })
+        .eq('imagens_associadas', true)
+        .eq('notificacao_resolvida', false)
+
     return {
         drugs: drugsCount || 0,
         cash: cashCount || 0,
         phones: phonesCount || 0,
-        weapons: weaponsCount || 0
+        weapons: weaponsCount || 0,
+        images: imagesCount || 0
     }
 }

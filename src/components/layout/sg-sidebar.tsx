@@ -61,7 +61,7 @@ const sgSidebarItems = [
 
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
-import { getSidebarCounts } from '@/features/seizures/actions'
+import { getSidebarCounts } from '@/app/sg/sidebar-actions'
 
 export function SGSidebar() {
     const pathname = usePathname()
@@ -69,7 +69,7 @@ export function SGSidebar() {
     const supabase = createClient()
     const [userName, setUserName] = useState('')
     const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
-    const [counts, setCounts] = useState({ drugs: 0, cash: 0, phones: 0, weapons: 0 })
+    const [counts, setCounts] = useState({ drugs: 0, cash: 0, phones: 0, weapons: 0, images: 0 })
 
     useEffect(() => {
         const getUser = async () => {
@@ -160,7 +160,12 @@ export function SGSidebar() {
                                         )}
                                     >
                                         <item.icon className="h-4 w-4" />
-                                        {item.title}
+                                        <span className="flex-1">{item.title}</span>
+                                        {item.title === 'Imagens' && counts.images > 0 && (
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm ring-1 ring-red-600 ml-auto">
+                                                {counts.images}
+                                            </span>
+                                        )}
                                     </Link>
                                 )}
 

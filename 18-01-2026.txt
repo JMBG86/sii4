@@ -1,0 +1,131 @@
+ANÁLISE FUNCIONAL E OPERACIONAL DA PLATAFORMA INTEGRADA SII/SP/SG
+Data: 18 de Janeiro de 2026
+
+1. INTRODUÇÃO
+A plataforma desenvolvida representa um ecossistema digital integrado para a gestão criminal e administrativa da Secção de Investigação e Inquéritos (SII), Secção de Processos (SP) e Secção de Gestão (SG/Sargentos). O sistema centraliza a informação, elimina redundâncias, automatiza fluxos de trabalho e fornece ferramentas avançadas de análise criminal em tempo real.
+O seu principal objetivo é transformar dados dispersos em "Inteligência Policial", permitindo decisões mais rápidas e fundamentadas. A interoperabilidade entre módulos garante que a ação de uma equipa (ex: SP) enriquece imediatamente o trabalho das outras (ex: SII, SG).
+
+---
+
+2. ANÁLISE DETALHADA POR MÓDULO
+
+2.1. MÓDULO SII (Secção de Investigação e Inquéritos)
+Destinado aos investigadores e chefes de brigada. Foca-se na gestão operacional da investigação criminal.
+
+*   **Dashboard**
+    *   *Funcionalidade:* Visão geral personalizada. Mostra o número de inquéritos pendentes, prazos a expirar em breve, e notificações de novas diligências ou correspondência (lida/não lida).
+    *   *Filtros:* Permite alternar entre "Meus Inquéritos" e "Brigada" (para chefes).
+
+*   **Inquéritos**
+    *   *Funcionalidade:* Listagem completa dos processos. Permite ordenação por prioridade, data limite (prescrição) ou estado.
+    *   *Fluxo:* Integra diretamente com a SP. Quando a SP cria um inquérito e o distribui a um investigador, ele aparece aqui instantaneamente.
+    *   *Detalhe:* Cada inquérito tem uma ficha completa com histórico, intervenientes, crimes e diligências realizadas.
+
+*   **Pesquisas**
+    *   *Funcionalidade:* Ferramenta de cruzamento de dados. Permite pesquisar por Nomes, Alcunhas, Matrículas, Telemóveis ou NIBs.
+    *   *Capacidade:* Varre toda a base de dados (incluindo processos arquivados e de outros investigadores, mediante permissões) para encontrar conexões ocultas.
+
+*   **Correspondência**
+    *   *Funcionalidade:* Gestão de emails e ofícios recebidos relacionados com os inquéritos.
+    *   *Automação:* Associa automaticamente emails recebidos ao inquérito correto baseando-se no NUIPC presente no assunto.
+
+*   **Relatórios**
+    *   *Funcionalidade:* Gerador de documentos oficiais (relatórios finais, pedidos de análise, etc.) usando templates predefinidos.
+    *   *Benefício:* Reduz o tempo de escrita e garante padronização visual.
+
+*   **Ofícios**
+    *   *Funcionalidade:* Registo de saída de correio oficial. Gera números de registo sequenciais automaticamente.
+
+*   **Lista Telefónica**
+    *   *Funcionalidade:* Diretório de contactos úteis (Tribunais, Outras Esquadras, Intérpretes, etc.), mantido centralmente para que todos tenham acesso à informação atualizada.
+
+*   **Zonas Quentes (NOVO)**
+    *   *Funcionalidade:* Mapa interativo de criminalidade.
+    *   *Capacidade:* Mostra "Pins" de crimes georreferenciados. Permite filtrar por tipo de crime (ex: "Furto em Interior de Veículo") e datas.
+    *   *Inteligência:* Deteta automaticamente padrões (clusters de crimes próximos temporais e espacialmente) e alerta o investigador.
+    *   *Fluxo:* Os dados são alimentados tanto pela SP (na criação do processo) como pela SII (durante a investigação).
+
+---
+
+2.2. MÓDULO SP (Secção de Processos)
+O "Motor Administrativo". Gere a entrada, validação, logística e arquivo de todos os processos.
+
+*   **Dashboard**
+    *   *Funcionalidade:* Visão do volume de entrada de processos. Gráficos de crimes mais frequentes no mês atual. Estados de distribuição (processos por distribuir).
+
+*   **Mapa de Processos**
+    *   *Funcionalidade:* O coração da SP. Registo de todas as ocorrências criminais (NUIPC).
+    *   *Georreferenciação (NOVO):* Na criação/edição, o operador usa um mapa ("Location Picker") para definir o local exato do crime. Isso alimenta imediatamente as "Zonas Quentes" da SII.
+    *   *Validação:* Sistema impede duplicação de NUIPCs e valida sequências numéricas.
+
+*   **Inquéritos Externos / Deprecadas**
+    *   *Funcionalidade:* Gestão de pedidos vindos de outras comarcas ou entidades.
+    *   *Fluxo:* Permite distribuir estas tarefas aos investigadores da SII sem criar um "Inquérito" completo, mas mantendo rastreabilidade.
+
+*   **Apreensões (Sub-módulos)**
+    *   *Categorias:* Droga, Numerário, Telemóveis, Armas, Veículos.
+    *   *Funcionalidade:* Cada categoria tem campos específicos (ex: calibre para armas, gramas para droga).
+    *   *Cadeia de Custódia:* Controla o estado físico: "No Cofre", "Entregue no Tribunal", "No LPC (Laboratório)".
+    *   *Fluxo:* A SP regista a apreensão. A SG monitoriza o que falta entregar. A SII consulta o estado para os seus relatórios.
+
+*   **Correspondência / Ofícios**
+    *   *Funcionalidade:* Gestão do correio geral da secção (não específico de um inquérito SII).
+
+*   **Pesquisa Global**
+    *   *Funcionalidade:* Semelhante à da SII, mas focada em encontrar processos físicos no arquivo ou despachos.
+
+*   **Imagens**
+    *   *Funcionalidade:* Upload de reportagens fotográficas (ex: locais de crime, objetos apreendidos).
+    *   *Automação:* Se marcadas como "Associadas a Processo", ficam visíveis para o investigador na SII.
+
+*   **Mapas / Estatísticas**
+    *   *Funcionalidade:* Geração automática dos mapas mensais obrigatórios para o comando. Elimina a contagem manual de processos em Excel.
+
+*   **CPCJ (NOVO)**
+    *   *Funcionalidade:* Módulo segregado para processos de proteção de menores (Comissão de Proteção de Crianças e Jovens). Garante privacidade reforçada.
+
+*   **Informações (NOVO)**
+    *   *Funcionalidade:* Registo de "Informações de Serviço" e comunicações internas que não são crimes estritos mas precisam de registo (ex: avistamentos, informações de rua).
+
+---
+
+2.3. MÓDULO SG (Secção de Gestão / Sargento de Brigada)
+Focado na supervisão, controlo de qualidade e gestão de recursos.
+
+*   **Dashboard (Comando)**
+    *   *Alertas de Padrões:* Card em destaque que avisa se o sistema detetou aglomerados anormais de crimes (ex: "Alerta: 3 Roubos na Zona X").
+    *   *Resumo Logístico:* "Droga por entregar: 5 processos", "Dinheiro em cofre: 5000€". Permite ao Sargento saber o que está pendente de despacho.
+
+*   **Imagens**
+    *   *Funcionalidade:* Visão global de todas as fotos carregadas pela SP. Permite verificar a qualidade e se foram notificadas ao tribunal.
+
+*   **Apreensões (Visão Hierárquica)**
+    *   *Funcionalidade:* Não serve para editar individualmente, mas para controlar totais. Permite "drill-down": ver quanto dinheiro está apreendido no total, e depois clicar para ver quais os processos responsáveis.
+
+*   **Zonas Quentes**
+    *   *Funcionalidade:* Igual à SII, mas usada para planeamento de patrulhas. O Sargento vê onde os crimes estão a acontecer e pode alocar equipas preventivas para essas ruas.
+
+*   **Estatística**
+    *   *Funcionalidade:* Relatórios de performance. "Quantos inquéritos a brigada fechou este mês?", "Qual a tipologia de crime dominante?".
+
+*   **Pesquisa**
+    *   *Funcionalidade:* Acesso "Super Admin" para encontrar qualquer dado em qualquer módulo, útil para responder a pedidos urgentes do comando distrital.
+
+---
+
+3. FLUXOS DE INFORMAÇÃO E SINERGIAS
+
+*   **O Ciclo do Crime Georreferenciado:**
+    1.  **SP:** Regista a ocorrência e "pica" o ponto no mapa.
+    2.  **Sistema:** Calcula distâncias e deteta que é o 3º crime igual ali.
+    3.  **SG:** Recebe um alerta vermelho no Dashboard ("Padrão Detetado").
+    4.  **SII:** O investigador vê o "Padrão" nas Zonas Quentes e associa os inquéritos, percebendo que é o mesmo suspeito.
+
+*   **O Ciclo da Apreensão:**
+    1.  **SP:** Recebe a droga e regista no módulo "Apreensões > Droga". O estado é "No Cofre".
+    2.  **SG:** O dashboard mostra "Por entregar: 1". O Sargento ordena o transporte ao Laboratório.
+    3.  **SP:** Regista a saída. Estado muda para "Entregue no LPC".
+    4.  **SG:** O contador "Por entregar" volta a 0.
+
+*   **Conclusão:**
+    A plataforma não é apenas um conjunto de bases de dados; é um fluxo de trabalho vivo. O trabalho administrativo da SP alimenta a inteligência da SII, e a supervisão da SG garante que nada fica esquecido, criando um ciclo virtuoso de eficiência e segurança.

@@ -65,22 +65,26 @@ export default function SGDashboardPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* --- LINHA 1 --- */}
 
-                {/* 1. Imagens */}
+                {/* 1. Imagens (Global - Todos os Anos) */}
                 <Card className="hover:shadow-md transition-shadow border-amber-200 dark:border-amber-800">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Imagens</CardTitle>
+                        <CardTitle className="text-sm font-medium">Imagens (Global)</CardTitle>
                         <ImageIcon className="h-4 w-4 text-amber-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold mb-2">{data.imagesStats.total}</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-3 gap-2 text-xs">
                             <div className="flex flex-col p-2 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-100 dark:border-amber-900">
-                                <span className="font-semibold text-amber-700 dark:text-amber-400">Por Notificar</span>
-                                <span className="text-lg font-bold">{data.imagesStats.pending}</span>
+                                <span className="font-semibold text-amber-700 dark:text-amber-400">Total</span>
+                                <span className="text-lg font-bold">{data.imagesStats.total}</span>
+                            </div>
+                            <div className="flex flex-col p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-100 dark:border-blue-900">
+                                <span className="font-semibold text-blue-700 dark:text-blue-400">Notificadas</span>
+                                <span className="text-lg font-bold">{data.imagesStats.notified}</span>
                             </div>
                             <div className="flex flex-col p-2 bg-green-50 dark:bg-green-950/20 rounded border border-green-100 dark:border-green-900">
-                                <span className="font-semibold text-green-700 dark:text-green-400">Concluídas</span>
-                                <span className="text-lg font-bold">{data.imagesStats.concluded}</span>
+                                <span className="font-semibold text-green-700 dark:text-green-400">Executadas</span>
+                                <span className="text-lg font-bold">{data.imagesStats.executed}</span>
                             </div>
                         </div>
                     </CardContent>
