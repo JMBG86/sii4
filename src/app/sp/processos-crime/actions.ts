@@ -380,7 +380,8 @@ export async function updateProcesso(id: string, formData: FormData) {
 
     // --- Integration: Create Inquiry if SII or SII ALBUFEIRA ---
     const updateIntegration = async () => {
-        if ((updates.entidade_destino === 'SII ALBUFEIRA' || updates.entidade_destino === 'SII') && updates.nuipc_completo) {
+        const dest = updates.entidade_destino?.trim().toUpperCase()
+        if ((dest === 'SII ALBUFEIRA' || dest === 'SII') && updates.nuipc_completo) {
             try {
                 // Check if exists
                 const { data: existing } = await supabase

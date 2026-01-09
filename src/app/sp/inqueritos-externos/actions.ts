@@ -140,8 +140,9 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
 
     if (error) return { error: error.message }
 
-    // --- Integration: Create/Update Inquiry if changed to SII ALBUFEIRA ---
-    if (rawData.destino === 'SII ALBUFEIRA') {
+    // --- Integration: Create/Update Inquiry if SII ALBUFEIRA or SII ---
+    const dest = rawData.destino?.trim().toUpperCase()
+    if (dest === 'SII ALBUFEIRA' || dest === 'SII') {
         try {
             const { data: existing } = await supabase
                 .from('inqueritos')
@@ -150,10 +151,15 @@ export async function updateInqueritoExterno(id: string, formData: FormData) {
                 .single()
 
             if (existing) {
-                // Update existing
+                // If exists, update it.
+                // Logic: If it has a user, we want to reset it for redistribution BUT keep the history.
+                // We add a tag to observations: [Anterior: UUID]
+
                 let updatePayload: any = {
                     numero_oficio: rawData.numero_oficio,
                     tipo_crime: rawData.tipo_crime,
+                    // Append import note to existing or replace? User says "atualizar estes dados".
+                    // Let's prepend to keep history visible
                     observacoes: `[Atualização SP: ${new Date().toLocaleDateString()}] ${rawData.observacoes || ''} | Assunto: ${rawData.assunto || ''} \n\n${existing.observacoes || ''}`
                 }
 
