@@ -28,13 +28,21 @@ export async function fetchSeizures(type: 'Droga' | 'Telemóveis' | 'Armas' | 'V
         if (error) throw new Error(error.message)
         // Filter out nulls manually if inner join isn't strict enough in postgrest syntax used here
         return data.filter(p => p.sp_apreensoes_drogas && Object.keys(p.sp_apreensoes_drogas).length > 0)
+    } else if (type === 'Veículos') {
+        const { data, error } = await supabase
+            .from('sp_apreensoes_veiculos')
+            .select('*')
+            .order('data_nuipc', { ascending: false })
+
+        if (error) throw new Error(error.message)
+        return data
     } else {
         // For others, we query sp_apreensoes_info with filtering
         let filterKeyword = ''
         if (type === 'Telemóveis') filterKeyword = 'Telemoveis' // Matches "Material Informático: Telemoveis" (No accent in DB)
         if (type === 'Numerário') filterKeyword = 'Numerário'
         if (type === 'Armas') filterKeyword = 'Arma'
-        if (type === 'Veículos') filterKeyword = 'Veículos'
+        // Veiculos now handled above
 
         const { data, error } = await supabase
             .from('sp_apreensoes_info')
@@ -124,3 +132,24 @@ export async function getSidebarCounts() {
     }
 }
 
+
+export async function createVehicle(data: any) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('sp_apreensoes_veiculos').insert(data)
+    if (error) throw new Error(error.message)
+    return { success: true }
+}
+
+export async function updateVehicle(id: string, data: any) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('sp_apreensoes_veiculos').update(data).eq('id', id)
+    if (error) throw new Error(error.message)
+    return { success: true }
+}
+
+export async function deleteVehicle(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('sp_apreensoes_veiculos').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return { success: true }
+}

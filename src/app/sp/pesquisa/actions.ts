@@ -9,7 +9,8 @@ export async function searchSPGlobal(query: string) {
     const [
         { data: correspondence },
         { data: inquiries },
-        { data: processos }
+        { data: processos },
+        { data: vehicles }
     ] = await Promise.all([
         // 1. Search Correspondence
         supabase
@@ -37,12 +38,20 @@ export async function searchSPGlobal(query: string) {
             .from('sp_processos_crime')
             .select('*')
             .or(`nuipc_completo.ilike.${term},denunciante.ilike.${term},arguido.ilike.${term},vitima.ilike.${term},localizacao.ilike.${term},observacoes.ilike.${term},numero_oficio_envio.ilike.${term}`)
+            .limit(10),
+
+        // 4. Search Vehicles
+        supabase
+            .from('sp_apreensoes_veiculos')
+            .select('*')
+            .or(`matricula.ilike.${term},nuipc.ilike.${term},marca_modelo.ilike.${term}`)
             .limit(10)
     ])
 
     return {
         correspondence: correspondence || [],
         inquiries: inquiries || [],
-        processos: processos || []
+        processos: processos || [],
+        vehicles: vehicles || []
     }
 }

@@ -160,6 +160,23 @@ export async function searchSGGlobal(query: string) {
             })
     )
 
+    // 6. Vehicle Search
+    let vehicles: any[] = []
+    promises.push(
+        supabase
+            .from('sp_apreensoes_veiculos')
+            .select('*')
+            .or(`matricula.ilike.${term},nuipc.ilike.${term},marca_modelo.ilike.${term}`)
+            .limit(10)
+            .then(({ data, error }) => {
+                if (error) debugLog.push(`Vehicle Search Error: ${error.message}`)
+                if (data) {
+                    vehicles = data
+                    debugLog.push(`Vehicles found: ${data.length}`)
+                }
+            })
+    )
+
     // Wait for all safe promises
     await Promise.all(promises)
 
@@ -171,6 +188,7 @@ export async function searchSGGlobal(query: string) {
         correspondence,
         inquiries,
         processos: uniqueProcessos,
+        vehicles,
         debugLog // Return debug info to UI
     }
 }

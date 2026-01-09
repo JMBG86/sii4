@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Search, Loader2, FileText, Mail, User } from 'lucide-react'
+import { Search, Loader2, FileText, Mail, User, Car } from 'lucide-react'
 import { searchSPGlobal } from './actions'
 import Link from 'next/link'
 
@@ -158,6 +158,45 @@ export default function SPPesquisaPage() {
                                     ))}
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Vehicles Results */}
+            {hasSearched && results && results.vehicles && results.vehicles.length > 0 && (
+                <div className="mt-6">
+                    <Card className="border-amber-200 dark:border-amber-800">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Car className="h-5 w-5 text-amber-600" />
+                                Veículos ({results.vehicles.length})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                {results.vehicles.map((v: any) => (
+                                    <div key={v.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-sm bg-stone-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-stone-200 dark:border-zinc-700">
+                                                    {v.matricula}
+                                                </span>
+                                                <span className="text-sm font-medium">{v.marca_modelo}</span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                NUIPC: <span className="font-mono text-xs">{v.nuipc || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right text-xs">
+                                            <div>{v.deposito_sdter ? 'Depósito SDTER' : 'Outro Depósito'}</div>
+                                            <div className="text-[10px] text-muted-foreground">
+                                                {v.data_nuipc ? new Date(v.data_nuipc).toLocaleDateString() : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
