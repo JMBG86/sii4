@@ -15,6 +15,7 @@ Aplicação Web de Gestão de Inquéritos Criminais
 8. AUTENTICAÇÃO E SEGURANÇA
 9. FLUXOS DE TRABALHO
 10. CONFIGURAÇÕES E DEPLOYMENT
+11. ATUALIZAÇÕES RECENTES (v4.1 - Janeiro 2026)
 
 =============================================================================
 1. VISÃO GERAL DO PROJETO
@@ -803,6 +804,34 @@ MONITORIZAÇÃO
 - Realtime monitoring de sessões ativas
 
 =============================================================================
+11. ATUALIZAÇÕES RECENTES (v4.1 - Janeiro 2026)
+=============================================================================
+
+**Correções de Sincronização de Dados (SP -> SII)**
+- Corrigida a lógica de integração para aceitar destinos "SII" e "SII ALBUFEIRA".
+- Normalização de verificação de destino (ignora maiúsculas/espaços).
+- Garante que processos criados no SP aparecem corretamente em "Inquéritos por Distribuir".
+
+**Geolocalização SII**
+- Adicionado campo de coordenadas (latitude, longitude) à tabela `inqueritos`.
+- Integração de mapa interativo no detalhe do inquérito (`CrimeLocationMap`).
+- Permite visualizar e atualizar a localização do crime diretamente no mapa.
+
+**Gestão de Apreensão de Veículos**
+- Nova tabela `sp_apreensoes_veiculos` para registo detalhado.
+- Script de importação de dados históricos (`viaturas.xlsx`).
+- CRUD completo na secção de Apreensões (adicionar, editar, remover).
+- Integração na Pesquisa Global (SP e SG) para encontrar processos por matrícula.
+
+**Correção de Notificações**
+- Corrigido o link nas notificações automáticas de atribuição de inquérito.
+- Redireciona corretamente para `/inqueritos/detalhe?id=ID` em vez de rotas inexistentes.
+
+**Notificações de Imagens**
+- Adicionada monitorização de estado de imagens (1. Tem Imagens, 2. Notificação Feita, 3. Notificação Executada).
+- Visualização rápida do estado através de indicadores coloridos (Vermelho, Amarelo, Verde).
+
+=============================================================================
 NOTAS FINAIS
 =============================================================================
 
@@ -814,6 +843,7 @@ NOTAS FINAIS
 - ✅ Exportações PDF/Excel/DOCX funcionais
 - ✅ Realtime updates ativos
 - ✅ Responsivo (desktop + tablet)
+- ✅ Geolocalização integrada
 
 **Melhorias Futuras Possíveis**
 - [ ] Modo offline (PWA)
@@ -831,7 +861,7 @@ NOTAS FINAIS
 - Deploy: https://sii4.vercel.app
 - Supabase: [Project Dashboard URL]
 
-**Última Atualização**: 2026-01-06
+**Última Atualização**: 2026-01-10
 **Versão do Sistema**: 4.x
 **Desenvolvido por**: [Equipa de Desenvolvimento]
 

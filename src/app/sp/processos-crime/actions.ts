@@ -157,6 +157,42 @@ export async function getProcessoBySequence(seq: number, year: number = 2025) {
     return data
 }
 
+export async function getProcessoById(id: string) {
+    const supabase = createClient()
+    const { data, error } = await supabase
+        .from('sp_processos_crime')
+        .select(`
+            *,
+            sp_detidos_info(*),
+            sp_criancas_info(*),
+            sp_apreensoes_info(*),
+            sp_apreensoes_drogas(*)
+        `)
+        .eq('id', id)
+        .single()
+
+    if (error) {
+        console.error('Error fetching process by ID:', error)
+        return null
+    }
+
+    // Normalize data structure to match what ProcessoDetailDialog expects
+    // The dialog expects these as boolean/lists, but data comes joined.
+    // However, the Dialog internally fetches related data via separate actions in useEffect.
+    // So passing the main record is enough for the initial state, 
+    // AND we can pass the pre-fetched related data if we refactor the Dialog, 
+    // BUT the Dialog currently fetches its own data.
+    //
+    // WAIT: The Dialog implementation I saw fetches related data inside `useEffect` using `getDetidos`, `getCriancas`, etc.
+    // So `getProcessoById` just needs to return the main record essentially, 
+    // OR I can use the same actions the Dialog uses.
+    //
+    // Actually, relying on the Dialog's internal fetching is safer for consistency.
+    // So I just need to return the main `SPProcessoCrime` object.
+
+    return data
+}
+
 // --- Detidos ---
 
 export async function getDetidos(processoId: string) {
@@ -207,7 +243,8 @@ export async function updateProcesso(id: string, formData: FormData) {
         'nuipc_completo', 'data_registo', 'data_factos', 'data_conhecimento', 'localizacao',
         'latitude', 'longitude',
         'tipo_crime', 'denunciante', 'vitima', 'arguido',
-        'envio_em', 'numero_oficio_envio', 'entidade_destino', 'observacoes'
+        'envio_em', 'numero_oficio_envio', 'entidade_destino', 'observacoes',
+        'militar_participante'
     ]
 
     fields.forEach(field => {

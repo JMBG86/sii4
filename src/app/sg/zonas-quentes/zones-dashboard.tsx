@@ -57,6 +57,41 @@ function deg2rad(deg: number) {
     return deg * (Math.PI / 180)
 }
 
+// Helper to apply jitter to overlapping points
+function applyJitter(points: CrimePoint[]) {
+    const counts = new Map<string, number>()
+    const jitteredPoints: CrimePoint[] = []
+
+    points.forEach(p => {
+        const key = `${p.latitude.toFixed(6)},${p.longitude.toFixed(6)}`
+        const count = counts.get(key) || 0
+
+        if (count > 0) {
+            // Apply jitter
+            // Radius ~ 0.0001 (approx 10-15m)
+            // Angle increments to spread them out
+            const angle = count * (2 * Math.PI / 8) // spread around circle
+            const radius = 0.00015 // slightly larger to be clearly visible
+
+            const newLat = p.latitude + (radius * Math.cos(angle))
+            const newLon = p.longitude + (radius * Math.sin(angle))
+
+            jitteredPoints.push({
+                ...p,
+                latitude: newLat,
+                longitude: newLon
+            })
+        } else {
+            // Keep original
+            jitteredPoints.push(p)
+        }
+
+        counts.set(key, count + 1)
+    })
+
+    return jitteredPoints
+}
+
 export function ZonesDashboard({ initialPoints, availableCrimeTypes }: ZonesDashboardProps) {
     const [focusedPoints, setFocusedPoints] = useState<CrimePoint[] | null>(null)
     const [patterns, setPatterns] = useState<Pattern[]>([])
@@ -118,7 +153,10 @@ export function ZonesDashboard({ initialPoints, availableCrimeTypes }: ZonesDash
 
     }, [initialPoints])
 
-    const pointsToDisplay = focusedPoints || initialPoints
+    const pointsToDisplay = useMemo(() => {
+        const target = focusedPoints || initialPoints
+        return applyJitter(target)
+    }, [focusedPoints, initialPoints])
 
     return (
         <div className="space-y-6">

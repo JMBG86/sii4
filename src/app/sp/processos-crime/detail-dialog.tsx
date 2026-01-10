@@ -382,6 +382,17 @@ export function ProcessoDetailDialog({
                                 <Input id="nuipc_completo" name="nuipc_completo" defaultValue={processo.nuipc_completo || ''} placeholder="Ex: 500/25.3GBABF" required readOnly={readOnly} />
                             </div>
 
+                            <div className="space-y-2">
+                                <Label htmlFor="militar_participante">Militar Participante (ID)</Label>
+                                <Input
+                                    id="militar_participante"
+                                    name="militar_participante"
+                                    defaultValue={(processo as any).militar_participante || ''}
+                                    placeholder="Ex: 2090349"
+                                    readOnly={readOnly}
+                                />
+                            </div>
+
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="data_registo">Data Registo</Label>

@@ -13,7 +13,8 @@ import {
     LogOut,
     User,
     ShieldAlert,
-    Package
+    Package,
+    TrendingUp
 } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/client'
@@ -51,6 +52,11 @@ const sgSidebarItems = [
         title: 'Estatística',
         href: '/sg/estatistica',
         icon: BarChart3,
+    },
+    {
+        title: 'Resultados Operacionais',
+        href: '/sg/resultados',
+        icon: TrendingUp,
     },
     {
         title: 'Pesquisa',

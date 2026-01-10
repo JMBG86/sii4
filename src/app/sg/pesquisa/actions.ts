@@ -181,8 +181,56 @@ export async function searchSGGlobal(query: string) {
     await Promise.all(promises)
 
     // Deduplicate processes by ID
-    const uniqueProcessos = Array.from(new Map(processos.map(item => [item.id, item])).values())
+    let uniqueProcessos = Array.from(new Map(processos.map(item => [item.id, item])).values())
     debugLog.push(`Total Unique Processes: ${uniqueProcessos.length}`)
+
+    // Post-processing: Fetch Linked Users for SP Processes
+    if (uniqueProcessos.length > 0) {
+        const nuipcs = uniqueProcessos.map((p: any) => p.nuipc_completo).filter(Boolean)
+
+        if (nuipcs.length > 0) {
+            const { data: linkedInquiries, error: linkError } = await supabase
+                .from('inqueritos')
+                .select('nuipc, user_id, profiles:user_id(full_name)')
+                .in('nuipc', nuipcs)
+
+            if (linkedInquiries) {
+                const linkMap = new Map(linkedInquiries.map((i: any) => [i.nuipc, i.profiles?.full_name]))
+
+                // Attach display user
+                uniqueProcessos = uniqueProcessos.map((p: any) => {
+                    const linkedName = linkMap.get(p.nuipc_completo)
+
+                    // Priority:
+                    // 1. Linked SII User
+                    // 2. Militar Participante (ID)
+                    // 3. Entidade Destino
+                    let displayUser = null
+                    let userSource = null
+
+                    if (linkedName) {
+                        displayUser = linkedName
+                        userSource = 'SII'
+                    } else if (p.militar_participante) {
+                        displayUser = `Militar nº ${p.militar_participante}`
+                        userSource = 'SP'
+                    } else if (p.entidade_destino) {
+                        displayUser = p.entidade_destino
+                        userSource = 'Destino'
+                    }
+
+                    return { ...p, displayUser, userSource }
+                })
+            }
+        } else {
+            // Fallback if no NUIPCs but we have militar info
+            uniqueProcessos = uniqueProcessos.map((p: any) => ({
+                ...p,
+                displayUser: p.militar_participante ? `Militar nº ${p.militar_participante}` : (p.entidade_destino || null),
+                userSource: p.militar_participante ? 'SP' : 'Destino'
+            }))
+        }
+    }
 
     return {
         correspondence,

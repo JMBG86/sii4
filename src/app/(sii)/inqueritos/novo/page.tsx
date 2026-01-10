@@ -21,6 +21,7 @@ import { useState, useEffect } from 'react'
 import { Loader2, Plus, X } from 'lucide-react'
 import { Profile } from '@/types/database'
 import { useRouter } from 'next/navigation'
+import { CrimeTypeSelect } from '@/app/sp/components/crime-type-select'
 
 export default function AddInquiryPage() {
     const [loading, setLoading] = useState(false)
@@ -28,6 +29,7 @@ export default function AddInquiryPage() {
     const [isAdmin, setIsAdmin] = useState(false)
     const [profiles, setProfiles] = useState<Profile[]>([])
     const router = useRouter()
+    const [tipoCrime, setTipoCrime] = useState('')
 
     // Dynamic Lists State
     const [denunciantes, setDenunciantes] = useState<{ id: number; nome: string }[]>([{ id: 1, nome: '' }])
@@ -145,9 +147,18 @@ export default function AddInquiryPage() {
                             />
                         </div>
 
+
+
+
+
                         <div className="space-y-2">
                             <Label htmlFor="tipo_crime">Tipo de Crime</Label>
-                            <Input id="tipo_crime" name="tipo_crime" placeholder="Ex: Furto Qualificado" />
+                            <CrimeTypeSelect
+                                value={tipoCrime}
+                                onChange={setTipoCrime}
+                            />
+                            {/* Hidden input to ensure it is captured by FormData in handleSubmit */}
+                            <input type="hidden" name="tipo_crime" value={tipoCrime} />
                         </div>
 
                         {/* Dynamic Fields Section */}
