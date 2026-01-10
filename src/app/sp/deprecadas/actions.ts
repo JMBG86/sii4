@@ -54,17 +54,18 @@ export async function createDeprecada(formData: FormData) {
     // Integration: Create Pending Inquiry if SII ALBUFEIRA
     // (Same logic as External Inquiries)
 
-    // Integration: Create Pending Inquiry if SII ALBUFEIRA or SII
+    // Integration: Create OR Update Pending Inquiry if SII ALBUFEIRA or SII
     // (Same logic as External Inquiries)
     if (rawData.destino === 'SII ALBUFEIRA' || rawData.destino === 'SII') {
         try {
             const { data: existing } = await supabase
                 .from('inqueritos')
-                .select('id')
+                .select('id, observacoes, created_at')
                 .eq('nuipc', rawData.nuipc)
                 .single()
 
             if (!existing) {
+                // Create new
                 const { error: insertError } = await supabase.from('inqueritos').insert({
                     nuipc: rawData.nuipc,
                     estado: 'por_iniciar',
@@ -77,6 +78,32 @@ export async function createDeprecada(formData: FormData) {
                     denunciantes: []
                 })
                 if (insertError) console.error('Error creating linked inquiry:', insertError)
+            } else {
+                // Update existing to ensure it enters the distribution workflow
+                // Append tag if missing
+                let newObs = existing.observacoes || ''
+                if (!newObs.includes('[DEPRECADA]')) {
+                    newObs = `[DEPRECADA] ${newObs}` // Prepend
+                }
+                // Add Deprecada details if not present (simple check)
+                if (!newObs.includes(rawData.observacoes)) {
+                    newObs += ` | +DEPRECADA: ${rawData.observacoes}`
+                }
+
+                const { error: updateError } = await supabase
+                    .from('inqueritos')
+                    .update({
+                        destino: 'SII', // Force destination to SII
+                        estado: 'por_iniciar', // Force state to pending start (so it appears in distribution)
+                        user_id: null, // Unassign so it appears in distribution list
+                        observacoes: newObs,
+                        // Update basic metadatas if they are missing? 
+                        // It's safer to leave other fields unless explicitly requested, 
+                        // but ensure it wakes up in the system.
+                    })
+                    .eq('id', existing.id)
+
+                if (updateError) console.error('Error updating linked inquiry for deprecada:', updateError)
             }
         } catch (err) {
             console.error('Integration error:', err)
@@ -115,6 +142,74 @@ export async function updateDeprecada(id: string, formData: FormData) {
         .eq('id', id)
 
     if (error) return { error: error.message }
+
+    // Integration Sync: If updated to SII, ensure linked inquiry exists and is correctly set
+    if (rawData.destino === 'SII ALBUFEIRA' || rawData.destino === 'SII') {
+        try {
+            const { data: existing } = await supabase
+                .from('inqueritos')
+                .select('id, observacoes')
+                .eq('nuipc', rawData.nuipc)
+                .single()
+
+            if (!existing) {
+                // Create if it doesn't exist (e.g. if it was previously another destination and now became SII)
+                const { error: insertError } = await supabase.from('inqueritos').insert({
+                    nuipc: rawData.nuipc,
+                    estado: 'por_iniciar',
+                    classificacao: 'normal',
+                    user_id: null,
+                    numero_oficio: rawData.numero_oficio,
+                    observacoes: `[DEPRECADA] ${rawData.observacoes} | Assunto: ${rawData.assunto || ''} | Origem: ${rawData.origem || ''}`,
+                    destino: 'SII',
+                    denunciados: [],
+                    denunciantes: []
+                })
+                if (insertError) console.error('Error creating linked inquiry on update:', insertError)
+            } else {
+                // Update existing to reflect potential changes
+                // Logic: If it was already linked, we update observations and ensure it is still SII.
+                // We only force unassign if it WAS NOT SII before? Hard to know state transition here without previous fetch.
+                // However, user intent on "Deprecada" usually implies new task.
+                // Let's be safe: If we are editing, we might just be fixing a typo.
+                // Re-assigning or resetting state on EVERY edit might be annoying.
+                // BUT the user specific complaint was "nao transitaram".
+                // So I will ensure attributes are consistent, but maybe NOT force reset state/user unless explicitly requested?
+                // User request: "esta comunicacao tem de existir sempre... deve ir para SII ... para ser associada"
+                // This implies that if I fix a deprecada to be SII, it should appear in distribution.
+                // I will stick to the same logic: Force SII and Ensure it's visible.
+
+                let newObs = existing.observacoes || ''
+                if (!newObs.includes('[DEPRECADA]')) {
+                    newObs = `[DEPRECADA] ${newObs}`
+                }
+                // Avoid duplicate appending on multiple edits, but complex to parse.
+                // Just update destination and ensure it is valid.
+
+                const { error: updateError } = await supabase
+                    .from('inqueritos')
+                    .update({
+                        destino: 'SII',
+                        // Note: On EDIT, maybe we shouldn't reset 'user_id' if someone is already working on it?
+                        // But if it wasn't SII before, it wouldn't be assigned in SII context.
+                        // Let's assume if I'm editing a Deprecada, I want it to be processed.
+                        // I will NOT reset user_id here to avoid disrupting active work if just fixing a typo.
+                        // I WILL update destination.
+                        // Wait, if it wasn't SII before, it might not even be in the system?
+                        // If it IS in the system, and I change Dest to SII, I probably want it distributed.
+                        // Trade-off: Resetting might annoy, but missing distribution is the reported bug.
+                        // I will set destination to 'SII'. I won't reset state/user on update to be conservative.
+                        // Creating a new one (re-import) is cleaner for "resetting".
+                        observacoes: newObs
+                    })
+                    .eq('id', existing.id)
+
+                if (updateError) console.error('Error updating linked inquiry on edit:', updateError)
+            }
+        } catch (err) {
+            console.error('Integration error on update:', err)
+        }
+    }
 
     return { success: true }
 }

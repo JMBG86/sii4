@@ -868,3 +868,29 @@ NOTAS FINAIS
 =============================================================================
 FIM DO DOCUMENTO
 =============================================================================
+==================================================
+SESSION UPDATE (2026-01-10)
+==================================================
+
+1. SP Process Auto-Scroll:
+   - Fixed the issue where the map didn't scroll to the last item.
+   - Implemented a robust 'Go to Last' button in the toolbar as a guaranteed fallback.
+   - Logic handles cross-page navigation automatically.
+
+2. Operational Results Dashboard (SG):
+   - Created new section /sg/resultados.
+   - Implemented server actions to aggregate stats by 'militar_participante'.
+   - Added KPI Cards (Processos, Detidos, Top Performer).
+   - Added Bar Chart (Top 10 Detainees).
+   - Added Detailed Table (Performance stats + Top Crime Type).
+
+3. Administration & Migrations:
+   - Prepared and verified migrations for militar_participante and 
+otificacao_militar.
+   - Updated Admin Panel logic for permissions.
+
+4. Git Sync:
+   - Resolved branch conflicts (master vs main) and successfully pushed all changes to remote.
+
+STATUS: All planned tasks completed.
+
