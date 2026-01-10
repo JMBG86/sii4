@@ -1,13 +1,9 @@
 import { createClient } from '@/lib/supabase/client'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-// WARNING: This file is mixed. 
-// fetchProcessos and others are CLIENT SERVICE functions now.
-// HOWEVER, "fetchAllProcessosForExport" might be used by a Server Route???
-// Wait, if output: 'export', there are no Server Routes. 
-// So everything must be Client.
-// Removing revalidatePath and server imports.
+import { unstable_noStore as noStore } from 'next/cache'
 
 export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '', year: number = 2026) {
+    noStore()
     const supabase = createClient()
 
     let query = supabase
@@ -33,6 +29,34 @@ export async function fetchProcessos(page = 1, pageSize = 50, searchTerm = '', y
 
     if (error) throw new Error(error.message)
     return { data, count }
+}
+
+export async function fetchProcessStats(year: number = 2026) {
+    noStore()
+    const supabase = createClient()
+
+    // 1. Get total count (including empty slots) - needed for total pages? 
+    // Actually, total pages IS determining navigation range.
+    const { count, error } = await supabase
+        .from('sp_processos_crime')
+        .select('*', { count: 'exact', head: true })
+        .eq('ano', year)
+
+    if (error) throw new Error(error.message)
+
+    // 2. Get the last REGISTERED sequence (max seq where nuipc is not null)
+    const { data: lastReg } = await supabase
+        .from('sp_processos_crime')
+        .select('numero_sequencial')
+        .eq('ano', year)
+        .not('nuipc_completo', 'is', null)
+        .order('numero_sequencial', { ascending: false })
+        .limit(1)
+        .single()
+
+    const lastSeq = lastReg?.numero_sequencial || 1
+
+    return { count: count || 0, lastSeq }
 }
 
 export async function fetchAllProcessosForExport() {
