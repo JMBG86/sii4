@@ -2,79 +2,76 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export interface OperationalStat {
+export interface MilitaryStats {
     militar_id: string
     total_processos: number
     total_detidos: number
     top_crime: string
-    crimes_breakdown: Record<string, number>
+    crime_counts: Record<string, number>
 }
 
-export async function fetchOperationalStats(year: number = 2026): Promise<OperationalStat[]> {
+export async function fetchOperationalStats(year: number = 2026): Promise<MilitaryStats[]> {
     const supabase = await createClient()
 
-    // Fetch processes for the given year with militar_participante filled
-    // We only select the fields we need. 
-    // Types from DB might be inferred as any if not strictly typed, so we can cast or use generic.
-    const { data: processes, error } = await supabase
+    // Fetch all processes for the year with relevant fields
+    // We fetch ALL rows to aggregate in memory (efficient enough for N < 10000)
+    // SQL aggregation would be better but requires RPC or complex joins not easily typed here without views.
+    const { data, error } = await supabase
         .from('sp_processos_crime')
-        .select('militar_participante, total_detidos, tipo_crime')
+        .select(`
+            id,
+            militar_participante,
+            total_detidos,
+            tipo_crime
+        `)
         .eq('ano', year)
         .not('militar_participante', 'is', null)
-        .neq('militar_participante', '')
 
-    if (error) {
-        console.error('Error fetching operational stats:', error)
-        return []
-    }
+    if (error) throw new Error(error.message)
+    if (!data) return []
 
-    if (!processes) return []
+    // Aggregate
+    const statsMap = new Map<string, MilitaryStats>()
 
-    // Aggregation Logic
-    const statsMap = new Map<string, OperationalStat>()
+    data.forEach(p => {
+        const mid = p.militar_participante?.trim()
+        if (!mid) return
 
-    processes.forEach((p: { militar_participante: string | null, total_detidos: number | null, tipo_crime: string | null }) => {
-        // Safe check for militar_participante (although we filtered in query, it might be null in type definition)
-        if (!p.militar_participante) return
-
-        const id = p.militar_participante
-        if (!statsMap.has(id)) {
-            statsMap.set(id, {
-                militar_id: id,
+        if (!statsMap.has(mid)) {
+            statsMap.set(mid, {
+                militar_id: mid,
                 total_processos: 0,
                 total_detidos: 0,
-                top_crime: 'N/A',
-                crimes_breakdown: {}
+                top_crime: '',
+                crime_counts: {}
             })
         }
 
-        const stat = statsMap.get(id)!
-        stat.total_processos += 1
-        stat.total_detidos += (p.total_detidos || 0)
+        const stats = statsMap.get(mid)!
+        stats.total_processos++
+        stats.total_detidos += (p.total_detidos || 0)
 
-        // Crime Type Count
-        const crime = p.tipo_crime || 'Indeterminado'
-        stat.crimes_breakdown[crime] = (stat.crimes_breakdown[crime] || 0) + 1
-    })
-
-    // Calculate Top Crime for each
-    const results = Array.from(statsMap.values()).map(stat => {
-        let maxCount = 0
-        let top = 'N/A'
-
-        Object.entries(stat.crimes_breakdown).forEach(([crime, count]) => {
-            if (count > maxCount) {
-                maxCount = count
-                top = crime
-            }
-        })
-
-        return {
-            ...stat,
-            top_crime: top
+        if (p.tipo_crime) {
+            stats.crime_counts[p.tipo_crime] = (stats.crime_counts[p.tipo_crime] || 0) + 1
         }
     })
 
-    // Sort by Total Detentions (Descending) by default
-    return results.sort((a, b) => b.total_detidos - a.total_detidos)
+    // Finalize: Determine Top Crime for each
+    const result = Array.from(statsMap.values()).map(stats => {
+        let maxCrime = '-'
+        let maxCount = 0
+        Object.entries(stats.crime_counts).forEach(([crime, count]) => {
+            if (count > maxCount) {
+                maxCount = count
+                maxCrime = crime
+            }
+        })
+        return {
+            ...stats,
+            top_crime: maxCrime
+        }
+    })
+
+    // Default Sort: Most Detainees DESC
+    return result.sort((a, b) => b.total_detidos - a.total_detidos)
 }
