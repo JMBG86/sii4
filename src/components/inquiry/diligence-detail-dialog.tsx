@@ -22,9 +22,10 @@ interface DiligenceDetailDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     inquiryId: string
+    onUpdate?: () => void
 }
 
-export function DiligenceDetailDialog({ diligence, open, onOpenChange, inquiryId }: DiligenceDetailDialogProps) {
+export function DiligenceDetailDialog({ diligence, open, onOpenChange, inquiryId, onUpdate }: DiligenceDetailDialogProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
 
@@ -36,6 +37,7 @@ export function DiligenceDetailDialog({ diligence, open, onOpenChange, inquiryId
             await updateDiligence(diligence.id, formData)
             setIsEditing(false)
             onOpenChange(false)
+            if (onUpdate) setTimeout(() => onUpdate(), 100)
         } catch (error) {
             console.error('Error updating diligence:', error)
         } finally {
@@ -50,6 +52,7 @@ export function DiligenceDetailDialog({ diligence, open, onOpenChange, inquiryId
         try {
             await deleteDiligence(diligence.id, inquiryId)
             onOpenChange(false)
+            if (onUpdate) setTimeout(() => onUpdate(), 100)
         } catch (error) {
             console.error('Error deleting diligence:', error)
         } finally {

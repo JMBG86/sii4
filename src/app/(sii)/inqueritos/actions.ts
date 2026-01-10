@@ -1,7 +1,9 @@
-import { createClient } from '@/lib/supabase/client'
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
 
 export async function createInquiry(formData: FormData) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const nuipc = formData.get('nuipc') as string
     const tipo_crime = formData.get('tipo_crime') as string
@@ -75,7 +77,7 @@ export async function createInquiry(formData: FormData) {
 }
 
 export async function updateInquiryState(inquiryId: string, newState: string, comment: string, numeroOficio?: string, destino?: string) {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     // 1. Get old state
@@ -168,7 +170,13 @@ export async function updateInquiryState(inquiryId: string, newState: string, co
 }
 
 export async function addDiligence(formData: FormData) {
-    const supabase = createClient()
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { error: 'Utilizador não autenticado.' }
+    }
 
     const inquerito_id = formData.get('inquerito_id') as string
     const descricao = formData.get('descricao') as string
@@ -180,8 +188,8 @@ export async function addDiligence(formData: FormData) {
     const { error } = await supabase.from('diligencias').insert({
         inquerito_id,
         descricao,
-        entidade,
-        tipo,
+        entidade: entidade || null, // Handle empty string
+        tipo: tipo || 'geral',     // Default type
         data_enviado: data_enviado || null,
         status,
         estado: 'pendente'
@@ -191,10 +199,11 @@ export async function addDiligence(formData: FormData) {
         console.error('Error adding diligence:', error)
         return { error: error.message || 'Erro ao criar diligência.' }
     }
+    return { success: true }
 }
 
 export async function deleteInquiry(inquiryId: string) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // 1. Fetch to check origin and assignment status
     const { data: inquiry } = await supabase
@@ -240,7 +249,7 @@ export async function deleteInquiry(inquiryId: string) {
 }
 
 export async function updateDiligence(diligenceId: string, formData: FormData) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const descricao = formData.get('descricao') as string
     const entidade = formData.get('entidade') as string
@@ -264,7 +273,7 @@ export async function updateDiligence(diligenceId: string, formData: FormData) {
 }
 
 export async function deleteDiligence(diligenceId: string, inquiryId: string) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { error } = await supabase
         .from('diligencias')
@@ -278,7 +287,7 @@ export async function deleteDiligence(diligenceId: string, inquiryId: string) {
 }
 
 export async function updateInquiry(inquiryId: string, formData: FormData) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const nuipc = formData.get('nuipc') as string
     const tipo_crime = formData.get('tipo_crime') as string
@@ -329,7 +338,7 @@ export async function updateInquiry(inquiryId: string, formData: FormData) {
 
 
 export async function updateInquiryLocation(id: string, lat: number, lng: number) {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { error } = await supabase
         .from('inqueritos')
         .update({ latitude: lat, longitude: lng })

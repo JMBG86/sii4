@@ -26,9 +26,10 @@ import { useEffect } from 'react'
 interface DiligenceListProps {
     diligences: Diligence[]
     inquiryId: string
+    onUpdate?: () => void
 }
 
-export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
+export function DiligenceList({ diligences, inquiryId, onUpdate }: DiligenceListProps) {
     const [diligencesList, setDiligencesList] = useState(diligences)
     const [showAdd, setShowAdd] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -59,6 +60,8 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
                     // we can either re-fetch locally or refresh router.
                     // Refreshing router is easiest way to keep sync with parent SC.
                     router.refresh()
+                    // Call onUpdate if provided to let parent re-fetch data (for Client Component parents)
+                    if (onUpdate) onUpdate()
                 }
             )
             .subscribe()
@@ -66,7 +69,7 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [supabase, inquiryId, router])
+    }, [supabase, inquiryId, router, onUpdate])
 
     const handleAdd = async (formData: FormData) => {
         setLoading(true)
@@ -76,6 +79,10 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
             alert(result.error) // Simple alert for now
         } else {
             setShowAdd(false)
+            if (onUpdate) {
+                // Short timeout to ensure DB propagation
+                setTimeout(() => onUpdate(), 100)
+            }
         }
 
         setLoading(false)
@@ -181,6 +188,7 @@ export function DiligenceList({ diligences, inquiryId }: DiligenceListProps) {
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 inquiryId={inquiryId}
+                onUpdate={onUpdate}
             />
         </>
     )

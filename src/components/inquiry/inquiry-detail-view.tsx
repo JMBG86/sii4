@@ -225,7 +225,7 @@ export default function InquiryDetailView({ inquiryId, onClose, hideBack = false
                         </CardContent>
                     </Card>
 
-                    <DiligenceList inquiryId={inquiry.id} diligences={diligences || []} />
+                    <DiligenceList inquiryId={inquiry.id} diligences={diligences || []} onUpdate={loadData} />
                 </div>
 
                 <div className="space-y-6">
